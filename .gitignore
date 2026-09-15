@@ -1,2 +1,18 @@
 # Source E-Links API specification and reference-data extracts (not part of the mock's source code)
 joh-elinks-api/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# Java build output (Maven and/or Gradle)
+target/
+build/
+
+# Logs
+*.log

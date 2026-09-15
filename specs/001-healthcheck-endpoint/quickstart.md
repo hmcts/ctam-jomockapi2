@@ -27,6 +27,7 @@ curl -i http://localhost:8080/elinks/api/v5/healthcheck
 - HTTP status: `200 OK`
 - Response body: empty
 - No `Authorization` header required
+- An `X-Correlation-Id` response header is present (Constitution Principle XIV)
 
 Repeat the call several times (including with an extra, undocumented query parameter,
 e.g. `?foo=bar`) — every response must be identical: `200 OK` with an empty body.
@@ -46,7 +47,20 @@ curl -i -X POST http://localhost:8080/elinks/api/v5/healthcheck
 ```
 
 **Expected outcome**: HTTP `405 Method Not Allowed`, produced by the application's
-centralised error handling (not a special case in the healthcheck controller).
+centralised error handling (not a special case in the healthcheck controller), with a
+JSON body in the shared error shape: `{"message": "...", "timestamp": "...", "traceId":
+"..."}` (Constitution Principle IX, amended v1.1.0), where `traceId` matches the
+response's `X-Correlation-Id` header.
+
+## Run the quality gates
+
+```bash
+./mvnw verify
+```
+
+**Expected outcome**: compiler warnings-as-errors, checkstyle, OWASP dependency-check,
+and JaCoCo coverage reporting all run and pass with no violations (Constitution
+Principle XIII, added v1.1.0).
 
 ## Run automated tests
 

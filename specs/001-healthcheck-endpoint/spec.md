@@ -122,3 +122,8 @@ domain data or entities. It only reports the mock service's own availability.)*
   is running and responsive.
 - No request parameters, headers, or body content need to be validated or acted upon,
   since the source specification defines none for this operation.
+- Per project-wide governance (constitution v1.1.0), every response — including this
+  endpoint's — carries a request-correlation identifier as a response header, and the
+  one error case this endpoint can produce (an unsupported HTTP method) uses a shared,
+  project-wide error response shape. Neither changes this spec's FR-004 requirement that
+  the successful (`200`) response body itself stays empty — a header is not a body.
