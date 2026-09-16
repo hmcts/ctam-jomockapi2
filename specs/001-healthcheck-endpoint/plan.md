@@ -33,7 +33,10 @@ since the operation has nothing to compute, validate, or map.
 state-independent response (FR-005); no parameters accepted or required (FR-002)
 
 **Scale/Scope**: Single endpoint; this plan also stands up the base Spring Boot
-application skeleton since no prior feature exists in this repository
+application skeleton since no prior feature exists in this repository, plus the
+project-wide shared error/observability/quality-gate infrastructure required by
+Constitution v1.1.0 (Principles IX, XIII, XIV) so later features inherit it rather than
+each retrofitting their own (see `research.md`)
 
 ## Constitution Check
 
@@ -49,16 +52,25 @@ application skeleton since no prior feature exists in this repository
 | VI. Behavioural Fidelity | PASS | No parameters are defined by the contract, so there is nothing to silently ignore; FR-002 confirms this explicitly. |
 | VII. Generic Reference-Data Handling | N/A | This feature is not a reference-data endpoint. |
 | VIII. Typed API Models | PASS | Response body is empty by contract (FR-004); no DTO is needed, so there is no `Map<String,Object>` shortcut to avoid. |
-| IX. Centralised Validation and Error Handling | PASS | No input to validate. Global exception handling is still applied at the application level so any unexpected error still returns a consistent, centrally-handled response — this feature does not bypass it. |
+| IX. Centralised Validation and Error Handling *(shape amended v1.1.0)* | PASS | No input to validate. The one error case this endpoint can produce (405 on an unsupported method) is handled by the shared `GlobalExceptionHandler`, returning the shared `ErrorResponse` shape (message + correlation ID) mandated by the amended principle, not a bespoke body. |
 | X. Configuration Over Hard-Coding | PASS | Nothing environment-specific is hard-coded; the endpoint's behaviour is fixed by contract, not by scenario configuration this feature needs to expose. |
 | XI. Testability | PASS | Controller/API test (MockMvc) and a contract test asserting path/method/status/empty-body are planned (see `research.md` for the contract-test approach given no machine-readable OpenAPI file exists). |
 | XII. Simplicity and Maintainability | PASS | Single thin controller, no premature abstraction; matches the feature's actual scope. |
+| XIII. Automated Quality Gates *(added v1.1.0)* | PASS | Maven build gets compiler warnings-as-errors, checkstyle, OWASP dependency-check (+ suppressions file), JaCoCo, and a CI workflow as part of this feature's bootstrap (`research.md`), since this is the feature that establishes the build itself. |
+| XIV. Observability & Traceability *(added v1.1.0)* | PASS | A shared `CorrelationIdFilter` and `GlobalExceptionHandler`/`ErrorResponse` are introduced here (`research.md`) so every request — including this endpoint's — carries a correlation ID and any error response uses the shared shape; the healthcheck's own `200` body stays empty per FR-004 (a header, not a body). |
 
 No violations requiring justification. Complexity Tracking is not needed.
 
 *Post-Phase 1 re-check*: The design artifacts (`data-model.md`, `contracts/healthcheck.md`,
-`quickstart.md`) introduce no entities, DTOs, or shared components beyond a single thin
-controller, so every row above still holds unchanged after design. No new violations.
+`quickstart.md`) introduce no entities or DTOs beyond the shared `ErrorResponse`/
+`CorrelationIdFilter`/`GlobalExceptionHandler` infrastructure required by Principles IX,
+XIII, and XIV; the healthcheck controller itself remains a single thin handler. No new
+violations.
+
+*Amendment re-check (constitution v1.0.0 → v1.1.0, 2026-09-15)*: This plan was
+originally written against v1.0.0 (Principles I–XII only). Rows for the two added
+principles (XIII, XIV) and the amended Principle IX are now included above; see
+`research.md` for the corresponding new decisions. No other row changed.
 
 ## Project Structure
 
@@ -82,20 +94,34 @@ Maven/Spring Boot project layout. Single project (standard Spring Boot Maven lay
 
 ```text
 pom.xml
+config/owasp/suppressions.xml         # OWASP dependency-check accepted-finding records (Principle XIII)
+
+.github/workflows/ci.yml              # mvn -B verify on every PR and push to main (Principle XIII)
 
 src/
 ├── main/
 │   ├── java/uk/gov/moj/elinks/mock/
 │   │   ├── ElinksMockApplication.java
-│   │   └── healthcheck/
-│   │       └── HealthcheckController.java
+│   │   ├── healthcheck/
+│   │   │   └── HealthcheckController.java
+│   │   ├── tracing/
+│   │   │   └── CorrelationIdFilter.java     # shared: correlation ID in MDC + response header (Principle XIV)
+│   │   ├── logging/
+│   │   │   └── LogSanitizer.java            # shared: strips CR/LF from values before logging (Principle XIV)
+│   │   └── error/
+│   │       ├── ErrorResponse.java           # shared error DTO: message, timestamp, traceId (Principle IX)
+│   │       └── GlobalExceptionHandler.java  # shared: maps framework failures to ErrorResponse (Principle IX)
 │   └── resources/
 │       └── application.yml
 └── test/
     └── java/uk/gov/moj/elinks/mock/
-        └── healthcheck/
-            ├── HealthcheckControllerTest.java   # controller/API test
-            └── HealthcheckContractTest.java      # contract test vs. source spec
+        ├── healthcheck/
+        │   ├── HealthcheckControllerTest.java   # controller/API test
+        │   └── HealthcheckContractTest.java      # contract test vs. source spec
+        ├── tracing/
+        │   └── CorrelationIdFilterTest.java
+        └── error/
+            └── GlobalExceptionHandlerTest.java
 ```
 
 **Structure Decision**: Single Maven-based Spring Boot application at the repository
@@ -104,7 +130,10 @@ under the base package (`uk.gov.moj.elinks.mock`, see `research.md`) holds this
 feature's controller and tests; later features will add their own sub-packages
 (and, where behaviour is genuinely shared, common packages such as `pagination`,
 `referencedata`, or `errorhandling`) alongside it rather than inside it, per Principle
-III.
+III. The new `tracing`, `logging`, and `error` packages are shared, project-wide
+infrastructure (Principles IX, XIII, XIV) introduced here because this feature
+bootstraps the skeleton; `002-reference-data-lookup` and later features extend these
+rather than creating their own equivalents.
 
 ## Complexity Tracking
 

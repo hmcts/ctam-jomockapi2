@@ -86,6 +86,59 @@ per the constitution's Java/Spring Boot mandate (Principle II).
 - **Alternatives considered**: A generic `com.example` style package — rejected as less
   meaningful for a project with clear organisational context.
 
+## Decision: Shared error response shape and request correlation (Constitution v1.1.0, Principles IX & XIV)
+
+- **Decision**: Introduce two small, shared components used by every future endpoint,
+  not just healthcheck: an `ErrorResponse(String message, Instant timestamp, String
+  traceId)` DTO returned by every non-2xx response, and a `CorrelationIdFilter`
+  (`OncePerRequestFilter`) that reads an inbound `X-Correlation-Id` header (or generates
+  a UUID if absent), stores it in SLF4J MDC for the duration of the request, echoes it
+  back as a response header on every response (2xx included), and is cleared afterwards.
+  A `GlobalExceptionHandler` (`@RestControllerAdvice`) maps framework-level failures
+  (unsupported method, no matching route, unhandled exception) to this shared
+  `ErrorResponse` shape, reading the trace ID from MDC.
+- **Rationale**: The constitution (amended IX, and new XIV) now mandates one shared
+  error shape carrying a correlation/trace ID, and a correlation ID on every request,
+  project-wide. Since this is the first feature and establishes the base skeleton, it is
+  the natural place to introduce this shared infrastructure once, so later features
+  (e.g., `002-reference-data-lookup`) extend it instead of each inventing their own.
+  The healthcheck endpoint's own `200` response stays an empty body per FR-004 — the
+  correlation-ID header is added regardless (headers are not "body"), and the shared
+  `ErrorResponse`/`GlobalExceptionHandler` only become observable on this endpoint via
+  its one error case (an unsupported HTTP method → 405).
+- **Alternatives considered**: Excluding health/status endpoints from correlation-ID
+  tracing (a pattern seen in a sibling HMCTS repository) — rejected because this
+  project's constitution states no such exemption, and FR-004 only constrains the
+  *body*, not response headers, so there is no actual conflict to resolve by excluding
+  it. Deferring this infrastructure until `002` needs it — rejected because the
+  constitution's requirement is already ratified and applies to this feature's own
+  405 case, not just to later features.
+
+## Decision: Automated quality gates for the Maven build (Constitution Principle XIII)
+
+- **Decision**: Configure the Maven build with: `maven-compiler-plugin` compiler args
+  including `-Xlint:all -Werror` (warnings as build errors); `maven-checkstyle-plugin`
+  bound to the `verify` phase with a small, project-owned ruleset; `dependency-check-maven`
+  (OWASP) bound to `verify`, with accepted false positives recorded in a checked-in
+  `config/owasp/suppressions.xml`; `jacoco-maven-plugin` generating a coverage report on
+  every `verify`; and a GitHub Actions workflow (`.github/workflows/ci.yml`) running
+  `mvn -B verify` on every pull request and push to `main`. JUnit 5 `@Tag` annotations
+  (`unit`, `controller`, `contract`) distinguish the "separately runnable suites"
+  Principle XIII requires, run via Surefire's group filtering
+  (`mvn test -Dgroups=unit`), rather than introducing a second test-execution plugin.
+- **Rationale**: Principle XIII is a project-wide MUST; as the feature that bootstraps
+  the Maven project, this is where the build-tooling baseline must be established so
+  every later feature inherits it rather than each retrofitting its own. Reusing
+  Surefire's tag-based grouping instead of adding Failsafe/a second plugin keeps the
+  build as simple as the current scope needs (Principle XII) while still giving each
+  test layer an independent way to run.
+- **Alternatives considered**: A Failsafe-plugin `*IT.java` split for integration-style
+  tests — rejected for now since none of this project's planned tests need a running
+  server (MockMvc suffices); revisit if a future feature needs true integration tests
+  against a started application context. A heavyweight, off-the-shelf Checkstyle
+  ruleset (e.g., Google's) — deferred in favour of a minimal project-specific ruleset to
+  avoid a large one-off reformatting pass unrelated to this feature's actual scope.
+
 ## Resolved unknowns
 
 All items originally marked as candidates for `NEEDS CLARIFICATION` in the Technical
