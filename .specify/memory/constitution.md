@@ -1,26 +1,29 @@
 <!--
 Sync Impact Report
-- Version change: (template, unratified) → 1.0.0
-- Rationale: Initial ratification of the project constitution. No prior version existed;
-  the file previously contained only unfilled template placeholders.
-- Modified principles: N/A (initial adoption)
-- Added sections:
-  - Core Principles I–XII (Contract-First Development, Java Spring Boot Architecture,
-    Reuse Before Duplication, Synthetic Data Only, Deterministic Behaviour,
-    Behavioural Fidelity, Generic Reference-Data Handling, Typed API Models,
-    Centralised Validation and Error Handling, Configuration Over Hard-Coding,
-    Testability, Simplicity and Maintainability)
-  - Technology & Architecture Constraints
-  - Development Workflow & Quality Gates
-  - Governance
-- Removed sections: Generic [SECTION_2_NAME]/[SECTION_3_NAME] placeholders replaced with
-  concrete, project-specific sections.
-- Templates requiring follow-up: none tracked in this repository yet
-  (.specify/templates/ directory not present at time of ratification) — re-run
-  `/speckit-constitution` review after plan/spec/tasks templates are introduced to confirm
-  alignment.
-- Deferred placeholders: none. RATIFICATION_DATE set to the date this constitution was
-  first adopted (today), since no earlier ratified version exists.
+- Version change: 1.0.0 → 1.1.0
+- Rationale: Adopted quality/observability conventions surveyed from a sibling HMCTS
+  Spring Boot service repository (service-api-marketplace) that this project's original
+  constitution did not yet address: a shared error response shape, request tracing,
+  log-injection prevention, and automated build/CI quality gates. No existing principle
+  was removed or redefined, so this is a MINOR bump.
+- Modified principles:
+  - IX. Centralised Validation and Error Handling — expanded to require one shared error
+    response shape (message + correlation/trace identifier) and severity-appropriate
+    logging (4xx warn / 5xx error), instead of leaving error body shape unspecified.
+- Added principles:
+  - XIII. Automated Quality Gates (compiler warnings-as-errors, static analysis,
+    dependency vulnerability scanning with a documented suppression file, layered
+    automated test suites with coverage reporting, CI-enforced on every change)
+  - XIV. Observability & Traceability (correlation/trace ID propagation, shared
+    structured logging, log-injection prevention)
+- Added sections: none (existing Technology & Architecture Constraints and Development
+  Workflow & Quality Gates sections were expanded in place, not replaced)
+- Removed sections: none
+- Deferred (explicitly out of scope for this amendment, noted for future review): a
+  persistence layer/database, containerisation/Helm deployment, and real
+  secret-management infrastructure were surveyed from the same sibling repository but
+  intentionally NOT adopted, since this project has no database and no deployment target
+  yet — revisit if/when either becomes true.
 -->
 
 # E-Links Mock API Constitution
@@ -108,9 +111,17 @@ drift early, and make mapping logic inspectable and testable instead of implicit
 Validation rules and error responses MUST be consistent across all endpoints. Spring
 Boot's global exception handling MUST be used for cross-cutting error behaviour rather
 than per-controller try/catch logic. Where authentication is simulated, it MUST be
-centralised and configurable rather than duplicated per endpoint.
+centralised and configurable rather than duplicated per endpoint. Every error response,
+regardless of status code, MUST use one shared error response shape (at minimum: a
+human-readable message and the request's correlation/trace identifier, per Principle
+XIV) rather than each endpoint or exception handler inventing its own body. Log severity
+MUST reflect the failure: client errors (4xx) MUST be logged as warnings, server errors
+(5xx) MUST be logged as errors.
 **Rationale**: Inconsistent error shapes or per-endpoint validation logic make the mock
-unpredictable for consumers and multiply the places a fix must be applied.
+unpredictable for consumers and multiply the places a fix must be applied. One shared
+error shape lets consumers write a single error-handling path against the mock, matching
+how they would integrate against the real API; severity-appropriate logging keeps log
+volume a meaningful signal of operational risk rather than noise.
 
 ### X. Configuration Over Hard-Coding
 Mock scenarios, dataset size, fixtures, authentication behaviour, and error scenarios
@@ -138,20 +149,50 @@ and understand for a new contributor.
 over-engineered abstraction increases the cost of verifying that reliability without a
 corresponding benefit.
 
+### XIII. Automated Quality Gates
+Every build MUST treat compiler warnings as errors. Static analysis (e.g., a
+Checkstyle-equivalent linter) and dependency vulnerability scanning MUST run as part of
+the build; any accepted vulnerability finding MUST be recorded in a checked-in
+suppression file with a documented reason, never silently ignored. Automated tests MUST
+be organised into separately runnable suites — at minimum unit, controller/API, and
+contract (Principle XI) — with a measured code-coverage report generated on every build.
+Continuous integration MUST run the full build, every test suite, and every quality
+check on each pull request and each change to the main branch; a change MUST NOT be
+merged with a failing or skipped quality gate.
+**Rationale**: Manual enforcement of code quality and dependency hygiene does not scale
+and erodes under time pressure; automated, CI-enforced gates are what actually keep the
+mock reliable and free of known vulnerabilities as endpoint coverage grows.
+
+### XIV. Observability & Traceability
+Every request MUST be assigned a correlation/trace identifier: read from an inbound
+correlation header when the caller supplies one, otherwise generated fresh. This
+identifier MUST appear in every log line produced while handling that request, in every
+error response body (Principle IX), and MUST be echoed back to the caller in a response
+header. All application logging MUST go through one shared, structured logging mechanism
+rather than ad hoc or scattered loggers, and any caller-supplied value written to a log
+line MUST be sanitised first to prevent log injection.
+**Rationale**: A mock used for integration testing is only as useful as its
+debuggability — a correlation ID is what lets a consumer's reported request be found in
+logs; sanitised, structured logging keeps that debugging trustworthy rather than
+corruptible by malformed or malicious input.
+
 ## Technology & Architecture Constraints
 
 - Primary language and framework: Java with Spring Boot (per Principle II).
 - Layering: controller → service/component → provider/mapper/validator/utility, with no
   layer skipping business logic into controllers.
 - Shared infrastructure (per Principle III) MUST exist for: pagination, filtering,
-  validation, DTO mapping, global error handling, synthetic data generation, and
-  reference-data resolution (including deprecated alias handling).
+  validation, DTO mapping, global error handling, synthetic data generation,
+  reference-data resolution (including deprecated alias handling), correlation-ID
+  propagation, and structured logging (Principle XIV).
 - Data models: contract-derived DTOs at the API boundary (Principle VIII); internal
   domain/entity models MAY differ from DTOs where that separation adds clarity, mapped
   via reusable mappers.
 - All environment- and scenario-specific behaviour (dataset size, error injection,
   simulated auth) MUST be driven by externalised configuration (Principle X), not
   conditional code paths hard-coded per environment.
+- Build tooling MUST enforce compiler warnings-as-errors, static analysis, dependency
+  vulnerability scanning, and code-coverage reporting on every build (Principle XIII).
 
 ## Development Workflow & Quality Gates
 
@@ -165,6 +206,12 @@ corresponding benefit.
   shared component (Principle III) before approving new endpoint-specific logic.
 - Reviews MUST reject use of untyped `Map<String, Object>` response/request handling
   where a contract schema exists (Principle VIII).
+- Every pull request MUST pass the automated build, full test suite, and all quality
+  gates in CI (Principle XIII) before it may be merged; CI failures MUST NOT be bypassed.
+- Pull requests MUST confirm tests and documentation were updated where relevant, and
+  MUST be reviewed before merge.
+- Dependency updates MUST be tracked and applied regularly rather than left stale
+  (Principle XIII).
 
 ## Governance
 
@@ -188,4 +235,4 @@ Any intentional deviation from the API contract (Principle I) MUST be explicitly
 documented in the relevant spec or plan and agreed before implementation proceeds — it
 MUST NOT be introduced silently during coding.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-08 | **Last Amended**: 2026-09-08
+**Version**: 1.1.0 | **Ratified**: 2026-09-08 | **Last Amended**: 2026-09-15
