@@ -132,8 +132,8 @@ feature's controller and tests; later features will add their own sub-packages
 `referencedata`, or `errorhandling`) alongside it rather than inside it, per Principle
 III. The new `tracing`, `logging`, and `error` packages are shared, project-wide
 infrastructure (Principles IX, XIII, XIV) introduced here because this feature
-bootstraps the skeleton; `002-reference-data-lookup` and later features extend these
-rather than creating their own equivalents.
+bootstraps the skeleton; later features extend these rather than creating their own
+equivalents.
 
 ## Complexity Tracking
 

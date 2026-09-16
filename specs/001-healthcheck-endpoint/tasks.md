@@ -217,7 +217,7 @@ Task: "Controller/API test in src/test/java/uk/gov/moj/elinks/mock/healthcheck/H
 3. Complete Phase 3: User Story 1 (T012–T014).
 4. **STOP and VALIDATE**: run Phase 4 (T015–T016) against the running application.
 5. Feature complete — this is the entire scope of `001-healthcheck-endpoint`, plus the
-   shared infrastructure `002-reference-data-lookup` depends on.
+   shared infrastructure later features depend on.
 
 ---
 

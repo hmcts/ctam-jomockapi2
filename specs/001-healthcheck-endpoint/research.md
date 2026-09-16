@@ -101,7 +101,7 @@ per the constitution's Java/Spring Boot mandate (Principle II).
   error shape carrying a correlation/trace ID, and a correlation ID on every request,
   project-wide. Since this is the first feature and establishes the base skeleton, it is
   the natural place to introduce this shared infrastructure once, so later features
-  (e.g., `002-reference-data-lookup`) extend it instead of each inventing their own.
+  extend it instead of each inventing their own.
   The healthcheck endpoint's own `200` response stays an empty body per FR-004 — the
   correlation-ID header is added regardless (headers are not "body"), and the shared
   `ErrorResponse`/`GlobalExceptionHandler` only become observable on this endpoint via
