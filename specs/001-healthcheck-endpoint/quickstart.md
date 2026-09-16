@@ -5,12 +5,12 @@
 ## Prerequisites
 
 - Java 25 (see `research.md`)
-- Maven (bundled wrapper `./mvnw` once the project skeleton exists)
+- Gradle (bundled wrapper `./gradlew` once the project skeleton exists)
 
 ## Run the application
 
 ```bash
-./mvnw spring-boot:run
+./gradlew bootRun
 ```
 
 The application starts on its configured local port (default `8080` unless overridden
@@ -55,7 +55,7 @@ response's `X-Correlation-Id` header.
 ## Run the quality gates
 
 ```bash
-./mvnw verify
+./gradlew check
 ```
 
 **Expected outcome**: compiler warnings-as-errors, checkstyle, OWASP dependency-check,
@@ -65,7 +65,7 @@ Principle XIII, added v1.1.0).
 ## Run automated tests
 
 ```bash
-./mvnw test
+./gradlew test
 ```
 
 **Expected outcome**: the controller/API test and the contract test described in

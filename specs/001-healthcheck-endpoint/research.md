@@ -18,19 +18,24 @@ per the constitution's Java/Spring Boot mandate (Principle II).
 
 ## Decision: Framework & build tool
 
-- **Decision**: Spring Boot 4.1.1, pinned per project direction, with Maven as the build
-  tool, using `spring-boot-starter-web`.
+- **Decision**: Spring Boot 4.1.1, pinned per project direction, with Gradle (Groovy
+  DSL) as the build tool, using `spring-boot-starter-web`.
 - **Rationale**: Spring Boot is mandated by Principle II, and 4.1.1 is the project's
-  explicitly chosen release. Maven is chosen over Gradle as the more common default for
-  enterprise Java/Spring Boot services and keeps the build declarative and easy to
-  reason about; no project-specific reason favors Gradle. Only
-  `spring-boot-starter-web` is needed for this feature — no persistence, security, or
-  reference-data starters are required yet since the healthcheck endpoint has no data or
-  auth dependency (FR-002, FR-003).
-- **Alternatives considered**: Spring Boot 3.x — this was the initial default before the
-  project's target stack was pinned; superseded, not rejected on technical grounds.
-  Gradle (viable, no material advantage for this project); a minimal non-Spring HTTP
-  server (rejected — violates Principle II directly).
+  explicitly chosen release. Gradle is chosen — superseding the project's initial
+  Maven default — to align with the sibling HMCTS/CNP Spring Boot service repository
+  (`service-api-marketplace`) that the constitution's v1.1.0 quality-gate amendment
+  was itself modelled on: matching its build tool means this project can also adopt
+  its actual Gradle plugins (`uk.gov.hmcts.java`, `jacoco`) directly rather than
+  hand-rolling Maven equivalents of HMCTS/CNP tooling that doesn't exist for Maven.
+  Only `spring-boot-starter-web` is needed for this feature — no persistence,
+  security, or reference-data starters are required yet since the healthcheck
+  endpoint has no data or auth dependency (FR-002, FR-003).
+- **Alternatives considered**: Maven — the initial default before this project
+  committed to aligning with the CNP framework's Gradle-based tooling; superseded,
+  not rejected on technical grounds. Spring Boot 3.x — this was the initial default
+  before the project's target stack was pinned; superseded, not rejected on technical
+  grounds. A minimal non-Spring HTTP server (rejected — violates Principle II
+  directly).
 
 ## Decision: Testing stack
 
@@ -114,30 +119,40 @@ per the constitution's Java/Spring Boot mandate (Principle II).
   constitution's requirement is already ratified and applies to this feature's own
   405 case, not just to later features.
 
-## Decision: Automated quality gates for the Maven build (Constitution Principle XIII)
+## Decision: Automated quality gates for the Gradle build (Constitution Principle XIII)
 
-- **Decision**: Configure the Maven build with: `maven-compiler-plugin` compiler args
-  including `-Xlint:all -Werror` (warnings as build errors); `maven-checkstyle-plugin`
-  bound to the `verify` phase with a small, project-owned ruleset; `dependency-check-maven`
-  (OWASP) bound to `verify`, with accepted false positives recorded in a checked-in
-  `config/owasp/suppressions.xml`; `jacoco-maven-plugin` generating a coverage report on
-  every `verify`; and a GitHub Actions workflow (`.github/workflows/ci.yml`) running
-  `mvn -B verify` on every pull request and push to `main`. JUnit 5 `@Tag` annotations
-  (`unit`, `controller`, `contract`) distinguish the "separately runnable suites"
-  Principle XIII requires, run via Surefire's group filtering
-  (`mvn test -Dgroups=unit`), rather than introducing a second test-execution plugin.
+- **Decision**: Configure `build.gradle` with: the `uk.gov.hmcts.java` Gradle plugin
+  (the same HMCTS/CNP plugin `service-api-marketplace` uses), which applies Checkstyle
+  and the OWASP `org.owasp.dependencycheck` plugin with HMCTS default settings in one
+  step; accepted vulnerability false positives recorded in a checked-in
+  `config/owasp/suppressions.xml`; the `jacoco` plugin generating a coverage report via
+  `jacocoTestReport`; `tasks.withType(JavaCompile)` compiler args including
+  `-Xlint:unchecked -Werror` (warnings as build errors); and a GitHub Actions workflow
+  (`.github/workflows/ci.yml`) running `./gradlew check` on every pull request and push
+  to `main` — mirroring `service-api-marketplace`'s own `ci.yml` exactly. All three
+  layers Principle XIII requires (unit, controller/API, contract) currently fit inside
+  Gradle's default `test` source set, since none of this feature's tests need a running
+  application; Gradle natively supports adding dedicated `integrationTest`/
+  `functionalTest`/`smokeTest` source sets later (as `service-api-marketplace` does,
+  via its `configureSourceSet` helper) if and when a future feature needs a genuine
+  integration-test layer, without needing extra plugins to do so.
 - **Rationale**: Principle XIII is a project-wide MUST; as the feature that bootstraps
-  the Maven project, this is where the build-tooling baseline must be established so
-  every later feature inherits it rather than each retrofitting its own. Reusing
-  Surefire's tag-based grouping instead of adding Failsafe/a second plugin keeps the
-  build as simple as the current scope needs (Principle XII) while still giving each
-  test layer an independent way to run.
-- **Alternatives considered**: A Failsafe-plugin `*IT.java` split for integration-style
-  tests — rejected for now since none of this project's planned tests need a running
-  server (MockMvc suffices); revisit if a future feature needs true integration tests
-  against a started application context. A heavyweight, off-the-shelf Checkstyle
-  ruleset (e.g., Google's) — deferred in favour of a minimal project-specific ruleset to
-  avoid a large one-off reformatting pass unrelated to this feature's actual scope.
+  the Gradle project, this is where the build-tooling baseline must be established so
+  every later feature inherits it rather than each retrofitting its own. Reusing the
+  actual HMCTS/CNP plugin (rather than assembling equivalent checks from generic Gradle
+  plugins) is the most direct way to satisfy the constitution's explicit intent to
+  align with the CNP framework's own tooling, not just its behaviour.
+- **Alternatives considered**: Assembling equivalent behaviour from generic community
+  Gradle plugins (a standalone `checkstyle` plugin plus a separately-configured OWASP
+  plugin) — rejected in favour of the single `uk.gov.hmcts.java` plugin, which is the
+  literal tool the CNP framework's own services use and keeps this project's build
+  config traceable to that convention rather than an independent reconstruction of it.
+  Pre-building dedicated `integrationTest`/`functionalTest`/`smokeTest` Gradle source
+  sets now — deferred as unused complexity (Principle XII) until a feature actually
+  needs a running-application test layer. A heavyweight, off-the-shelf Checkstyle
+  ruleset (e.g., Google's) on top of the HMCTS plugin's defaults — deferred in favour of
+  the plugin's own default ruleset to avoid a large one-off reformatting pass unrelated
+  to this feature's actual scope.
 
 ## Resolved unknowns
 

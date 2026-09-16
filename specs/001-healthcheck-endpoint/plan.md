@@ -25,7 +25,7 @@ since the operation has nothing to compute, validate, or map.
 
 **Target Platform**: JVM, deployed as a standard Spring Boot application (Linux server / container)
 
-**Project Type**: Single web-service (Maven, standard Spring Boot layout)
+**Project Type**: Single web-service (Gradle, standard Spring Boot layout)
 
 **Performance Goals**: Sub-second response (per SC-003); no artificial delay introduced (FR-006)
 
@@ -56,7 +56,7 @@ each retrofitting their own (see `research.md`)
 | X. Configuration Over Hard-Coding | PASS | Nothing environment-specific is hard-coded; the endpoint's behaviour is fixed by contract, not by scenario configuration this feature needs to expose. |
 | XI. Testability | PASS | Controller/API test (MockMvc) and a contract test asserting path/method/status/empty-body are planned (see `research.md` for the contract-test approach given no machine-readable OpenAPI file exists). |
 | XII. Simplicity and Maintainability | PASS | Single thin controller, no premature abstraction; matches the feature's actual scope. |
-| XIII. Automated Quality Gates *(added v1.1.0)* | PASS | Maven build gets compiler warnings-as-errors, checkstyle, OWASP dependency-check (+ suppressions file), JaCoCo, and a CI workflow as part of this feature's bootstrap (`research.md`), since this is the feature that establishes the build itself. |
+| XIII. Automated Quality Gates *(added v1.1.0)* | PASS | Gradle build gets the `uk.gov.hmcts.java` plugin (checkstyle + OWASP dependency-check, matching CNP framework tooling), JaCoCo, compiler warnings-as-errors, and a CI workflow as part of this feature's bootstrap (`research.md`), since this is the feature that establishes the build itself. |
 | XIV. Observability & Traceability *(added v1.1.0)* | PASS | A shared `CorrelationIdFilter` and `GlobalExceptionHandler`/`ErrorResponse` are introduced here (`research.md`) so every request — including this endpoint's — carries a correlation ID and any error response uses the shared shape; the healthcheck's own `200` body stays empty per FR-004 (a header, not a body). |
 
 No violations requiring justification. Complexity Tracking is not needed.
@@ -90,13 +90,16 @@ specs/001-healthcheck-endpoint/
 ### Source Code (repository root)
 
 This is the first feature in the repository, so this plan also establishes the base
-Maven/Spring Boot project layout. Single project (standard Spring Boot Maven layout):
+Gradle/Spring Boot project layout. Single project (standard Spring Boot Gradle
+layout), matching the CNP framework's own `service-api-marketplace` conventions:
 
 ```text
-pom.xml
+build.gradle
+settings.gradle
+gradlew, gradlew.bat, gradle/wrapper/
 config/owasp/suppressions.xml         # OWASP dependency-check accepted-finding records (Principle XIII)
 
-.github/workflows/ci.yml              # mvn -B verify on every PR and push to main (Principle XIII)
+.github/workflows/ci.yml              # ./gradlew check on every PR and push to main (Principle XIII)
 
 src/
 ├── main/
@@ -124,7 +127,7 @@ src/
             └── GlobalExceptionHandlerTest.java
 ```
 
-**Structure Decision**: Single Maven-based Spring Boot application at the repository
+**Structure Decision**: Single Gradle-based Spring Boot application at the repository
 root (`src/main/java`, `src/test/java`), per Principle II. The `healthcheck` sub-package
 under the base package (`uk.gov.moj.elinks.mock`, see `research.md`) holds this
 feature's controller and tests; later features will add their own sub-packages

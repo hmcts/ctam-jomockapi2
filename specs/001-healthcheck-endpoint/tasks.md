@@ -24,6 +24,11 @@ this is the feature that establishes the base skeleton — see `research.md` and
 for the corresponding decisions. Tasks T004–T005 and T009–T012 are new; all later task
 IDs were renumbered accordingly.
 
+**Build tool note (2026-09-16)**: This task list now bootstraps a Gradle project
+(previously Maven), to align with the CNP framework's own `service-api-marketplace`
+tooling — see `research.md` → Framework & build tool / Automated quality gates
+decisions. Task IDs are unchanged; only their build-tool-specific content was updated.
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
@@ -33,31 +38,37 @@ IDs were renumbered accordingly.
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Bootstrap the Maven/Spring Boot project skeleton and the build-quality
+**Purpose**: Bootstrap the Gradle/Spring Boot project skeleton and the build-quality
 tooling required project-wide — this is the first feature in the repository, so no
 project scaffolding exists yet.
 
-- [ ] T001 Create the Maven project skeleton: `pom.xml` (Spring Boot 4.1.1 parent, Java 25
-      source/target), `src/main/java/uk/gov/moj/elinks/mock/`,
+- [ ] T001 Create the Gradle project skeleton: `settings.gradle`, `build.gradle`
+      (`org.springframework.boot` 4.1.1 and `io.spring.dependency-management` plugins,
+      Java 25 toolchain), the Gradle wrapper (`gradlew`, `gradlew.bat`,
+      `gradle/wrapper/`), `src/main/java/uk/gov/moj/elinks/mock/`,
       `src/main/resources/`, `src/test/java/uk/gov/moj/elinks/mock/`, and a `.gitignore`
-      covering Maven's `target/` directory, per `plan.md` → Project Structure.
+      covering Gradle's `.gradle/` and `build/` directories, per `plan.md` → Project
+      Structure.
 - [ ] T002 Add `spring-boot-starter-web` and `spring-boot-starter-test` dependencies to
-      `pom.xml`, per `research.md` → Framework & build tool / Testing stack decisions.
+      `build.gradle`, per `research.md` → Framework & build tool / Testing stack
+      decisions.
 - [ ] T003 [P] Create `src/main/resources/application.yml` with the default server
       configuration (e.g. `server.port: 8080`), per `plan.md` → Technical Context.
-- [ ] T004 [P] Configure `pom.xml` build-quality plugins per `research.md` → Automated
-      quality gates decision (Constitution Principle XIII): `maven-compiler-plugin`
-      with `-Xlint:all -Werror`; `maven-checkstyle-plugin` bound to `verify` with a
-      minimal project checkstyle ruleset; `dependency-check-maven` (OWASP) bound to
-      `verify`, pointing at `config/owasp/suppressions.xml` (create the file, empty
-      `<suppressions/>` root, if no findings are yet suppressed); `jacoco-maven-plugin`
-      generating a coverage report on `verify`.
-- [ ] T005 [P] Create `.github/workflows/ci.yml` running `mvn -B verify` on every pull
+- [ ] T004 [P] Configure `build.gradle` build-quality plugins per `research.md` →
+      Automated quality gates decision (Constitution Principle XIII): apply the
+      `uk.gov.hmcts.java` plugin (applies Checkstyle and the OWASP
+      `org.owasp.dependencycheck` plugin with HMCTS/CNP default settings), pointing its
+      suppression file at `config/owasp/suppressions.xml` (create the file, empty
+      `<suppressions/>` root, if no findings are yet suppressed); apply the `jacoco`
+      plugin and configure `jacocoTestReport`; add `-Xlint:unchecked -Werror` to
+      `tasks.withType(JavaCompile)` compiler args.
+- [ ] T005 [P] Create `.github/workflows/ci.yml` running `./gradlew check` on every pull
       request and every push to `main`, per `research.md` → Automated quality gates
       decision (Constitution Principle XIII).
 
-**Checkpoint**: Project builds (`./mvnw verify`) with no source files yet beyond config;
-checkstyle, dependency-check, and JaCoCo reports are generated with no violations.
+**Checkpoint**: Project builds (`./gradlew check`) with no source files yet beyond
+config; checkstyle, dependency-check, and JaCoCo reports are generated with no
+violations.
 
 ---
 
@@ -98,7 +109,7 @@ and logging infrastructure that this endpoint (and every future endpoint) needs.
       each returning the shared `ErrorResponse` (T008) with the current request's trace
       ID read from MDC (T009). Depends on T008, T009.
 
-**Checkpoint**: Application starts (`./mvnw spring-boot:run`) and serves under `/elinks`,
+**Checkpoint**: Application starts (`./gradlew bootRun`) and serves under `/elinks`,
 every response carries an `X-Correlation-Id` header, and an unsupported-method request
 against any path returns the shared `ErrorResponse` shape — foundation ready for User
 Story 1.
@@ -159,12 +170,12 @@ the feature's MVP and its entire scope.
 **Purpose**: Final validation against the documented contract and quickstart.
 
 - [ ] T015 Run through `quickstart.md` end-to-end against the running application
-      (`./mvnw spring-boot:run`, then the `curl` checks for the healthy path, repeated
+      (`./gradlew bootRun`, then the `curl` checks for the healthy path, repeated
       calls, and the unsupported-method case), timing the healthy-path `curl` call
       (e.g. `curl -w "%{time_total}\n"`) to confirm it completes well under one second
       (SC-003), confirming the `X-Correlation-Id` header appears on every response, and
       confirming every expected outcome holds.
-- [ ] T016 Run `./mvnw verify` and confirm the checkstyle, OWASP dependency-check, and
+- [ ] T016 Run `./gradlew check` and confirm the checkstyle, OWASP dependency-check, and
       JaCoCo reports all generate cleanly (Constitution Principle XIII) — this is the
       gate every future feature's CI run (T005) will also enforce.
 
@@ -188,9 +199,9 @@ the feature's MVP and its entire scope.
 ### Parallel Opportunities
 
 - T003 and T004 can run in parallel with T002 (different files: `application.yml` and
-  `pom.xml` plugin config vs `pom.xml` dependencies — coordinate if editing the same
-  `pom.xml` block), once T001 exists; T005 (`.github/workflows/ci.yml`) is independent
-  of all three.
+  `build.gradle` plugin config vs `build.gradle` dependencies — coordinate if editing
+  the same `build.gradle` block), once T001 exists; T005 (`.github/workflows/ci.yml`)
+  is independent of all three.
 - T006, T007, T008, T009, T010 can run in parallel (different files), once Setup is
   complete; T011 depends on T008 and T009.
 - T012 and T013 can run in parallel (different test files), once Foundational is
