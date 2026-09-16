@@ -24,10 +24,9 @@ this is the feature that establishes the base skeleton — see `research.md` and
 for the corresponding decisions. Tasks T004–T005 and T009–T012 are new; all later task
 IDs were renumbered accordingly.
 
-**Build tool note (2026-09-16)**: This task list now bootstraps a Gradle project
-(previously Maven), to align with the CNP framework's own `service-api-marketplace`
-tooling — see `research.md` → Framework & build tool / Automated quality gates
-decisions. Task IDs are unchanged; only their build-tool-specific content was updated.
+**Build tool note (2026-09-16)**: This task list bootstraps a Gradle project, to align
+with the CNP framework's own `service-api-marketplace` tooling — see `research.md` →
+Framework & build tool / Automated quality gates decisions.
 
 ## Format: `[ID] [P?] [Story] Description`
 

@@ -21,19 +21,16 @@ per the constitution's Java/Spring Boot mandate (Principle II).
 - **Decision**: Spring Boot 4.1.1, pinned per project direction, with Gradle (Groovy
   DSL) as the build tool, using `spring-boot-starter-web`.
 - **Rationale**: Spring Boot is mandated by Principle II, and 4.1.1 is the project's
-  explicitly chosen release. Gradle is chosen — superseding the project's initial
-  Maven default — to align with the sibling HMCTS/CNP Spring Boot service repository
-  (`service-api-marketplace`) that the constitution's v1.1.0 quality-gate amendment
-  was itself modelled on: matching its build tool means this project can also adopt
-  its actual Gradle plugins (`uk.gov.hmcts.java`, `jacoco`) directly rather than
-  hand-rolling Maven equivalents of HMCTS/CNP tooling that doesn't exist for Maven.
-  Only `spring-boot-starter-web` is needed for this feature — no persistence,
-  security, or reference-data starters are required yet since the healthcheck
-  endpoint has no data or auth dependency (FR-002, FR-003).
-- **Alternatives considered**: Maven — the initial default before this project
-  committed to aligning with the CNP framework's Gradle-based tooling; superseded,
-  not rejected on technical grounds. Spring Boot 3.x — this was the initial default
-  before the project's target stack was pinned; superseded, not rejected on technical
+  explicitly chosen release. Gradle is chosen to align with the sibling HMCTS/CNP
+  Spring Boot service repository (`service-api-marketplace`) that the constitution's
+  v1.1.0 quality-gate amendment was itself modelled on: matching its build tool means
+  this project can also adopt its actual Gradle plugins (`uk.gov.hmcts.java`,
+  `jacoco`) directly rather than hand-rolling equivalents of HMCTS/CNP tooling that
+  has no direct counterpart elsewhere. Only `spring-boot-starter-web` is needed for
+  this feature — no persistence, security, or reference-data starters are required
+  yet since the healthcheck endpoint has no data or auth dependency (FR-002, FR-003).
+- **Alternatives considered**: Spring Boot 3.x — this was the initial default before
+  the project's target stack was pinned; superseded, not rejected on technical
   grounds. A minimal non-Spring HTTP server (rejected — violates Principle II
   directly).
 
