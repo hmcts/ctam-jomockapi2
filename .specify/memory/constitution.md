@@ -1,33 +1,28 @@
 <!--
 Sync Impact Report
-- Version change: 1.5.0 → 1.6.0
-- Rationale: Names the two concrete class identities behind Principles II and IX's
-  already-required shared error handling: the `@RestControllerAdvice` class
-  conventionally named `GlobalExceptionHandler`, and the shared error shape as a record
-  `ErrorResponse(String error, Instant timestamp, String traceId)`, both in the
-  `exceptions/` layer package — matching the sibling HMCTS Spring Boot service surveyed
-  for this principle originally. No new behavioural requirement is introduced (the
-  shape and its fields were already required); this only names the conventional class
-  identities, so this is a MINOR bump (materially expanded guidance, no principle
-  removed or redefined).
-- Modified principles:
-  - II. Java Spring Boot Architecture — the global exception handler is now named
-    `GlobalExceptionHandler` by convention, not just "a single `@RestControllerAdvice`
-    class".
-  - IX. Centralised Validation and Error Handling — the shared error shape is now
-    named as a concrete record, `ErrorResponse(String error, Instant timestamp, String
-    traceId)`, produced by `GlobalExceptionHandler`.
+- Version change: 1.8.0 → 1.8.1
+- Rationale: /speckit-analyze on specs/001-healthcheck-api (finding N1) found this
+  document's own title named the project "E-Links Mock API", while every other signal
+  of this project's identity — the repository name `ctam-jomockapi2`, the base package
+  `uk.gov.hmcts.ctam.jo` (`jo` = Judicial Office domain code, per research.md), and
+  this constitution's own prior amendments — establishes it as the "JO Mock API".
+  "E-Links" remains correct everywhere else in this document and the wider repo, where
+  it names the real external upstream API this project mocks (Principle I's contract
+  source, `joh-elinks-api/` reference data), and none of those references change. This
+  is a title-only rename with no change to any principle's substance, so this is a
+  PATCH bump (non-semantic refinement).
 - Added principles: none
-- Added sections: none
+- Modified sections: Document title only (`# E-Links Mock API Constitution` →
+  `# JO Mock API Constitution`). No Core Principle, Technology & Architecture
+  Constraint, Development Workflow item, or Governance clause changed in substance.
 - Removed sections: none
-- Deferred: none new — the prior deferrals remain deferred, unchanged.
-- Downstream impact: specs/001-healthcheck-api's plan.md/tasks.md documentation of its
-  Principle IX deferral now names these same two classes, so the eventual foundation
-  feature that actually builds them has a single, already-agreed target to build
-  towards rather than reinventing names at that point.
+- Downstream impact: none — no principle text, requirement, or cross-reference in any
+  spec/plan/tasks file depends on the literal title string; all existing "E-Links"
+  references elsewhere in this document and the repo correctly continue to name the
+  real upstream API and are unaffected.
 -->
 
-# E-Links Mock API Constitution
+# JO Mock API Constitution
 
 ## Core Principles
 
@@ -67,7 +62,13 @@ endpoint coverage grows, prevents business logic from becoming entangled with tr
 concerns, and lets contributors move between HMCTS Spring Boot services without relearning
 project layout. Naming the health-endpoint response shape and the exception handler's
 location closes the two gaps most likely to be reinvented differently by each new
-endpoint if left unstated.
+endpoint if left unstated. This package-by-layer structure sits in some tension with
+HMCTS's general engineering guidance to "design around the domain" (Domain Driven
+Design) — that tension is acknowledged, not accidental: this mock's services are thin
+and largely stateless (see Principle IV), with no rich domain behaviour a DDD module
+boundary would meaningfully protect, and the layered structure is what the real
+surveyed sibling repository actually uses. Revisit if a future endpoint's domain logic
+grows complex enough that layer packages start hiding more than they clarify.
 
 ### III. Reuse Before Duplication
 Common behaviour MUST be implemented once and reused across endpoints. Duplicated logic
@@ -230,6 +231,38 @@ health/info/metrics exemption is a deliberate, named exception — those endpoin
 business request to correlate, and instrumenting them adds overhead to code paths that
 exist specifically to be cheap and frequently polled.
 
+### XV. Security by Design
+Security implications MUST be considered at design time for every new endpoint,
+component, or architectural decision, not retrofitted after implementation. Where a
+security control is deliberately relaxed or omitted (e.g., an unauthenticated endpoint,
+per Principle II's health-endpoint exemption), that decision MUST be explicit and
+documented in the relevant spec or plan and agreed before implementation proceeds — the
+same standard Governance already requires for API contract deviations (Principle I) —
+rather than being an unstated oversight. The concrete controls this principle's design
+review surfaces are implemented elsewhere in this constitution: dependency
+vulnerability scanning and centralised, configurable authentication (Principles IX,
+XIII), and log-injection sanitisation (Principle XIV).
+**Rationale**: HMCTS's own engineering guidance states security must be "baked in, not
+bolted on" — retrofitted security is more expensive and more likely to miss systemic
+issues than security considered from the outset. For a mock standing in for a real
+government service, even a deliberately relaxed security posture (this mock's very
+first endpoint is unauthenticated) must be a conscious, traceable decision, not an
+accident of what nobody thought to add.
+
+### XVI. Object-Oriented Design Discipline
+Object-oriented code MUST follow the SOLID principles (Single Responsibility,
+Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion).
+Composition MUST be preferred over inheritance for code reuse; inheritance is reserved
+for genuine is-a relationships, not for sharing behaviour between otherwise-unrelated
+classes. Classes and methods MUST talk only to their immediate collaborators, not reach
+through an object to manipulate objects it merely holds a reference to (the Law of
+Demeter) — e.g., a controller MUST NOT chain calls through a service's returned object
+to reach a third object's internals.
+**Rationale**: These are HMCTS's own stated object-oriented coding standards. Naming
+them explicitly, rather than leaving "well-designed OO code" as an unstated expectation,
+gives the peer review Development Workflow & Quality Gates already requires a concrete
+standard to check new code against.
+
 ## Technology & Architecture Constraints
 
 - Primary language, framework, and build tool: Java 25 with Spring Boot 4.1.1, built with
@@ -277,6 +310,10 @@ exist specifically to be cheap and frequently polled.
   MUST be reviewed before merge.
 - Dependency updates MUST be tracked and applied regularly rather than left stale
   (Principle XIII).
+- Specifications, plans, task breakdowns, and the decisions behind them MUST be kept in
+  this repository (specs/, this constitution, PR descriptions) rather than in private
+  channels — working in the open, per HMCTS's transparency principle — so any
+  contributor can reconstruct why a decision was made without asking.
 
 ## Governance
 
@@ -296,8 +333,12 @@ principle MUST state the rationale for the change.
 
 **Compliance review**: All specifications, plans, and task breakdowns produced via the
 Spec Kit workflow MUST be checked against these principles before implementation begins.
-Any intentional deviation from the API contract (Principle I) MUST be explicitly
-documented in the relevant spec or plan and agreed before implementation proceeds — it
-MUST NOT be introduced silently during coding.
+Any intentional deviation from a MUST requirement in this constitution — including but
+not limited to the API contract (Principle I) — MUST be explicitly documented in the
+relevant spec or plan (e.g., a plan's Complexity Tracking section or equivalent) and
+agreed before implementation proceeds; it MUST NOT be introduced silently during coding.
+Where the deviation is a deferral rather than a permanent, scope-justified exception, the
+documentation MUST state a path to eventual compliance (e.g., a named future feature that
+will close it), not merely a reason the gap exists today.
 
-**Version**: 1.6.0 | **Ratified**: 2026-09-08 | **Last Amended**: 2026-09-18
+**Version**: 1.8.1 | **Ratified**: 2026-09-08 | **Last Amended**: 2026-09-18

@@ -30,7 +30,7 @@ As an infrastructure or monitoring component, I want to call the healthcheck end
 
 1. **AC-001**: **Given** the application is running and able to serve HTTP traffic, **When** a monitoring component sends `GET /api/v1/healthcheck`, **Then** the response is `HTTP 200 OK` with the documented description "Service is healthy".
 2. **AC-002**: **Given** the application is running, **When** the healthcheck request is sent with no query parameters, no path parameters, and no request body, **Then** the request succeeds without requiring any additional input.
-3. **Given** the healthcheck endpoint is called repeatedly by a monitoring poller, **When** each call completes, **Then** every call succeeds independently with no shared state between calls (see Edge Cases for the high-frequency/extended-polling scenario in full).
+3. **AC-004**: **Given** the healthcheck endpoint is called repeatedly by a monitoring poller, **When** each call completes, **Then** every call succeeds independently with no shared state between calls (see Edge Cases for the high-frequency/extended-polling scenario in full).
 
 ---
 
@@ -75,15 +75,15 @@ As a system integrator, I want requests using an unsupported HTTP method against
 ### Functional Requirements
 
 - **FR-001**: System MUST expose an endpoint reachable via `GET /api/v1/healthcheck`.
-- **FR-002**: System MUST return `HTTP 200 OK` with a JSON body containing a `status` field (e.g. `{"status": "ok"}`), described as "Service is healthy", when the application is healthy and able to respond to HTTP requests.
+- **FR-002**: System MUST return `HTTP 200 OK` (described as "Service is healthy") with a JSON body containing a `status` field (e.g. `{"status": "ok"}`), when the application is healthy and able to respond to HTTP requests.
 - **FR-003**: The healthcheck endpoint MUST NOT require any path parameters, query parameters, or request body to succeed.
 - **FR-004**: The healthcheck endpoint MUST be read-only and MUST NOT modify any application state.
 - **FR-005**: The healthcheck endpoint MUST be idempotent — repeated calls MUST produce the same outcome and no side effects.
-- **FR-006**: The healthcheck endpoint MUST execute lightweight, minimal logic and MUST NOT perform checks against external or internal dependencies (e.g., databases, external HTTP calls, caches, filesystems, queues, or message brokers) unless the application already defines such behaviour as part of its healthcheck contract.
+- **FR-006**: The healthcheck endpoint MUST execute lightweight, minimal logic and MUST NOT perform checks against external or internal dependencies (e.g., databases, external HTTP calls, caches, filesystems, queues, or message brokers) unless the application already defines such behaviour as part of its healthcheck contract. (Verified by manual code review — tasks.md T020 — rather than an automated test, since this is a negative/absence requirement with no dependency call to assert against; T020 confirms no dependency is wired into the controller.)
 - **FR-007**: The healthcheck response MUST NOT expose sensitive or internal implementation details, including secrets, credentials, tokens, connection strings, internal hostnames, environment variables, stack traces, infrastructure topology, or database details.
 - **FR-008**: A request using an HTTP method other than `GET` against the healthcheck path MUST NOT trigger the healthcheck success behaviour.
-- **FR-009**: If an unexpected internal failure occurs while handling the healthcheck request, the application's standard error-handling behaviour MUST apply rather than an unconditional success response.
-- **FR-010**: The healthcheck capability MUST be represented in the application's published API documentation as `GET /api/v1/healthcheck` with a `200` response described as "Service is healthy" and a response schema limited to the `status` field (FR-002), without introducing any additional response schema beyond that.
+- **FR-009**: If an unexpected internal failure occurs while handling the healthcheck request, the application's standard error-handling behaviour MUST apply rather than an unconditional success response. (Verified by manual code review — tasks.md T020 — rather than an automated test, since this endpoint has no dependency or fault-injection seam to trigger a real internal failure against; SC-005's "100% of automated tests" claim is scoped to the three listed test scenarios and does not cover this requirement.)
+- **FR-010**: The healthcheck capability MUST be represented in the application's published API documentation as `GET /api/v1/healthcheck`, with the operation summarised "Healthcheck", a `200` response described as "Service is healthy", and a response schema limited to the `status` field (FR-002), without introducing any additional response schema beyond that.
 - **FR-011**: The healthcheck endpoint MUST be reachable without authentication or credentials. This exemption MUST be scoped only to this endpoint and MUST NOT broaden unauthenticated access to any other endpoint.
 
 ### Key Entities

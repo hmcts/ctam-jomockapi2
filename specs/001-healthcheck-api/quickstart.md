@@ -56,4 +56,4 @@ Run the automated test suite (see tasks.md) instead of manual curl for CI:
 ./gradlew test
 ```
 
-This is expected to cover the same three scenarios above via `HealthcheckControllerTest`, `HealthcheckSmokeTest`, and `HealthcheckOpenApiContractTest` (see plan.md Project Structure).
+This is expected to cover the same scenarios above across three test classes: `HealthcheckControllerTest`, `HealthcheckSmokeTest`, and `HealthcheckOpenApiContractTest` (see plan.md Project Structure).

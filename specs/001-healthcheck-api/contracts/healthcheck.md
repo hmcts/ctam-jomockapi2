@@ -48,4 +48,4 @@ Generated via `springdoc-openapi` from the controller method and the `HealthResp
                   example: ok
 ```
 
-No request schema is declared, and the response schema is limited to the single `status` field defined above — matching the "don't invent beyond the established convention" constraint in spec.md and research.md.
+No request schema is declared, and the response schema is limited to the single `status` field defined above — matching the "don't invent beyond the established convention" constraint in spec.md and research.md. The schema declares `status` as an unconstrained `string` (no `enum`/`allowableValues`) rather than pinning it to the literal `"ok"`, deliberately: tasks.md T015 adds no `@Schema` annotation beyond what springdoc derives from the `HealthResponse` record, per Principle XII (Simplicity) — the value's constancy is guaranteed by the code (data-model.md), not by the published schema.
