@@ -1,7 +1,7 @@
-# Specification Quality Checklist: Healthcheck Endpoint
+# Specification Quality Checklist: Healthcheck API
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-09-08
+**Created**: 2026-09-18
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -31,9 +31,5 @@
 
 ## Notes
 
-- All items pass on first validation pass. The feature is narrow in scope (a single,
-  unauthenticated, parameterless healthcheck endpoint), so no [NEEDS CLARIFICATION]
-  markers were needed — the source specification (`joh-elinks-api/swagger-ui-elinks-api-v5.pdf`)
-  fully defines the contract, and reasonable defaults cover the remaining behavioural
-  questions (documented in the Assumptions section of spec.md).
-- Ready for `/speckit-plan`.
+- All items pass. No spec updates required before `/speckit-clarify` or `/speckit-plan`.
+- The endpoint path (`GET /api/v5/healthcheck`), status code (`200`), and description ("Service is healthy") are retained as documented contract facts from the source specification, not implementation choices — these are the externally observable behaviour the feature must deliver.

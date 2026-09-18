@@ -1,29 +1,30 @@
 <!--
 Sync Impact Report
-- Version change: 1.0.0 → 1.1.0
-- Rationale: Adopted quality/observability conventions surveyed from a sibling HMCTS
-  Spring Boot service repository (service-api-marketplace) that this project's original
-  constitution did not yet address: a shared error response shape, request tracing,
-  log-injection prevention, and automated build/CI quality gates. No existing principle
-  was removed or redefined, so this is a MINOR bump.
+- Version change: 1.5.0 → 1.6.0
+- Rationale: Names the two concrete class identities behind Principles II and IX's
+  already-required shared error handling: the `@RestControllerAdvice` class
+  conventionally named `GlobalExceptionHandler`, and the shared error shape as a record
+  `ErrorResponse(String error, Instant timestamp, String traceId)`, both in the
+  `exceptions/` layer package — matching the sibling HMCTS Spring Boot service surveyed
+  for this principle originally. No new behavioural requirement is introduced (the
+  shape and its fields were already required); this only names the conventional class
+  identities, so this is a MINOR bump (materially expanded guidance, no principle
+  removed or redefined).
 - Modified principles:
-  - IX. Centralised Validation and Error Handling — expanded to require one shared error
-    response shape (message + correlation/trace identifier) and severity-appropriate
-    logging (4xx warn / 5xx error), instead of leaving error body shape unspecified.
-- Added principles:
-  - XIII. Automated Quality Gates (compiler warnings-as-errors, static analysis,
-    dependency vulnerability scanning with a documented suppression file, layered
-    automated test suites with coverage reporting, CI-enforced on every change)
-  - XIV. Observability & Traceability (correlation/trace ID propagation, shared
-    structured logging, log-injection prevention)
-- Added sections: none (existing Technology & Architecture Constraints and Development
-  Workflow & Quality Gates sections were expanded in place, not replaced)
+  - II. Java Spring Boot Architecture — the global exception handler is now named
+    `GlobalExceptionHandler` by convention, not just "a single `@RestControllerAdvice`
+    class".
+  - IX. Centralised Validation and Error Handling — the shared error shape is now
+    named as a concrete record, `ErrorResponse(String error, Instant timestamp, String
+    traceId)`, produced by `GlobalExceptionHandler`.
+- Added principles: none
+- Added sections: none
 - Removed sections: none
-- Deferred (explicitly out of scope for this amendment, noted for future review): a
-  persistence layer/database, containerisation/Helm deployment, and real
-  secret-management infrastructure were surveyed from the same sibling repository but
-  intentionally NOT adopted, since this project has no database and no deployment target
-  yet — revisit if/when either becomes true.
+- Deferred: none new — the prior deferrals remain deferred, unchanged.
+- Downstream impact: specs/001-healthcheck-api's plan.md/tasks.md documentation of its
+  Principle IX deferral now names these same two classes, so the eventual foundation
+  feature that actually builds them has a single, already-agreed target to build
+  towards rather than reinventing names at that point.
 -->
 
 # E-Links Mock API Constitution
@@ -42,15 +43,31 @@ drift between the mock and the contract breaks the mock's purpose — a reliable
 for the real E-Links API.
 
 ### II. Java Spring Boot Architecture
-The service MUST be implemented in Java using Spring Boot, with a component-centric
-architecture that keeps responsibilities clearly separated. Controllers MUST remain thin,
+The service MUST be implemented in Java 25 using Spring Boot 4.1.1, built with Gradle (via
+the Gradle wrapper), with a component-centric architecture that keeps responsibilities
+clearly separated. The codebase MUST be organised by layer, under a single HMCTS-style base
+package (the pattern `uk.gov.hmcts.<domain-code>` — e.g. `uk.gov.hmcts.cp` in a surveyed
+sibling HMCTS Spring Boot service), with top-level layer packages such as `controllers/`,
+`services/`, `repository/`, `mappers/`, `domain/` (DTOs), `entity/`, `exceptions/`, `filters/`,
+and `config/`, rather than a package-per-feature structure. Controllers MUST remain thin,
 handling only HTTP concerns (request binding, status codes, response shaping). Business
 logic MUST live in reusable services/components, not controllers. Dedicated providers,
 mappers, validators, and utilities MUST be used where a responsibility is distinct enough
-to warrant its own component.
-**Rationale**: A consistent, layered structure keeps the codebase navigable as endpoint
-coverage grows and prevents business logic from becoming entangled with transport
-concerns.
+to warrant its own component. The global exception handler required by Principle IX MUST
+live in the `exceptions/` layer package as a single `@RestControllerAdvice` class,
+conventionally named `GlobalExceptionHandler`, not scattered per-controller try/catch
+logic. Health- and readiness-style endpoints MUST
+return a small JSON body carrying a `status` field (e.g. `{"status": "ok"}`) rather than
+an empty response, and MUST NOT be assumed to be served by Spring Boot Actuator's
+`/actuator/health` merely because the actuator dependency happens to be present — a
+hand-rolled controller returning this shape is the established convention.
+**Rationale**: A consistent, layered structure — matching the convention surveyed from a
+sibling HMCTS Spring Boot service — keeps the codebase navigable as
+endpoint coverage grows, prevents business logic from becoming entangled with transport
+concerns, and lets contributors move between HMCTS Spring Boot services without relearning
+project layout. Naming the health-endpoint response shape and the exception handler's
+location closes the two gaps most likely to be reinvented differently by each new
+endpoint if left unstated.
 
 ### III. Reuse Before Duplication
 Common behaviour MUST be implemented once and reused across endpoints. Duplicated logic
@@ -103,20 +120,33 @@ aliases) that would otherwise leak into every consumer.
 Endpoints MUST use explicit request and response DTOs derived from the API contract.
 Generic `Map<String, Object>`-style structures MUST NOT be used where the schema is known.
 Internal domain models MUST be kept separate from external API DTOs where the two diverge,
-with reusable mappers translating between them.
+with reusable mappers translating between them. Lombok MUST be used, consistently across
+the codebase rather than ad hoc per class, to reduce DTO/entity boilerplate (getters,
+setters, `equals`/`hashCode`, and similar). MapStruct MUST be used as the mapping-library
+convention for the reusable mappers this principle already requires, rather than
+hand-written or ad hoc mapping code.
 **Rationale**: Typed models make the contract enforceable by the compiler, catch schema
-drift early, and make mapping logic inspectable and testable instead of implicit.
+drift early, and make mapping logic inspectable and testable instead of implicit. Naming
+Lombok and MapStruct as the established tools — rather than leaving "reduce boilerplate"
+and "reusable mappers" unnamed — is what keeps every DTO/entity/mapper in the codebase
+looking the same regardless of who wrote it.
 
 ### IX. Centralised Validation and Error Handling
 Validation rules and error responses MUST be consistent across all endpoints. Spring
 Boot's global exception handling MUST be used for cross-cutting error behaviour rather
-than per-controller try/catch logic. Where authentication is simulated, it MUST be
-centralised and configurable rather than duplicated per endpoint. Every error response,
-regardless of status code, MUST use one shared error response shape (at minimum: a
-human-readable message and the request's correlation/trace identifier, per Principle
-XIV) rather than each endpoint or exception handler inventing its own body. Log severity
-MUST reflect the failure: client errors (4xx) MUST be logged as warnings, server errors
-(5xx) MUST be logged as errors.
+than per-controller try/catch logic (Principle II names where this handler lives). Where
+authentication is simulated, it MUST be centralised and configurable rather than
+duplicated per endpoint. Every error response, regardless of status code, MUST use one
+shared error response shape — at minimum: a human-readable message in a field named
+`error`, a timestamp, and the request's correlation/trace identifier (per Principle
+XIV) — conventionally a record such as `ErrorResponse(String error, Instant timestamp,
+String traceId)` in the `exceptions/` layer package, produced by the single
+`GlobalExceptionHandler` (Principle II) — rather than each endpoint or exception handler
+inventing its own body. This shared shape MUST be applied to every error response the
+application produces, including framework-level responses (e.g. 404 not-found, 405
+method-not-allowed), not only exceptions explicitly raised by application code. Log
+severity MUST reflect the failure: client errors (4xx) MUST be logged as warnings,
+server errors (5xx) MUST be logged as errors.
 **Rationale**: Inconsistent error shapes or per-endpoint validation logic make the mock
 unpredictable for consumers and multiply the places a fix must be applied. One shared
 error shape lets consumers write a single error-handling path against the mock, matching
@@ -150,37 +180,64 @@ over-engineered abstraction increases the cost of verifying that reliability wit
 corresponding benefit.
 
 ### XIII. Automated Quality Gates
-Every build MUST treat compiler warnings as errors. Static analysis (e.g., a
-Checkstyle-equivalent linter) and dependency vulnerability scanning MUST run as part of
-the build; any accepted vulnerability finding MUST be recorded in a checked-in
-suppression file with a documented reason, never silently ignored. Automated tests MUST
-be organised into separately runnable suites — at minimum unit, controller/API, and
-contract (Principle XI) — with a measured code-coverage report generated on every build.
-Continuous integration MUST run the full build, every test suite, and every quality
-check on each pull request and each change to the main branch; a change MUST NOT be
-merged with a failing or skipped quality gate.
+Every build MUST treat compiler warnings as errors (e.g. a `-Werror`-equivalent compiler
+flag). Static analysis (Checkstyle, plus a code-quality platform such as SonarQube) and
+dependency vulnerability scanning (e.g. OWASP dependency-check) MUST run as part of the
+build — typically wired together via a single shared build-tool plugin rather than each
+configured as a fully separate, ad hoc tool — with any accepted vulnerability finding
+recorded in a checked-in suppression file at a conventional, discoverable path (e.g.
+`config/owasp/`), with a documented reason, never silently ignored. Dependency freshness
+MUST be checked by an automated dependency-update-checking plugin as part of, or
+alongside, the same build, rather than tracked manually. Automated tests MUST be organised
+into separately runnable suites providing at least the coverage required by Principle
+XI — following the reference convention, this means at minimum `unit`, `integration`,
+`functional`, and `smoke` suites — with a measured code-coverage report (e.g. JaCoCo)
+generated on every build. Continuous integration (e.g. GitHub Actions) MUST run the full
+build, every test suite, and every quality check — typically via a single build-tool
+target such as Gradle's `check` — on each pull request and each change to the main
+branch; a change MUST NOT be merged with a failing or skipped quality gate. A separate
+static application security testing (SAST) scan (e.g. CodeQL) MUST run independently of
+the main build pipeline, both on a recurring schedule and on pull requests/pushes.
 **Rationale**: Manual enforcement of code quality and dependency hygiene does not scale
 and erodes under time pressure; automated, CI-enforced gates are what actually keep the
-mock reliable and free of known vulnerabilities as endpoint coverage grows.
+mock reliable and free of known vulnerabilities as endpoint coverage grows. Naming
+concrete tooling (rather than "a linter", generically) is what let this survive contact
+with a real sibling implementation without drifting from it.
 
 ### XIV. Observability & Traceability
-Every request MUST be assigned a correlation/trace identifier: read from an inbound
-correlation header when the caller supplies one, otherwise generated fresh. This
-identifier MUST appear in every log line produced while handling that request, in every
-error response body (Principle IX), and MUST be echoed back to the caller in a response
-header. All application logging MUST go through one shared, structured logging mechanism
-rather than ad hoc or scattered loggers, and any caller-supplied value written to a log
-line MUST be sanitised first to prevent log injection.
+Every request MUST be assigned a correlation/trace identifier, via a conventional
+`X-Correlation-Id` header: read from that inbound header when the caller supplies one,
+otherwise generated fresh (e.g. a UUID), and held for the duration of the request in a
+conventional MDC key (`correlationId`). This identifier MUST appear in every log line
+produced while handling that request, in every error response body (Principle IX), and
+MUST be echoed back to the caller in a response header. Health, readiness, info, and
+metrics-style endpoints MAY be exempted from correlation-ID and tracing instrumentation,
+since they carry no business request to trace and are typically polled at high
+frequency without downstream effect; any such exemption MUST be scoped only to that
+class of endpoint, not used as precedent to exempt endpoints more broadly. All
+application logging MUST go through one shared, structured logging mechanism — Logback
+as the logging implementation, bridging any log4j-style API into it, and reusing a
+shared internal logging library where one already exists rather than each service
+reinventing structured logging — instead of ad hoc or scattered loggers. Any
+caller-supplied value written to a log line MUST be sanitised first, via an
+output-encoding library (e.g. OWASP Java Encoder), to prevent log injection.
 **Rationale**: A mock used for integration testing is only as useful as its
 debuggability — a correlation ID is what lets a consumer's reported request be found in
 logs; sanitised, structured logging keeps that debugging trustworthy rather than
-corruptible by malformed or malicious input.
+corruptible by malformed or malicious input. Naming the concrete header and MDC key keeps
+every service in this family interoperable with the same tracing convention. The
+health/info/metrics exemption is a deliberate, named exception — those endpoints have no
+business request to correlate, and instrumenting them adds overhead to code paths that
+exist specifically to be cheap and frequently polled.
 
 ## Technology & Architecture Constraints
 
-- Primary language and framework: Java with Spring Boot (per Principle II).
-- Layering: controller → service/component → provider/mapper/validator/utility, with no
-  layer skipping business logic into controllers.
+- Primary language, framework, and build tool: Java 25 with Spring Boot 4.1.1, built with
+  Gradle (per Principle II).
+- Layering: a package-by-layer structure (`controllers/` → `services/` →
+  `repository/`/`mappers/`/`domain/`/`entity/`, with `exceptions/`, `filters/`, and
+  `config/` alongside), with no layer skipping business logic into controllers
+  (Principle II).
 - Shared infrastructure (per Principle III) MUST exist for: pagination, filtering,
   validation, DTO mapping, global error handling, synthetic data generation,
   reference-data resolution (including deprecated alias handling), correlation-ID
@@ -191,8 +248,16 @@ corruptible by malformed or malicious input.
 - All environment- and scenario-specific behaviour (dataset size, error injection,
   simulated auth) MUST be driven by externalised configuration (Principle X), not
   conditional code paths hard-coded per environment.
-- Build tooling MUST enforce compiler warnings-as-errors, static analysis, dependency
-  vulnerability scanning, and code-coverage reporting on every build (Principle XIII).
+- Build tooling MUST enforce compiler warnings-as-errors, Checkstyle and SonarQube static
+  analysis, OWASP dependency-check vulnerability scanning (suppression file at a
+  conventional path, e.g. `config/owasp/`), automated dependency-freshness checking, and
+  JaCoCo code-coverage reporting on every build, with a separate CodeQL SAST scan
+  (Principle XIII).
+- Code style/formatting MUST be enforced via a checked-in `.editorconfig` (or
+  equivalent) rather than left to individual contributor preference — conventionally
+  narrower indentation for config-style files, wider indentation for Java source, and a
+  generous but bounded max line length (on the order of 120 characters) to keep diffs
+  and reviews readable.
 
 ## Development Workflow & Quality Gates
 
@@ -235,4 +300,4 @@ Any intentional deviation from the API contract (Principle I) MUST be explicitly
 documented in the relevant spec or plan and agreed before implementation proceeds — it
 MUST NOT be introduced silently during coding.
 
-**Version**: 1.1.0 | **Ratified**: 2026-09-08 | **Last Amended**: 2026-09-15
+**Version**: 1.6.0 | **Ratified**: 2026-09-08 | **Last Amended**: 2026-09-18
