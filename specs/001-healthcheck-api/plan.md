@@ -8,7 +8,7 @@
 
 ## Summary
 
-Expose a single, unauthenticated `GET /api/v5/healthcheck` endpoint that returns `HTTP 200 OK` with a `{"status":"ok"}` JSON body (per constitution Principle II's health-endpoint convention) whenever the application can serve HTTP traffic, with no dependency checks, no request inputs, and no side effects. Because this repository has no application code yet (Spec Kit scaffolding only — see `.specify/memory/constitution.md` and `README.md`), this feature also stands up the minimum Spring Boot/Gradle project skeleton needed to run one controller: a `build.gradle` and Gradle wrapper, a Spring Boot application entry point, and the healthcheck controller and its response record, following the constitution's Java Spring Boot / layer-by-layer architecture principle. Full realization of the constitution's repo-wide quality-gate and observability principles (XIII, XIV, and IX's shared error shape) is intentionally deferred — see Constitution Check and Complexity Tracking below.
+Expose a single, unauthenticated `GET /api/v1/healthcheck` endpoint that returns `HTTP 200 OK` with a `{"status":"ok"}` JSON body (per constitution Principle II's health-endpoint convention) whenever the application can serve HTTP traffic, with no dependency checks, no request inputs, and no side effects. Because this repository has no application code yet (Spec Kit scaffolding only — see `.specify/memory/constitution.md` and `README.md`), this feature also stands up the minimum Spring Boot/Gradle project skeleton needed to run one controller: a `build.gradle` and Gradle wrapper, a Spring Boot application entry point, and the healthcheck controller and its response record, following the constitution's Java Spring Boot / layer-by-layer architecture principle. Full realization of the constitution's repo-wide quality-gate and observability principles (XIII, XIV, and IX's shared error shape) is intentionally deferred — see Constitution Check and Complexity Tracking below.
 
 **Revision note (2026-09-18)**: This plan was updated after the constitution was amended (v1.2.0 → v1.6.0) to name concrete Gradle/package-by-layer/health-response-body/error-handler conventions that didn't exist when this plan was first written. Build tool, package structure, response body, and the deferred `GlobalExceptionHandler`/`ErrorResponse` preview below reflect the amended constitution, not the original planning session.
 
@@ -40,8 +40,8 @@ Expose a single, unauthenticated `GET /api/v5/healthcheck` endpoint that returns
 
 | Principle | Assessment |
 |---|---|
-| I. Contract-First Development | **Pass.** `GET /api/v5/healthcheck` → `200`, "Service is healthy" is taken verbatim from the documented contract (spec.md §Input). The `{"status":"ok"}` response body is *added* into a gap the Swagger contract leaves undefined (it specifies no body at all) — per Principle II's now-explicit health-endpoint convention — not a deviation from anything the contract pins down. This is not the kind of "intentional deviation from the API contract" Governance requires separate agreement for, since nothing documented is being contradicted; recorded here for traceability regardless (research.md Decision). |
-| II. Java Spring Boot Architecture | **Pass.** Implemented as Java 25 + Spring Boot 4.1.1 + Gradle (per the amended principle's exact pins); package-by-layer structure (`controllers/`, `domain/`) under base package `uk.gov.hmcts.elinks`; controller stays thin (no business logic exists to extract); health-endpoint response convention followed (`HealthResponse` record, `{"status":"ok"}`). |
+| I. Contract-First Development | **Pass.** `GET /api/v1/healthcheck` → `200`, "Service is healthy" is taken verbatim from the documented contract (spec.md §Input). The `{"status":"ok"}` response body is *added* into a gap the Swagger contract leaves undefined (it specifies no body at all) — per Principle II's now-explicit health-endpoint convention — not a deviation from anything the contract pins down. This is not the kind of "intentional deviation from the API contract" Governance requires separate agreement for, since nothing documented is being contradicted; recorded here for traceability regardless (research.md Decision). |
+| II. Java Spring Boot Architecture | **Pass.** Implemented as Java 25 + Spring Boot 4.1.1 + Gradle (per the amended principle's exact pins); package-by-layer structure (`controllers/`, `domain/`) under base package `uk.gov.hmcts.ctam.elinks`; controller stays thin (no business logic exists to extract); health-endpoint response convention followed (`HealthResponse` record, `{"status":"ok"}`). |
 | III. Reuse Before Duplication | **N/A.** No pagination, filtering, mapping, or data generation involved. |
 | IV. Synthetic Data Only | **N/A.** No data is served. |
 | V. Deterministic Behaviour | **Pass.** Response is constant (`200`, `{"status":"ok"}`) whenever the process is up; no randomness. |
@@ -85,10 +85,10 @@ gradle/wrapper/...
 
 src/
 ├── main/
-│   ├── java/uk/gov/hmcts/elinks/
+│   ├── java/uk/gov/hmcts/ctam/elinks/
 │   │   ├── Application.java                        # Spring Boot entry point
 │   │   ├── controllers/
-│   │   │   └── HealthcheckController.java           # GET /api/v5/healthcheck
+│   │   │   └── HealthcheckController.java           # GET /api/v1/healthcheck
 │   │   ├── domain/
 │   │   │   └── HealthResponse.java                  # record HealthResponse(String status)
 │   │   └── exceptions/  [NOT CREATED — deferred, see Complexity Tracking]
@@ -97,14 +97,14 @@ src/
 │   └── resources/
 │       └── application.yml                          # server port, app name only
 └── test/
-    └── java/uk/gov/hmcts/elinks/
+    └── java/uk/gov/hmcts/ctam/elinks/
         └── controllers/
             ├── HealthcheckControllerTest.java       # @WebMvcTest — 200 with {"status":"ok"}, non-GET rejected
             ├── HealthcheckSmokeTest.java             # @SpringBootTest — real HTTP round trip
             └── HealthcheckOpenApiContractTest.java   # asserts /v3/api-docs documents the endpoint per FR-010
 ```
 
-**Structure Decision**: Single Gradle/Spring Boot project — there is no frontend and no second deployable, so a multi-module or web+backend split would be pure over-engineering (Principle XII). The codebase is organised **by layer** under base package `uk.gov.hmcts.elinks` (constitution Principle II), not by feature — `controllers/` and `domain/` are the only layer packages this feature actually creates. `exceptions/` is shown above with its two future files named (`GlobalExceptionHandler.java`, `ErrorResponse.java`) precisely because Principle IX/XIV already fixed those names, but the package itself is **not created by this feature** — it's a preview of what a future foundation feature will add, not a task in tasks.md. `services/`, `repository/`, `mappers/`, `entity/`, `filters/`, and `config/` have no names fixed yet either and are simply absent, not previewed. This supersedes this feature's original package-by-feature (`healthcheck/`) structure under `uk.gov.hmcts.reform.ctam.jomockapi`, decided before the constitution named this convention.
+**Structure Decision**: Single Gradle/Spring Boot project — there is no frontend and no second deployable, so a multi-module or web+backend split would be pure over-engineering (Principle XII). The codebase is organised **by layer** under base package `uk.gov.hmcts.ctam.elinks` (constitution Principle II), not by feature — `controllers/` and `domain/` are the only layer packages this feature actually creates. `exceptions/` is shown above with its two future files named (`GlobalExceptionHandler.java`, `ErrorResponse.java`) precisely because Principle IX/XIV already fixed those names, but the package itself is **not created by this feature** — it's a preview of what a future foundation feature will add, not a task in tasks.md. `services/`, `repository/`, `mappers/`, `entity/`, `filters/`, and `config/` have no names fixed yet either and are simply absent, not previewed. This supersedes this feature's original package-by-feature (`healthcheck/`) structure under `uk.gov.hmcts.reform.ctam.jomockapi`, decided before the constitution named this convention.
 
 ## Complexity Tracking
 

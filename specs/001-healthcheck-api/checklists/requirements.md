@@ -32,4 +32,4 @@
 ## Notes
 
 - All items pass. No spec updates required before `/speckit-clarify` or `/speckit-plan`.
-- The endpoint path (`GET /api/v5/healthcheck`), status code (`200`), and description ("Service is healthy") are retained as documented contract facts from the source specification, not implementation choices — these are the externally observable behaviour the feature must deliver.
+- The endpoint path (`GET /api/v1/healthcheck`), status code (`200`), and description ("Service is healthy") are retained as documented contract facts from the source specification, not implementation choices — these are the externally observable behaviour the feature must deliver.

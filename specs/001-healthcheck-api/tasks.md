@@ -19,7 +19,7 @@ description: "Task list for the Healthcheck API feature"
 
 - **[P]**: Can run in parallel (different files, no dependencies)
 - **[Story]**: Which user story this task belongs to (US1, US2, US3)
-- Paths are Gradle-standard (`src/main/java/...`, `src/test/java/...`), rooted at the repository root, organised **by layer** under base package `uk.gov.hmcts.elinks` (constitution Principle II), per plan.md Project Structure
+- Paths are Gradle-standard (`src/main/java/...`, `src/test/java/...`), rooted at the repository root, organised **by layer** under base package `uk.gov.hmcts.ctam.elinks` (constitution Principle II), per plan.md Project Structure
 
 ---
 
@@ -27,8 +27,8 @@ description: "Task list for the Healthcheck API feature"
 
 **Purpose**: Stand up the minimum Gradle/Spring Boot skeleton this repo does not yet have (plan.md: greenfield repo, no build file exists).
 
-- [ ] T001 Create `build.gradle` at repository root: plugins `org.springframework.boot` version `4.1.1`, `io.spring.dependency-management` version `1.1.7`, `application`; `java { toolchain { languageVersion = JavaLanguageVersion.of(25) } }`; `application { mainClass = 'uk.gov.hmcts.elinks.Application' }`; `group = 'uk.gov.hmcts.elinks'`; dependencies `spring-boot-starter-web`, `spring-boot-starter-test` (test scope), `springdoc-openapi-starter-webmvc-ui` (a version compatible with Spring Boot 4.x). Generate the Gradle wrapper (`gradlew`, `gradlew.bat`, `gradle/wrapper/`) alongside it. (research.md decisions; constitution Principle II, amended 2026-09-18 — Checkstyle/OWASP/SonarQube/JaCoCo plugins from Principle XIII are deliberately NOT added here; see plan.md Complexity Tracking)
-- [ ] T002 [P] Create Spring Boot application entry point `src/main/java/uk/gov/hmcts/elinks/Application.java` (`@SpringBootApplication`, `main` method calling `SpringApplication.run`)
+- [ ] T001 Create `build.gradle` at repository root: plugins `org.springframework.boot` version `4.1.1`, `io.spring.dependency-management` version `1.1.7`, `application`; `java { toolchain { languageVersion = JavaLanguageVersion.of(25) } }`; `application { mainClass = 'uk.gov.hmcts.ctam.elinks.Application' }`; `group = 'uk.gov.hmcts.ctam.elinks'`; dependencies `spring-boot-starter-web`, `spring-boot-starter-test` (test scope), `springdoc-openapi-starter-webmvc-ui` (a version compatible with Spring Boot 4.x). Generate the Gradle wrapper (`gradlew`, `gradlew.bat`, `gradle/wrapper/`) alongside it. (research.md decisions; constitution Principle II, amended 2026-09-18 — Checkstyle/OWASP/SonarQube/JaCoCo plugins from Principle XIII are deliberately NOT added here; see plan.md Complexity Tracking)
+- [ ] T002 [P] Create Spring Boot application entry point `src/main/java/uk/gov/hmcts/ctam/elinks/Application.java` (`@SpringBootApplication`, `main` method calling `SpringApplication.run`)
 - [ ] T003 [P] Create `src/main/resources/application.yml` with `spring.application.name: elinks-jomockapi` and `server.port: 8080` (no scenario-specific config yet — plan.md Technical Context)
 - [ ] T004 [P] Update `.gitignore` at repository root to add Gradle/Java build artifact entries (`.gradle/`, `build/`, `*.class`, `.idea/`, `*.iml`) alongside the existing `joh-elinks-api/` entry
 - [ ] T005 [P] Create `.editorconfig` at repository root: `root = true`; a default section (`[*]`) with narrower indentation for config-style files (e.g. `indent_size = 2`); a `[*.java]` section with wider indentation (e.g. `indent_size = 4`) and `max_line_length = 120`; `charset = utf-8`, `end_of_line = lf`, `insert_final_newline = true`, `trim_trailing_whitespace = true` (constitution Technology & Architecture Constraints, "Code style/formatting MUST be enforced via a checked-in `.editorconfig`" — this is the one Setup task not tied to a numbered Core Principle; see plan.md Constitution Check note)
@@ -45,23 +45,23 @@ description: "Task list for the Healthcheck API feature"
 
 ## Phase 3: User Story 1 - Monitoring Component Verifies Application Availability (Priority: P1) 🎯 MVP
 
-**Goal**: `GET /api/v5/healthcheck` returns `HTTP 200 OK` with body `{"status":"ok"}` whenever the application is up, with no inputs required, and stays safe under repeated calls.
+**Goal**: `GET /api/v1/healthcheck` returns `HTTP 200 OK` with body `{"status":"ok"}` whenever the application is up, with no inputs required, and stays safe under repeated calls.
 
-**Independent Test**: `curl -i http://localhost:8080/api/v5/healthcheck` (no params/body) returns `200` with `{"status":"ok"}` every time, including when repeated rapidly in a loop, with no observable state change (spec.md AC-001, AC-002; quickstart.md).
+**Independent Test**: `curl -i http://localhost:8080/api/v1/healthcheck` (no params/body) returns `200` with `{"status":"ok"}` every time, including when repeated rapidly in a loop, with no observable state change (spec.md AC-001, AC-002; quickstart.md).
 
 ### Tests for User Story 1 ⚠️
 
 > Write these tests FIRST; confirm they fail (404, since no controller exists yet) before implementing.
 
-- [ ] T006 [P] [US1] Write `HealthcheckControllerTest` in `src/test/java/uk/gov/hmcts/elinks/controllers/HealthcheckControllerTest.java` (`@WebMvcTest(HealthcheckController.class)` + `MockMvc`): asserts `GET /api/v5/healthcheck` → status `200` with JSON body `{"status":"ok"}` (`jsonPath("$.status").value("ok")`) (spec.md FR-002, FR-003, AC-001, AC-002)
-- [ ] T007 [P] [US1] Write `HealthcheckSmokeTest` in `src/test/java/uk/gov/hmcts/elinks/controllers/HealthcheckSmokeTest.java` (`@SpringBootTest(webEnvironment = RANDOM_PORT)` + `TestRestTemplate`): asserts a real HTTP round trip to `/api/v5/healthcheck` returns `200` with body `{"status":"ok"}` (proves the full application context wires the endpoint end-to-end)
-- [ ] T008 [US1] Add a test case to `HealthcheckControllerTest` asserting `GET /api/v5/healthcheck` with an unexpected query parameter (e.g. `?unexpected=1`) and a request body still returns `200` with `{"status":"ok"}` — extra/unrecognised input is ignored, not rejected (depends on T006 creating the file; spec.md EC-004)
+- [ ] T006 [P] [US1] Write `HealthcheckControllerTest` in `src/test/java/uk/gov/hmcts/ctam/elinks/controllers/HealthcheckControllerTest.java` (`@WebMvcTest(HealthcheckController.class)` + `MockMvc`): asserts `GET /api/v1/healthcheck` → status `200` with JSON body `{"status":"ok"}` (`jsonPath("$.status").value("ok")`) (spec.md FR-002, FR-003, AC-001, AC-002)
+- [ ] T007 [P] [US1] Write `HealthcheckSmokeTest` in `src/test/java/uk/gov/hmcts/ctam/elinks/controllers/HealthcheckSmokeTest.java` (`@SpringBootTest(webEnvironment = RANDOM_PORT)` + `TestRestTemplate`): asserts a real HTTP round trip to `/api/v1/healthcheck` returns `200` with body `{"status":"ok"}` (proves the full application context wires the endpoint end-to-end)
+- [ ] T008 [US1] Add a test case to `HealthcheckControllerTest` asserting `GET /api/v1/healthcheck` with an unexpected query parameter (e.g. `?unexpected=1`) and a request body still returns `200` with `{"status":"ok"}` — extra/unrecognised input is ignored, not rejected (depends on T006 creating the file; spec.md EC-004)
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Create `HealthResponse` in `src/main/java/uk/gov/hmcts/elinks/domain/HealthResponse.java`: `public record HealthResponse(String status)` (research.md Decision: no Lombok needed on a record, no MapStruct mapper needed — no domain/entity source to translate from)
-- [ ] T010 [US1] Implement `HealthcheckController` in `src/main/java/uk/gov/hmcts/elinks/controllers/HealthcheckController.java`: `@RestController`, `@GetMapping("/api/v5/healthcheck")` method returning `ResponseEntity<HealthResponse>` / `HttpStatus.OK` with body `new HealthResponse("ok")`, no parameters, no injected dependencies (depends on T001–T005, T009; research.md: no service layer)
-- [ ] T011 [US1] Add a repeated-call assertion to `HealthcheckControllerTest` (loop `GET /api/v5/healthcheck` several times in one test method) confirming every call independently returns `200` with `{"status":"ok"}` and no shared/mutated state (depends on T006 creating the file and T010 for a meaningful assertion; spec.md EC-001/EC-002; proves the narrower, automated half of SC-003 — see spec.md SC-003 for what remains an untested design expectation, not a load/soak-tested claim)
+- [ ] T009 [US1] Create `HealthResponse` in `src/main/java/uk/gov/hmcts/ctam/elinks/domain/HealthResponse.java`: `public record HealthResponse(String status)` (research.md Decision: no Lombok needed on a record, no MapStruct mapper needed — no domain/entity source to translate from)
+- [ ] T010 [US1] Implement `HealthcheckController` in `src/main/java/uk/gov/hmcts/ctam/elinks/controllers/HealthcheckController.java`: `@RestController`, `@GetMapping("/api/v1/healthcheck")` method returning `ResponseEntity<HealthResponse>` / `HttpStatus.OK` with body `new HealthResponse("ok")`, no parameters, no injected dependencies (depends on T001–T005, T009; research.md: no service layer)
+- [ ] T011 [US1] Add a repeated-call assertion to `HealthcheckControllerTest` (loop `GET /api/v1/healthcheck` several times in one test method) confirming every call independently returns `200` with `{"status":"ok"}` and no shared/mutated state (depends on T006 creating the file and T010 for a meaningful assertion; spec.md EC-001/EC-002; proves the narrower, automated half of SC-003 — see spec.md SC-003 for what remains an untested design expectation, not a load/soak-tested claim)
 - [ ] T012 [US1] Add a coarse response-time sanity assertion to `HealthcheckSmokeTest` (e.g., the round trip completes within 1 second) as a regression guard, not a strict performance benchmark (depends on T007 creating the file and T010 for the endpoint to exist) — SC-002's `<100ms` "under normal operating conditions" target is a design expectation of a no-I/O endpoint and is not asserted precisely here to avoid CI flakiness
 
 **Checkpoint**: User Story 1 is fully functional and independently testable — this is the MVP.
@@ -77,7 +77,7 @@ description: "Task list for the Healthcheck API feature"
 ### Tests for User Story 2 ⚠️
 
 - [ ] T013 [US2] Add an assertion to `HealthcheckControllerTest` that the `200` response body contains only the `status` field (no other JSON properties) and no unexpected headers (e.g. no stack trace, no server internals) are present (depends on T006 creating the file; spec.md FR-007, AC-005)
-- [ ] T014 [P] [US2] Write `HealthcheckOpenApiContractTest` in `src/test/java/uk/gov/hmcts/elinks/controllers/HealthcheckOpenApiContractTest.java` (`@SpringBootTest(webEnvironment = RANDOM_PORT)`): fetches `/v3/api-docs` and asserts the JSON documents `GET /api/v5/healthcheck` with operation summary "Healthcheck", a `200` response described "Service is healthy", and a response schema limited to a single `status` string property (spec.md FR-010, AC-006; contracts/healthcheck.md)
+- [ ] T014 [P] [US2] Write `HealthcheckOpenApiContractTest` in `src/test/java/uk/gov/hmcts/ctam/elinks/controllers/HealthcheckOpenApiContractTest.java` (`@SpringBootTest(webEnvironment = RANDOM_PORT)`): fetches `/v3/api-docs` and asserts the JSON documents `GET /api/v1/healthcheck` with operation summary "Healthcheck", a `200` response described "Service is healthy", and a response schema limited to a single `status` string property (spec.md FR-010, AC-006; contracts/healthcheck.md)
 
 ### Implementation for User Story 2
 
@@ -89,13 +89,13 @@ description: "Task list for the Healthcheck API feature"
 
 ## Phase 5: User Story 3 - Unsupported Method Does Not Trigger Healthcheck Behaviour (Priority: P3)
 
-**Goal**: A non-`GET` request to `/api/v5/healthcheck` never triggers the healthcheck success response.
+**Goal**: A non-`GET` request to `/api/v1/healthcheck` never triggers the healthcheck success response.
 
-**Independent Test**: `curl -i -X POST http://localhost:8080/api/v5/healthcheck` returns `405 Method Not Allowed`, not `200` (spec.md AC-003; quickstart.md).
+**Independent Test**: `curl -i -X POST http://localhost:8080/api/v1/healthcheck` returns `405 Method Not Allowed`, not `200` (spec.md AC-003; quickstart.md).
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T016 [US3] Add a test to `HealthcheckControllerTest` asserting `POST /api/v5/healthcheck` (and one other non-`GET` method, e.g. `PUT`) returns `405 Method Not Allowed`, confirming the success handler is never invoked (depends on T006 creating the file; spec.md FR-008, AC-003)
+- [ ] T016 [US3] Add a test to `HealthcheckControllerTest` asserting `POST /api/v1/healthcheck` (and one other non-`GET` method, e.g. `PUT`) returns `405 Method Not Allowed`, confirming the success handler is never invoked (depends on T006 creating the file; spec.md FR-008, AC-003)
 
 ### Implementation for User Story 3
 
@@ -147,8 +147,8 @@ description: "Task list for the Healthcheck API feature"
 
 ```bash
 # Launch both User Story 1 file-creation tests together (T008/T011 must follow T006 sequentially, so excluded here):
-Task: "Write HealthcheckControllerTest in src/test/java/uk/gov/hmcts/elinks/controllers/HealthcheckControllerTest.java"
-Task: "Write HealthcheckSmokeTest in src/test/java/uk/gov/hmcts/elinks/controllers/HealthcheckSmokeTest.java"
+Task: "Write HealthcheckControllerTest in src/test/java/uk/gov/hmcts/ctam/elinks/controllers/HealthcheckControllerTest.java"
+Task: "Write HealthcheckSmokeTest in src/test/java/uk/gov/hmcts/ctam/elinks/controllers/HealthcheckSmokeTest.java"
 ```
 
 ---
@@ -161,7 +161,7 @@ Task: "Write HealthcheckSmokeTest in src/test/java/uk/gov/hmcts/elinks/controlle
 2. Skip Phase 2 (empty for this feature).
 3. Complete Phase 3: User Story 1 (T006–T012).
 4. **STOP and VALIDATE**: run `./gradlew test` and `curl` the endpoint per quickstart.md.
-5. This alone satisfies the feature's primary purpose — a working `GET /api/v5/healthcheck` → `200` with `{"status":"ok"}`.
+5. This alone satisfies the feature's primary purpose — a working `GET /api/v1/healthcheck` → `200` with `{"status":"ok"}`.
 
 ### Incremental Delivery
 

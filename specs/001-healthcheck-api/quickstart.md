@@ -1,6 +1,6 @@
 # Quickstart: Healthcheck API
 
-Validates that `GET /api/v5/healthcheck` works end-to-end once implemented per plan.md / contracts/healthcheck.md.
+Validates that `GET /api/v1/healthcheck` works end-to-end once implemented per plan.md / contracts/healthcheck.md.
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ Validates that `GET /api/v5/healthcheck` works end-to-end once implemented per p
 ## Validate
 
 ```bash
-curl -i http://localhost:8080/api/v5/healthcheck
+curl -i http://localhost:8080/api/v1/healthcheck
 ```
 
 **Expected outcome**:
@@ -27,7 +27,7 @@ curl -i http://localhost:8080/api/v5/healthcheck
 ## Validate no-input behaviour (spec.md AC-002)
 
 ```bash
-curl -i "http://localhost:8080/api/v5/healthcheck?unexpected=1" -d '{"ignored":true}'
+curl -i "http://localhost:8080/api/v1/healthcheck?unexpected=1" -d '{"ignored":true}'
 ```
 
 **Expected outcome**: still `200` with `{"status":"ok"}` — extra query parameters/body are ignored, not rejected.
@@ -35,7 +35,7 @@ curl -i "http://localhost:8080/api/v5/healthcheck?unexpected=1" -d '{"ignored":t
 ## Validate unsupported-method behaviour (spec.md AC-003, FR-008)
 
 ```bash
-curl -i -X POST http://localhost:8080/api/v5/healthcheck
+curl -i -X POST http://localhost:8080/api/v1/healthcheck
 ```
 
 **Expected outcome**: Spring's default `405 Method Not Allowed` — the healthcheck success behaviour must not be triggered.
@@ -43,7 +43,7 @@ curl -i -X POST http://localhost:8080/api/v5/healthcheck
 ## Validate OpenAPI documentation (spec.md AC-006, FR-010)
 
 ```bash
-curl -s http://localhost:8080/v3/api-docs | grep -A10 '"/api/v5/healthcheck"'
+curl -s http://localhost:8080/v3/api-docs | grep -A10 '"/api/v1/healthcheck"'
 ```
 
 **Expected outcome**: the path is documented under a `get` operation summarised "Healthcheck" with a `200` response described "Service is healthy", and a response schema limited to the single `status` string field.
