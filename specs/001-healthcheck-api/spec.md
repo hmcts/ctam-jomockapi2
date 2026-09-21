@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-18
 
-**Status**: Draft
+**Status**: Planned
 
 **Input**: User description: "Create a feature specification for a lightweight application healthcheck API. The service must expose GET /api/v1/healthcheck, returning HTTP 200 OK with description 'Service is healthy' when the application is running and able to respond to HTTP requests. The endpoint must require no request parameters or body, must be read-only and idempotent, must avoid unnecessary downstream dependency checks, must follow existing project conventions for routing, security, testing, logging and OpenAPI documentation, and must not expose sensitive or internal implementation details."
 
@@ -88,7 +88,7 @@ As a system integrator, I want requests using an unsupported HTTP method against
 
 ### Key Entities
 
-- **Health status**: A stateless, literal response value carrying a single `status` field (e.g. `"ok"`) — not derived from any dependency check, not persisted, and not related to any other domain data. See `data-model.md` for the exact shape.
+- **Health status** (implemented as the `HealthResponse` value — see `data-model.md`): A stateless, literal response value carrying a single `status` field (e.g. `"ok"`) — not derived from any dependency check, not persisted, and not related to any other domain data. See `data-model.md` for the exact shape.
 
 ## Success Criteria *(mandatory)*
 
