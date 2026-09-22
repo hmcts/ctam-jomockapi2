@@ -33,5 +33,6 @@ breakdown.
 
 ## Status
 
-The project is in the specification/planning stage — endpoint specs, plans, and tasks
-are being defined ahead of implementation. No application code exists yet.
+The Gradle/Spring Boot skeleton is in place, and the first endpoint — `GET
+/api/v1/healthcheck` — is implemented and covered by automated tests (see
+`specs/001-healthcheck-api/`). Run it locally with `./gradlew bootRun`.

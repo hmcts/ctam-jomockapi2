@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: ctam-jomockapi
+
+server:
+  port: 8080

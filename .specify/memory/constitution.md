@@ -1,25 +1,34 @@
 <!--
 Sync Impact Report
-- Version change: 1.8.0 → 1.8.1
-- Rationale: /speckit-analyze on specs/001-healthcheck-api (finding N1) found this
-  document's own title named the project "E-Links Mock API", while every other signal
-  of this project's identity — the repository name `ctam-jomockapi2`, the base package
-  `uk.gov.hmcts.ctam.jo` (`jo` = Judicial Office domain code, per research.md), and
-  this constitution's own prior amendments — establishes it as the "JO Mock API".
-  "E-Links" remains correct everywhere else in this document and the wider repo, where
-  it names the real external upstream API this project mocks (Principle I's contract
-  source, `joh-elinks-api/` reference data), and none of those references change. This
-  is a title-only rename with no change to any principle's substance, so this is a
-  PATCH bump (non-semantic refinement).
-- Added principles: none
-- Modified sections: Document title only (`# E-Links Mock API Constitution` →
-  `# JO Mock API Constitution`). No Core Principle, Technology & Architecture
-  Constraint, Development Workflow item, or Governance clause changed in substance.
+- Version change: 1.9.0 → 1.10.0
+- Rationale: Added a new Core Principle (XVIII. API Contract and Swagger/OpenAPI
+  Requirements), requiring every new REST API or service in this repository to
+  provide and maintain a generated OpenAPI/Swagger specification for every
+  implemented endpoint — path, method, parameters, headers, request/response
+  schemas, status codes, validation constraints, and error responses, all matching
+  the actual implementation and updated whenever the contract changes — with Swagger
+  UI exposed wherever the framework supports it and generation reproducible as part
+  of the build/runtime, not hand-maintained. This is a new principle, so this is a
+  MINOR bump per the versioning policy below.
+- Added principles: XVIII. API Contract and Swagger/OpenAPI Requirements
+- Modified sections: Development Workflow & Quality Gates (added a bullet requiring a
+  matching, regenerated OpenAPI/Swagger specification for any endpoint change,
+  cross-referencing Principle XVIII — matching this section's existing pattern of
+  citing the principle each quality gate enforces).
 - Removed sections: none
-- Downstream impact: none — no principle text, requirement, or cross-reference in any
-  spec/plan/tasks file depends on the literal title string; all existing "E-Links"
-  references elsewhere in this document and the repo correctly continue to name the
-  real upstream API and are unaffected.
+- Downstream impact: `/speckit-tasks` MUST now generate explicit tasks for creating
+  or updating the Swagger/OpenAPI definition for any feature that adds or changes an
+  endpoint; `/speckit-implement` MUST complete API implementation and its
+  Swagger/OpenAPI documentation together, not as separate passes; `/speckit-converge`
+  MUST verify every implemented endpoint appears in the OpenAPI specification, that
+  request/response schemas and documented status codes match actual behaviour, and
+  that no undocumented endpoints have been introduced. This principle formalizes,
+  repo-wide, the springdoc-based approach this project's first feature
+  (001-healthcheck-api) already established ad hoc in its own research.md, and
+  directly underpins Principle XVII's requirement that Postman collections stay
+  aligned with "the API/OpenAPI specification" — that specification must now
+  reliably exist for every endpoint. No existing principle, constraint, or
+  governance clause changed in substance.
 -->
 
 # JO Mock API Constitution
@@ -263,6 +272,77 @@ them explicitly, rather than leaving "well-designed OO code" as an unstated expe
 gives the peer review Development Workflow & Quality Gates already requires a concrete
 standard to check new code against.
 
+### XVII. API Testability and Postman Artifacts
+For every new API, REST service, or externally callable endpoint implemented in this
+repository, the implementation MUST include corresponding Postman artifacts, delivered
+alongside the service code in the same feature rather than deferred to a later pass. A
+Postman Collection MUST contain a request for every newly implemented endpoint, with
+the correct HTTP method, URL, headers, request body, query parameters, and path
+parameters. Configurable values — including `baseUrl`, authentication tokens, tenant
+IDs, client IDs, and other environment-specific configuration — MUST be expressed as
+Postman environment variables, never hard-coded into requests. Collections MUST
+include representative sample requests for successful scenarios and, where
+applicable, requests covering significant error scenarios. Every request MUST carry
+Postman test scripts validating the expected HTTP status code, response structure,
+mandatory response fields, and any important business assertions. The Postman
+collection MUST be kept aligned with the API/OpenAPI specification and MUST be
+updated whenever an existing endpoint is modified — a stale collection is a defect,
+not a footnote. Postman artifacts MUST be stored in a repository-controlled location,
+conventionally `/postman/`, following the naming pattern
+`/postman/<service-name>.postman_collection.json` and
+`/postman/<service-name>.postman_environment.json`. A service implementation is NOT
+considered complete until its corresponding Postman collection has been created or
+updated and can successfully exercise the implemented API. `/speckit-tasks` MUST
+generate explicit tasks for creating or updating the Postman collection for any
+feature that adds or changes an endpoint; `/speckit-implement` MUST implement those
+Postman artifacts alongside the service; `/speckit-converge` MUST check that every
+implemented API endpoint is represented in the Postman collection and that the
+collection remains consistent with the API specification, raising a finding wherever
+it does not.
+**Rationale**: A Postman collection is the fastest way for a human integrator,
+tester, or another team to actually exercise a newly built endpoint without reading
+source code first — matching this project's purpose as a stand-in API other teams
+integrate against. Environment variables keep collections portable across
+local/dev/staging without hand-editing requests, and embedded test scripts turn
+manual exploration into a repeatable regression check. Binding Postman delivery into
+every Spec Kit phase — tasks, implement, and converge — is what prevents "add a
+collection later" from quietly becoming "never," the way ad hoc testing conventions
+usually drift.
+
+### XVIII. API Contract and Swagger/OpenAPI Requirements
+Every new REST API or service in this repository MUST provide and maintain a
+generated OpenAPI/Swagger specification, created or updated for every implemented
+endpoint as part of the same feature — not deferred to a later pass. Each endpoint's
+specification MUST define its path, HTTP method, request parameters, request
+headers, request body schema, response schemas, HTTP status codes, validation
+constraints, and error responses. Endpoints, request fields, and response fields
+MUST carry meaningful descriptions, and representative request/response examples
+MUST be included where appropriate. The OpenAPI specification MUST match the actual
+implementation and MUST be updated whenever an existing API contract changes — an
+undocumented endpoint is an incomplete implementation, not a follow-up item. Swagger
+UI MUST be exposed wherever the service framework supports it, and Swagger/OpenAPI
+generation MUST be reproducible as part of the application build or runtime
+configuration, not a hand-maintained file that can drift from the code (per this
+project's springdoc-based approach, established in specs/001-healthcheck-api's
+research.md). The generated OpenAPI document SHOULD be available at a standard
+location such as `/v3/api-docs`, and Swagger UI SHOULD be available through a
+standard route such as `/swagger-ui.html` or the framework-equivalent route.
+`/speckit-tasks` MUST generate explicit tasks for creating or updating the
+Swagger/OpenAPI definition for any feature that adds or changes an endpoint;
+`/speckit-implement` MUST complete API implementation and its Swagger/OpenAPI
+documentation together, not as separate passes; `/speckit-converge` MUST verify
+that every implemented endpoint appears in the OpenAPI specification, that
+request/response schemas and documented HTTP status codes match actual behaviour,
+and that no undocumented endpoints have been introduced.
+**Rationale**: Consumers of this mock — and this project's own Postman collections,
+required to stay aligned with "the API/OpenAPI specification" by Principle XVII —
+depend on that specification being both present and accurate; a spec that drifts
+from the code is worse than no spec at all, since it actively misleads integrators
+rather than merely leaving them uninformed. Requiring reproducible, build-time
+generation rather than a hand-maintained file is what keeps the two from diverging
+as endpoints are added or changed, and matches Principle I's contract-fidelity
+concern applied to this mock's own published documentation.
+
 ## Technology & Architecture Constraints
 
 - Primary language, framework, and build tool: Java 25 with Spring Boot 4.1.1, built with
@@ -299,6 +379,12 @@ standard to check new code against.
   documented and agreed (see Governance).
 - New or changed endpoint behaviour MUST land with corresponding unit, controller/API,
   and contract test coverage (Principle XI) — implementation without tests is not
+  considered done.
+- New or changed endpoint behaviour MUST land with a created or updated Postman
+  collection exercising it (Principle XVII) — a service is not considered done until
+  its Postman artifacts can successfully call the implemented API.
+- New or changed endpoint behaviour MUST land with a matching, regenerated
+  OpenAPI/Swagger specification (Principle XVIII) — an undocumented endpoint is not
   considered done.
 - Reviews MUST check for duplicated logic that should instead use or extend an existing
   shared component (Principle III) before approving new endpoint-specific logic.
@@ -341,4 +427,4 @@ Where the deviation is a deferral rather than a permanent, scope-justified excep
 documentation MUST state a path to eventual compliance (e.g., a named future feature that
 will close it), not merely a reason the gap exists today.
 
-**Version**: 1.8.1 | **Ratified**: 2026-09-08 | **Last Amended**: 2026-09-18
+**Version**: 1.10.0 | **Ratified**: 2026-09-08 | **Last Amended**: 2026-09-22
