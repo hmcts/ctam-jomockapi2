@@ -6,8 +6,7 @@ and development, serving synthetic data only.
 
 ## Purpose
 
-The real E-Links API's Swagger/OpenAPI specification
-(`joh-elinks-api/swagger-ui-elinks-api-v5.pdf`) is the source of truth for this mock.
+The real E-Links API's Swagger/OpenAPI specification is the source of truth for this mock.
 Every endpoint the mock exposes preserves the real API's paths, methods, parameters,
 response shapes, status codes, filtering, and pagination behaviour, so consumers can
 develop and test against it exactly as they would against the real service — without
@@ -30,10 +29,7 @@ trace back to the source specification.
 This repository is developed feature-by-feature using the
 [Spec Kit](https://github.com/github/spec-kit) workflow. Each feature lives under
 `specs/<feature-name>/` with its specification, implementation plan, and task
-breakdown:
-
-- `specs/001-healthcheck-endpoint/` — the mock's `GET /elinks/api/v5/healthcheck`
-  endpoint (in progress; see that directory's `spec.md` for details).
+breakdown.
 
 ## Status
 
