@@ -27,7 +27,7 @@ curl -i http://localhost:8080/api/v1/healthcheck
 ## Validate no-input behaviour (spec.md AC-002)
 
 ```bash
-curl -i "http://localhost:8080/api/v1/healthcheck?unexpected=1" -d '{"ignored":true}'
+curl -i -X GET "http://localhost:8080/api/v1/healthcheck?unexpected=1" -d '{"ignored":true}'
 ```
 
 **Expected outcome**: still `200` with `{"status":"ok"}` — extra query parameters/body are ignored, not rejected.

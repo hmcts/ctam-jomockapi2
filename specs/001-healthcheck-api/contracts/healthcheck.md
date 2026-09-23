@@ -45,7 +45,10 @@ Generated via `springdoc-openapi` from the controller method and the `HealthResp
               properties:
                 status:
                   type: string
+                  description: >-
+                    Literal health indicator; always "ok" when the application
+                    can serve HTTP requests.
                   example: ok
 ```
 
-No request schema is declared, and the response schema is limited to the single `status` field defined above — matching the "don't invent beyond the established convention" constraint in spec.md and research.md. The schema declares `status` as an unconstrained `string` (no `enum`/`allowableValues`) rather than pinning it to the literal `"ok"`, deliberately: tasks.md T015 adds no `@Schema` annotation beyond what springdoc derives from the `HealthResponse` record, per Principle XII (Simplicity) — the value's constancy is guaranteed by the code (data-model.md), not by the published schema.
+No request schema is declared, and the response schema is limited to the single `status` field defined above — matching the "don't invent beyond the established convention" constraint in spec.md and research.md. The schema declares `status` as an unconstrained `string` (no `enum`/`allowableValues`) rather than pinning it to the literal `"ok"` — the value's constancy is guaranteed by the code (data-model.md), not by the published schema. A `@Schema(description = ...)` annotation on the `status` field satisfies constitution Principle XVIII's field-description requirement without over-constraining the type (added in T025; supersedes tasks.md T015's original "no `@Schema` annotation beyond what springdoc derives" note, written before Principle XVIII existed — found by `/speckit-converge`, finding F2).
