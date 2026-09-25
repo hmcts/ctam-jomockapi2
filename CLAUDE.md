@@ -17,6 +17,11 @@ A mock implementation of the **E-Links API** (Ministry of Justice / judiciary.uk
 - One shared error response shape via a single `GlobalExceptionHandler`
 - Every request gets a correlation ID (`X-Correlation-Id`), except health/readiness/info/metrics-style endpoints, which are explicitly exempted
 - All significant behaviour MUST have automated tests (unit, controller/API, contract)
+- Every endpoint MUST appear in a generated (springdoc) OpenAPI spec, kept in step with the code, with Swagger UI exposed (Principle XVIII)
+- Every endpoint MUST have Postman artifacts in `postman/` (collection + environment, with test scripts and no hard-coded environment values), updated in the same feature (Principle XVII)
+- Gradle dependency locking is on: after changing dependencies, regenerate `gradle.lockfile` with `./gradlew dependencies --write-locks`
+
+The constitution is currently at **v1.10.0** (last amended 2026-09-22).
 
 If a change would conflict with the constitution, that's a blocker — resolve it by updating the constitution deliberately (via `/speckit-constitution`), not by working around it silently.
 
@@ -37,15 +42,24 @@ Always run `/speckit-analyze` before `/speckit-implement` — it catches coverag
 
 ## Current repo state
 
-**Greenfield — no application code or build file exists yet.** The first feature (`specs/001-healthcheck-api/`) stands up the minimum Gradle/Spring Boot skeleton alongside its own controller. Do not assume `build.gradle`, `src/`, or the Gradle wrapper exist until that feature's Setup tasks (T001–T005) have actually been run.
+- **`001-healthcheck-api` — done, merged to `main`.** It set up the Gradle/Spring Boot skeleton (`build.gradle`, wrapper, `gradle.lockfile`), `Application`, `HealthcheckController` (`GET /api/v1/healthcheck` → `{"status": "ok"}`), the `HealthResponse` DTO, springdoc OpenAPI/Swagger UI, controller/contract/smoke tests, the Postman collection and environment, and `start.sh`.
+- **`002-reference-data-api` — spec, plan and tasks written, not implemented yet** (branch `002-reference-data-api`, PR #7). It will add `GET /api/v1/reference_data/{attribute_name}` and `GET /api/v1/reference_data/{attribute_name}/{reference_id}` (`appointment_titles`, with deprecated alias `appointment_title`). As the first business endpoint, it will also build the shared infrastructure 001 left out: Bearer-token auth, correlation-ID filter, structured and sanitised logging, `ErrorResponse`/`GlobalExceptionHandler`, Lombok/MapStruct, and the Principle XIII quality gates and test suites. See `specs/002-reference-data-api/plan.md`.
 
-## Commands (once the Gradle skeleton exists)
+Don't assume anything listed for 002 exists in `src/` until its tasks have actually been run.
+
+## Commands
 
 ```bash
-./gradlew bootRun   # run the application locally
-./gradlew test      # run the automated test suite
-./gradlew build     # full build (compile + test)
+./start.sh                                   # build and run on http://localhost:8080 (foreground; wraps ./gradlew bootRun)
+./gradlew bootRun                            # run the application locally
+./gradlew test                               # run the automated test suite
+./gradlew build                              # full build (compile + test)
+./gradlew dependencies --write-locks         # regenerate gradle.lockfile after dependency changes
+npx newman run postman/ctam-jomockapi.postman_collection.json \
+  -e postman/ctam-jomockapi.postman_environment.json   # run the Postman checks against a running instance
 ```
+
+With the app running: Swagger UI at `http://localhost:8080/swagger-ui/index.html`, OpenAPI document at `http://localhost:8080/v3/api-docs`.
 
 ## Reference data
 
