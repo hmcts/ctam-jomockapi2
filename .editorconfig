@@ -11,3 +11,7 @@ indent_size = 2
 [*.java]
 indent_size = 4
 max_line_length = 120
+
+# Captured response bodies compared byte for byte by the functional tests (AC-015).
+[src/functionalTest/resources/golden/*.json]
+insert_final_newline = false

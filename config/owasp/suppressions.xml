@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  OWASP dependency-check suppressions (constitution Principle XIII).
+
+  Every <suppress> entry MUST carry a <notes> element giving a documented reason:
+  why the finding does not apply to this mock (or why it is accepted), who agreed it,
+  and when it should be revisited. Findings are never ignored silently.
+-->
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+</suppressions>

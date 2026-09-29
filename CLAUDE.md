@@ -42,17 +42,27 @@ Always run `/speckit-analyze` before `/speckit-implement` — it catches coverag
 
 ## Current repo state
 
-- **`001-healthcheck-api` — done, merged to `main`.** It set up the Gradle/Spring Boot skeleton (`build.gradle`, wrapper, `gradle.lockfile`), `Application`, `HealthcheckController` (`GET /api/v1/healthcheck` → `{"status": "ok"}`), the `HealthResponse` DTO, springdoc OpenAPI/Swagger UI, controller/contract/smoke tests, the Postman collection and environment, and `start.sh`.
-- **`002-reference-data-api` — spec, plan and tasks written, not implemented yet** (branch `002-reference-data-api`, PR #7). It will add `GET /api/v1/reference_data/{attribute_name}` and `GET /api/v1/reference_data/{attribute_name}/{reference_id}` (`appointment_titles`, with deprecated alias `appointment_title`). As the first business endpoint, it will also build the shared infrastructure 001 left out: Bearer-token auth, correlation-ID filter, structured and sanitised logging, `ErrorResponse`/`GlobalExceptionHandler`, Lombok/MapStruct, and the Principle XIII quality gates and test suites. See `specs/002-reference-data-api/plan.md`.
-
-Don't assume anything listed for 002 exists in `src/` until its tasks have actually been run.
+- **`001-healthcheck-api` — done, merged to `main`.** Gradle/Spring Boot skeleton, `GET /api/v1/healthcheck` → `{"status": "ok"}` (unauthenticated, exempt from correlation IDs), springdoc OpenAPI/Swagger UI, Postman collection and environment, and `start.sh`.
+- **`002-reference-data-api` — implemented** (branch `002-reference-data-api`). `GET /api/v1/reference_data/{attribute_name}` and `GET /api/v1/reference_data/{attribute_name}/{reference_id}`, serving `appointment_titles` (194 synthetic records in `src/main/resources/reference-data/`) and the deprecated alias `appointment_title`. Types are declared in `jo.reference-data.types` in `application.yml`; adding one needs only a config entry and a fixture (see README "Adding a reference-data type"). It also built the shared infrastructure:
+  - Bearer-token auth (`BearerTokenAuthenticationFilter`, tokens from `jo.security.bearer-tokens` / `JO_SECURITY_BEARER_TOKENS`; can't be turned off)
+  - correlation IDs (`CorrelationIdFilter`, `X-Correlation-Id`), structured logstash JSON logging, and `LogSanitiser` for caller values
+  - one `ErrorResponse` shape from `ErrorResponseFactory`, used by `GlobalExceptionHandler`, the filters and `JsonErrorController` (`/error`)
+  - Lombok/MapStruct, `-Werror`, Checkstyle (HMCTS plugin), OWASP dependency-check, JaCoCo, Sonar config, `dependencyUpdates`, and CI/CodeQL workflows in `.github/workflows/`
+- **Test suites** (Gradle JVM Test Suite plugin), all run by `check`: `test` (unit and `@WebMvcTest`, `src/test`), `integrationTest` (full context and OpenAPI contract tests), `functionalTest` (every acceptance scenario over real HTTP), `smokeTest` (live round trips and a latency guard). The full-context suites use `@ActiveProfiles("test")` with token `test-token`.
+- `NoTypeSpecificCodeTest` fails the build if any main source file (comments included) names a specific reference-data type, or if anything other than `ReferenceDataTypeRegistry` reads aliases.
 
 ## Commands
 
 ```bash
 ./start.sh                                   # build and run on http://localhost:8080 (foreground; wraps ./gradlew bootRun)
 ./gradlew bootRun                            # run the application locally
-./gradlew test                               # run the automated test suite
+./gradlew check                              # every quality gate: -Werror compile, Checkstyle, all four suites, JaCoCo, OWASP
+./gradlew check -PskipOwasp                  # the same without the slow OWASP/NVD scan (local only; CI never skips it)
+./gradlew test                               # unit suite
+./gradlew integrationTest                    # full-context and OpenAPI contract tests
+./gradlew functionalTest                     # acceptance scenarios over real HTTP
+./gradlew smokeTest                          # live round trips (add -Dperf.strict=true for the 100 ms p95 target)
+./gradlew dependencyUpdates                  # dependency freshness report
 ./gradlew build                              # full build (compile + test)
 ./gradlew dependencies --write-locks         # regenerate gradle.lockfile after dependency changes
 npx newman run postman/ctam-jomockapi.postman_collection.json \
@@ -63,4 +73,4 @@ With the app running: Swagger UI at `http://localhost:8080/swagger-ui/index.html
 
 ## Reference data
 
-`joh-elinks-api/` contains the real E-Links Swagger/OpenAPI reference (`swagger-ui-elinks-api-v5.pdf`) and reference-data CSV/JSON extracts used to seed synthetic data. This directory is reference material, not part of the mock's source code — it's excluded from `.gitignore`-tracked build artifacts but the data files themselves are checked in intentionally.
+Reference extracts (the E-Links Swagger PDF and reference-data files) are local-only reference material. They are gitignored and never committed, and the build doesn't depend on them. Only public title names were taken from them, once, to generate the checked-in synthetic fixture (see `specs/002-reference-data-api/data-model.md` § Fixture generation rules).

@@ -13,3 +13,7 @@ build/
 
 # OS
 .DS_Store
+
+# Reference-data fixture built from real title names: kept local, never committed.
+# Matches src/main/resources/reference-data/ and the functional-test golden copy.
+appointment_titles.json

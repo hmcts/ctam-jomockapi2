@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # full history for Sonar blame/new-code detection
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      # Full build: compile (-Werror), Checkstyle, all four test suites, JaCoCo and OWASP dependency-check.
+      # Never pass -PskipOwasp here. If NVD_API_KEY is missing the build fails loudly (see build.gradle).
+      # Pull requests from forks do not receive secrets, so they fail this step: a maintainer must
+      # re-run them from a branch in this repository before merge.
+      - name: Build and check
+        run: ./gradlew check
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+      # DEFERRAL (Principle XIII): see specs/002-reference-data-api/plan.md § Complexity Tracking,
+      # "Sonar step in CI stays inactive". Remove this `if:` guard as soon as SONAR_TOKEN is configured
+      # (and SonarQube Cloud Automatic Analysis is switched off), so a failing quality gate fails CI.
+      - name: Sonar analysis
+        if: env.SONAR_TOKEN != ''
+        run: ./gradlew sonar
+
+      - name: Dependency freshness
+        if: always()
+        run: ./gradlew dependencyUpdates
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: build-reports
+          path: |
+            build/dependencyUpdates/
+            build/reports/jacoco/
+            build/reports/tests/
+            build/test-results/
+            build/reports/checkstyle/
+            build/reports/dependency-check-report.*
+          if-no-files-found: ignore

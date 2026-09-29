@@ -1,4 +1,4 @@
-package uk.gov.hmcts.ctam.jo.controllers;
+package uk.gov.hmcts.ctam.jo;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

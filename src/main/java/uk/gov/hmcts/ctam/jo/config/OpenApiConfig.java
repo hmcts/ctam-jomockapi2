@@ -1,0 +1,117 @@
+package uk.gov.hmcts.ctam.jo.config;
+
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.headers.Header;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.media.StringSchema;
+import io.swagger.v3.oas.models.parameters.HeaderParameter;
+import io.swagger.v3.oas.models.parameters.Parameter;
+import io.swagger.v3.oas.models.responses.ApiResponse;
+import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springdoc.core.customizers.OpenApiCustomizer;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
+import uk.gov.hmcts.ctam.jo.filters.CorrelationIds;
+import uk.gov.hmcts.ctam.jo.services.ReferenceDataTypeRegistry;
+
+import java.util.List;
+
+/**
+ * OpenAPI document settings (Principle XVIII, research R10). Everything that depends on the configured
+ * reference-data types, or applies to every reference-data operation, is added here in one place rather
+ * than per controller method.
+ */
+@Configuration
+public class OpenApiConfig {
+
+    public static final String BEARER_AUTH = "bearerAuth";
+
+    private static final String REFERENCE_DATA_PATHS = "/api/v1/reference_data/";
+
+    private static final String ATTRIBUTE_NAME = "attribute_name";
+
+    private static final String CORRELATION_ID_PATTERN = "^[A-Za-z0-9._-]{1,64}$";
+
+    private static final Parameter CORRELATION_ID_REQUEST_HEADER = new HeaderParameter()
+            .name(CorrelationIds.HEADER)
+            .required(false)
+            .description("Optional correlation ID. Used if it matches the pattern; otherwise a UUID is generated. "
+                         + "Echoed in the `X-Correlation-Id` response header and in `traceId` on errors.")
+            .schema(new StringSchema().pattern(CORRELATION_ID_PATTERN));
+
+    private static final Header CORRELATION_ID_RESPONSE_HEADER = new Header()
+            .description("The correlation ID in use: the caller's, if valid, or a generated UUID.")
+            .schema(new StringSchema());
+
+    private static final Header WWW_AUTHENTICATE_HEADER = new Header()
+            .description("Authentication scheme the caller must use.")
+            .schema(new StringSchema().example("Bearer"));
+
+    @Bean
+    public OpenAPI openApi() {
+        return new OpenAPI()
+                .info(new Info().title("JO Mock API").version("v1")
+                              .description("Mock of the E-Links API, serving synthetic data only."))
+                .components(new Components().addSecuritySchemes(BEARER_AUTH, new SecurityScheme()
+                        .type(SecurityScheme.Type.HTTP)
+                        .scheme("bearer")));
+    }
+
+    @Bean
+    public OpenApiCustomizer referenceDataOpenApiCustomizer(ReferenceDataTypeRegistry registry) {
+        return openApi -> {
+            if (openApi.getPaths() == null) {
+                return;
+            }
+            openApi.getPaths().forEach((path, item) -> {
+                if (path.startsWith(REFERENCE_DATA_PATHS)) {
+                    item.readOperations().forEach(operation -> document(operation, registry));
+                }
+            });
+        };
+    }
+
+    private static void document(Operation operation, ReferenceDataTypeRegistry registry) {
+        List<Parameter> parameters = operation.getParameters();
+        if (parameters != null) {
+            parameters.stream()
+                    .filter(parameter -> ATTRIBUTE_NAME.equals(parameter.getName()))
+                    .forEach(parameter -> describeAttributeName(parameter, registry));
+        }
+        boolean hasCorrelationHeader = parameters != null && parameters.stream()
+                .anyMatch(parameter -> CorrelationIds.HEADER.equals(parameter.getName()));
+        if (!hasCorrelationHeader) {
+            operation.addParametersItem(CORRELATION_ID_REQUEST_HEADER);
+        }
+        if (operation.getResponses() != null) {
+            operation.getResponses().forEach((code, response) -> addResponseHeaders(code, response));
+        }
+    }
+
+    private static void describeAttributeName(Parameter parameter, ReferenceDataTypeRegistry registry) {
+        List<String> canonical = registry.canonicalAttributeNames();
+        List<String> aliases = registry.deprecatedAttributeNames();
+
+        StringSchema schema = new StringSchema();
+        if (!registry.supportedAttributeNames().isEmpty()) {
+            schema.setEnum(registry.supportedAttributeNames());
+        }
+        parameter.setSchema(schema);
+
+        String description = "Can be one of: " + String.join(", ", canonical);
+        if (!aliases.isEmpty()) {
+            description += ". Also supports deprecated values: " + String.join(", ", aliases);
+        }
+        parameter.setDescription(description);
+    }
+
+    private static void addResponseHeaders(String code, ApiResponse response) {
+        response.addHeaderObject(CorrelationIds.HEADER, CORRELATION_ID_RESPONSE_HEADER);
+        if ("401".equals(code)) {
+            response.addHeaderObject(HttpHeaders.WWW_AUTHENTICATE, WWW_AUTHENTICATE_HEADER);
+        }
+    }
+}

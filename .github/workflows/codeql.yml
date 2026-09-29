@@ -1,0 +1,42 @@
+name: CodeQL
+
+# SAST scan, run separately from the main CI build (Principle XIII).
+on:
+  schedule:
+    - cron: '27 4 * * 1' # weekly, Monday 04:27 UTC
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: java-kotlin
+          build-mode: manual
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Build
+        run: ./gradlew compileJava -x test
+
+      # CodeQL documents Java 7 to 26 support (checked 2026-09-28), so this step is blocking.
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:java-kotlin

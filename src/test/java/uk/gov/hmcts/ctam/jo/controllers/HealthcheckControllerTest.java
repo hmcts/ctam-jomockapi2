@@ -2,11 +2,20 @@ package uk.gov.hmcts.ctam.jo.controllers;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+
+import uk.gov.hmcts.ctam.jo.config.SecurityProperties;
+import uk.gov.hmcts.ctam.jo.config.WebConfig;
+import uk.gov.hmcts.ctam.jo.exceptions.ErrorResponseFactory;
+import uk.gov.hmcts.ctam.jo.filters.BearerTokenAuthenticationFilter;
+import uk.gov.hmcts.ctam.jo.filters.CorrelationIdFilter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +33,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(HealthcheckController.class)
+@Import({WebConfig.class, ErrorResponseFactory.class, CorrelationIdFilter.class, BearerTokenAuthenticationFilter.class})
+@EnableConfigurationProperties(SecurityProperties.class)
+@TestPropertySource(properties = "jo.security.bearer-tokens=test-token")
 class HealthcheckControllerTest {
 
     @Autowired

@@ -236,3 +236,39 @@ Three design details strengthen the assessments:
 - Checks run in a fixed order (authentication before routing), which supports XV.
 
 The data model's startup validation makes FR-022 impossible to violate at runtime rather than something tests have to catch. Every row stays **Pass**. Two items remain open: the documented Sonar CI deferral (Complexity Tracking) and the conditional CodeQL/Java 25 risk.
+
+## Implementation notes
+
+Recorded on 2026-09-29, at the end of implementation (T068).
+
+### Constitution Check, re-confirmed against the code
+
+| Check | Result |
+|-------|--------|
+| No `Map<String, Object>` in `main/` (VIII) | Confirmed: none. |
+| Controllers only delegate (II, XVI) | Confirmed. Each `ReferenceDataController` method is one `return ResponseEntity.ok(service…)`. No try/catch in any controller. |
+| One `@RestControllerAdvice` (IX) | Confirmed: `GlobalExceptionHandler` only. `JsonErrorController` renders `/error` and is `@Hidden` from OpenAPI. |
+| No type-specific code (VII, AC-013) | Enforced by `NoTypeSpecificCodeTest`: no main file, comments included, names a type, and only `ReferenceDataTypeRegistry` reads aliases. |
+| `/v3/api-docs` documents nothing unimplemented (XVIII) | Confirmed: exactly `/api/v1/healthcheck` and the two reference-data paths, each asserted by a contract test. |
+| Postman matches the contract (XVII) | Confirmed: 14 requests, 45 assertions, all passing against a running instance, each asserting the contract's status and message. |
+| Quality gates (XIII) | `-Werror`, Checkstyle (HMCTS plugin 0.12.70; the fallback route wasn't needed), JaCoCo, `dependencyUpdates`, the four suites, `ci.yml` and `codeql.yml` are in place. CodeQL documents Java 7–26 support, so the conditional CodeQL row above did not apply and its analyze step is blocking. |
+
+### Differences from the planned design
+
+- **Two small additions in `exceptions/`**: `ApiRequestException`, an abstract base for the four request exceptions, holding the sanitised diagnostic for logs; and `ErrorMessages`, the fixed contract messages shared by the handler, the auth filter and `/error`.
+- **Every error body is written by `ErrorResponseFactory.write`**, not only the `406`. With `ResponseEntity`, content negotiation would drop the JSON body of any error sent to a caller whose `Accept` header excludes JSON.
+- **Error responses use plain `application/json`**, with no `charset` parameter, matching success responses and the contract.
+- **`ReferenceDataTypeRegistry` gained `canonicalAttributeNames()` and `deprecatedAttributeNames()`**, so `OpenApiConfig` no longer reads aliases itself (caught by the architecture test; FR-005).
+- **The trailing-space token case (T050) is covered by the filter's unit test only.** Over HTTP it can't be expressed: RFC 9110 §5.5 excludes trailing whitespace from a field value, and raw-socket checks confirmed that Tomcat delivers `Bearer test-token` for `Bearer test-token `. The functional test uses whitespace that survives parsing instead.
+- **405 responses include an `Allow` header.**
+
+### Verification results
+
+- **T066**: `./gradlew check -PskipOwasp` is green: 160 unit, 35 integration, 84 functional and 5 smoke tests, zero compiler warnings, zero Checkstyle findings. **The OWASP dependency check was not run**, because no `NVD_API_KEY` was available locally. Its wiring, the CVSS ≥ 7 threshold, the suppression file and the CI missing-key guard were checked with dry runs. Its first real run will be in CI, once the key is configured. Line coverage is 97.8% overall (branches 84.9%). By package: `filters` 100%, `services` 100%, `controllers` 100%, `repository` 98.5%, `config` 98.6%, `exceptions` 97.4%, `mappers` 91.7% (MapStruct's generated null checks).
+- **T067**: `smokeTest -Dperf.strict=true` passes: 20 measured collection calls took 54 ms in total, well under the 100 ms p95 target. All 16 quickstart §3 checks, §4 (OpenAPI and Swagger UI loading), §5 (newman) and §6 (a `WARN` JSON line with `"correlationId":"demo-123"`, and no token in the log) match. The §2 empty-token start is refused, and `JO_SECURITY_BEARER_TOKENS=token-a,token-b` is honoured. The by-hand Swagger UI "Authorize, then Try it out" step still needs a person.
+- **Once only, not reproduced**: in Phase 2, one run of `ErrorDispatchIntegrationTest` returned `404` instead of `500`. It passed in every later run, eight of them back to back. The cause is unknown.
+
+### Still open before merge
+
+- **Sonar deferral issue (T006, XIII)**: not yet raised. `SONAR_TOKEN` isn't configured (no repository secrets were visible), so the `if: env.SONAR_TOKEN != ''` guard stays in `ci.yml`. Before the PR merges, raise an issue asking a SonarQube Cloud admin to switch Automatic Analysis off and add `SONAR_TOKEN`, and link it from the PR description.
+- **`NVD_API_KEY` repository secret**: needed before CI can pass. The build fails deliberately without it, rather than skip the scan.

@@ -1,4 +1,4 @@
-package uk.gov.hmcts.ctam.jo.controllers;
+package uk.gov.hmcts.ctam.jo;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.resttestclient.TestRestTemplate;
