@@ -11,8 +11,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
@@ -35,11 +33,15 @@ jobs:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
       # DEFERRAL (Principle XIII): see specs/002-reference-data-api/plan.md § Complexity Tracking,
-      # "Sonar step in CI stays inactive". Remove this `if:` guard as soon as SONAR_TOKEN is configured
-      # (and SonarQube Cloud Automatic Analysis is switched off), so a failing quality gate fails CI.
+      # "Sonar step in CI stays inactive". SONAR_TOKEN is available as an HMCTS organisation secret, but the
+      # SonarQube Cloud project uses Automatic Analysis, which rejects a CI analysis, so this step is disabled.
+      # Once a SonarQube Cloud admin switches Automatic Analysis off (Administration -> Analysis Method),
+      # delete the `if: false` line so a failing quality gate fails CI.
       - name: Sonar analysis
-        if: env.SONAR_TOKEN != ''
+        if: false
         run: ./gradlew sonar
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Dependency freshness
         if: always()
