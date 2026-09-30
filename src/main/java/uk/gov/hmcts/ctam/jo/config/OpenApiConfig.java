@@ -14,6 +14,7 @@ import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
+import uk.gov.hmcts.ctam.jo.controllers.ReferenceDataController;
 import uk.gov.hmcts.ctam.jo.filters.CorrelationIds;
 import uk.gov.hmcts.ctam.jo.services.ReferenceDataTypeRegistry;
 
@@ -28,8 +29,6 @@ import java.util.List;
 public class OpenApiConfig {
 
     public static final String BEARER_AUTH = "bearerAuth";
-
-    private static final String REFERENCE_DATA_PATHS = "/api/v1/reference_data/";
 
     private static final String ATTRIBUTE_NAME = "attribute_name";
 
@@ -65,7 +64,7 @@ public class OpenApiConfig {
                 return;
             }
             openApi.getPaths().forEach((path, item) -> {
-                if (path.startsWith(REFERENCE_DATA_PATHS)) {
+                if (path.startsWith(ReferenceDataController.BASE_PATH + "/")) {
                     item.readOperations().forEach(operation -> document(operation, registry));
                 }
             });

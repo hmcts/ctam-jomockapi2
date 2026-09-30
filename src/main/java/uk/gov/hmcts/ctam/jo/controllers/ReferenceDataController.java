@@ -30,11 +30,17 @@ import uk.gov.hmcts.ctam.jo.services.ReferenceDataService;
  * by the same code, and the documented {@code attribute_name} values come from the registry (OpenApiConfig).
  */
 @RestController
-@RequestMapping("/api/v1/reference_data")
+@RequestMapping(ReferenceDataController.BASE_PATH)
 @Tag(name = "Reference Data", description = "Synthetic reference data, served for every configured type.")
 @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH)
 @RequiredArgsConstructor
 public class ReferenceDataController {
+
+    /**
+     * The route prefix. The OpenAPI customiser and the no-query-parameter interceptor are attached through
+     * this constant, so renaming the route moves them with it.
+     */
+    public static final String BASE_PATH = "/api/v1/reference_data";
 
     private static final String ERROR_EXAMPLE_START = "{\"error\":\"";
 
