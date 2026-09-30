@@ -3,6 +3,7 @@ plugins {
     id 'io.spring.dependency-management' version '1.1.7'
     id 'application'
     id 'jacoco'
+    id 'java-test-fixtures'
     id 'uk.gov.hmcts.java' version '0.12.70'
     // The HMCTS plugin brings dependency-check 12.2.0, which fails to store CVEs with reference URLs over
     // 1,000 characters (CVE-2026-6785/6786). 12.2.2 widens that column (dependency-check issue #8466).
@@ -45,6 +46,10 @@ dependencies {
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
     annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
 
+    // Shared test helpers (src/testFixtures): the unit suite gets them automatically, the others below.
+    testFixturesImplementation 'org.assertj:assertj-core'
+    testFixturesImplementation 'tools.jackson.core:jackson-databind'
+
     testCompileOnly 'org.projectlombok:lombok:1.18.48'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.48'
 
@@ -73,6 +78,7 @@ testing {
             register(suiteName, JvmTestSuite) {
                 dependencies {
                     implementation project()
+                    implementation testFixtures(project())
                     implementation 'org.springframework.boot:spring-boot-starter-test'
                     implementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
                     implementation 'org.springframework.boot:spring-boot-http-client'
