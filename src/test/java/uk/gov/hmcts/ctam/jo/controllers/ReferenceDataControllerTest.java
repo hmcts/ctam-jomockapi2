@@ -11,15 +11,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.ctam.jo.config.SecurityProperties;
 import uk.gov.hmcts.ctam.jo.config.WebConfig;
 import uk.gov.hmcts.ctam.jo.domain.ReferenceDataApiResponse;
-import uk.gov.hmcts.ctam.jo.domain.ReferenceDataResponse;
 import uk.gov.hmcts.ctam.jo.exceptions.ErrorResponseFactory;
 import uk.gov.hmcts.ctam.jo.exceptions.UnsupportedReferenceDataTypeException;
 import uk.gov.hmcts.ctam.jo.filters.BearerTokenAuthenticationFilter;
 import uk.gov.hmcts.ctam.jo.filters.CorrelationIdFilter;
 import uk.gov.hmcts.ctam.jo.services.ReferenceDataService;
 
-import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
 
 import static org.hamcrest.Matchers.hasKey;
@@ -31,14 +28,17 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_ATTRIBUTE_NAME;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.endedResponse;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.response;
+import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.BEARER_TOKEN;
+import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.TOKEN;
 
 @WebMvcTest(ReferenceDataController.class)
 @Import({WebConfig.class, ErrorResponseFactory.class, CorrelationIdFilter.class, BearerTokenAuthenticationFilter.class})
 @EnableConfigurationProperties(SecurityProperties.class)
-@TestPropertySource(properties = "jo.security.bearer-tokens=test-token")
+@TestPropertySource(properties = "jo.security.bearer-tokens=" + TOKEN)
 class ReferenceDataControllerTest {
-
-    private static final String TOKEN = "Bearer test-token";
 
     @Autowired
     private MockMvc mockMvc;
@@ -49,13 +49,9 @@ class ReferenceDataControllerTest {
     @Test
     void collectionReturnsResultsWithSnakeCaseFieldsAndExplicitNullEndDate() throws Exception {
         given(service.getAll("widgets")).willReturn(new ReferenceDataApiResponse(List.of(
-                new ReferenceDataResponse(10, "Alpha", Instant.parse("2024-01-15T09:00:00Z"),
-                        Instant.parse("2024-06-03T10:30:00Z"), LocalDate.parse("2024-01-01"), null),
-                new ReferenceDataResponse(70, "Ended", Instant.parse("2024-01-15T09:00:00Z"),
-                        Instant.parse("2025-04-01T08:00:00Z"), LocalDate.parse("2024-01-01"),
-                        LocalDate.parse("2025-03-31")))));
+                response(10, "Alpha"), endedResponse(70, "Ended"))));
 
-        mockMvc.perform(get("/api/v1/reference_data/widgets").header("Authorization", TOKEN))
+        mockMvc.perform(get("/api/v1/reference_data/widgets").header("Authorization", BEARER_TOKEN))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/json"))
                 .andExpect(jsonPath("$.*", hasSize(1)))
@@ -77,7 +73,7 @@ class ReferenceDataControllerTest {
     void collectionPassesThePathAttributeNameUnchanged() throws Exception {
         given(service.getAll("Some_Name")).willReturn(new ReferenceDataApiResponse(List.of()));
 
-        mockMvc.perform(get("/api/v1/reference_data/Some_Name").header("Authorization", TOKEN))
+        mockMvc.perform(get("/api/v1/reference_data/Some_Name").header("Authorization", BEARER_TOKEN))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.results", hasSize(0)));
 
@@ -86,11 +82,9 @@ class ReferenceDataControllerTest {
 
     @Test
     void singleRecordReturnsOneObjectNotWrappedInResults() throws Exception {
-        given(service.getById("widgets", "70")).willReturn(new ReferenceDataResponse(70, "Ended",
-                Instant.parse("2024-01-15T09:00:00Z"), Instant.parse("2025-04-01T08:00:00Z"),
-                LocalDate.parse("2024-01-01"), LocalDate.parse("2025-03-31")));
+        given(service.getById("widgets", "70")).willReturn(endedResponse(70, "Ended"));
 
-        mockMvc.perform(get("/api/v1/reference_data/widgets/70").header("Authorization", TOKEN))
+        mockMvc.perform(get("/api/v1/reference_data/widgets/70").header("Authorization", BEARER_TOKEN))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/json"))
                 .andExpect(jsonPath("$.*", hasSize(6)))
@@ -104,11 +98,9 @@ class ReferenceDataControllerTest {
 
     @Test
     void singleRecordPassesTheRawPathValueToTheService() throws Exception {
-        given(service.getById("widgets", "007")).willReturn(new ReferenceDataResponse(7, "Seven",
-                Instant.parse("2024-01-15T09:00:00Z"), Instant.parse("2024-06-03T10:30:00Z"),
-                LocalDate.parse("2024-01-01"), null));
+        given(service.getById("widgets", "007")).willReturn(response(7, "Seven"));
 
-        mockMvc.perform(get("/api/v1/reference_data/widgets/007").header("Authorization", TOKEN))
+        mockMvc.perform(get("/api/v1/reference_data/widgets/007").header("Authorization", BEARER_TOKEN))
                 .andExpect(status().isOk());
 
         verify(service).getById("widgets", "007");
@@ -120,11 +112,11 @@ class ReferenceDataControllerTest {
         given(service.getById("foo", "10")).willThrow(new UnsupportedReferenceDataTypeException("foo"));
 
         for (String path : new String[] {"/api/v1/reference_data/foo", "/api/v1/reference_data/foo/10"}) {
-            mockMvc.perform(get(path).header("Authorization", TOKEN))
+            mockMvc.perform(get(path).header("Authorization", BEARER_TOKEN))
                     .andExpect(status().isBadRequest())
                     .andExpect(content().contentType("application/json"))
                     .andExpect(jsonPath("$.*", hasSize(3)))
-                    .andExpect(jsonPath("$.error").value("Unsupported reference data attribute_name."))
+                    .andExpect(jsonPath("$.error").value(UNSUPPORTED_ATTRIBUTE_NAME))
                     .andExpect(jsonPath("$.timestamp").exists())
                     .andExpect(jsonPath("$.traceId").exists())
                     .andExpect(jsonPath("$.results").doesNotExist());

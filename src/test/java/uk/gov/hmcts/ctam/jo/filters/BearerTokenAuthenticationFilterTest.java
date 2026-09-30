@@ -6,15 +6,16 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import tools.jackson.databind.json.JsonMapper;
 import uk.gov.hmcts.ctam.jo.config.SecurityProperties;
-import uk.gov.hmcts.ctam.jo.exceptions.ErrorResponseFactory;
 
-import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNAUTHORIZED;
+import static uk.gov.hmcts.ctam.jo.testsupport.RequestFixtures.errorResponseFactory;
+import static uk.gov.hmcts.ctam.jo.testsupport.RequestFixtures.servletRequest;
 
 class BearerTokenAuthenticationFilterTest {
 
@@ -22,7 +23,7 @@ class BearerTokenAuthenticationFilterTest {
 
     private final BearerTokenAuthenticationFilter filter = new BearerTokenAuthenticationFilter(
             new SecurityProperties(List.of("other-token", "test-token")),
-            new ErrorResponseFactory(Clock.systemUTC(), JsonMapper.builder().build()));
+            errorResponseFactory(Instant.EPOCH));
 
     private final MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -98,8 +99,7 @@ class BearerTokenAuthenticationFilterTest {
 
     @Test
     void decidesOnTheDecodedPathNotTheRawUri() throws Exception {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/%61pi/v1/reference_data/types");
-        request.setServletPath(PROTECTED);
+        MockHttpServletRequest request = servletRequest("/%61pi/v1/reference_data/types", PROTECTED);
 
         filter.doFilter(request, response, chain);
 
@@ -111,12 +111,11 @@ class BearerTokenAuthenticationFilterTest {
         assertThat(response.getStatus()).isEqualTo(401);
         assertThat(response.getHeader("WWW-Authenticate")).isEqualTo("Bearer");
         assertThat(response.getContentType()).startsWith("application/json");
-        assertThat(response.getContentAsString()).contains("\"error\":\"Unauthorized. Invalid or missing token.\"");
+        assertThat(response.getContentAsString()).contains("\"error\":\"" + UNAUTHORIZED + "\"");
     }
 
     private static MockHttpServletRequest request(String path, String authorization) {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", path);
-        request.setServletPath(path);
+        MockHttpServletRequest request = servletRequest(path);
         if (authorization != null) {
             request.addHeader("Authorization", authorization);
         }

@@ -2,8 +2,8 @@ package uk.gov.hmcts.ctam.jo.services;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties;
 import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties.TypeProperties;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataType;
 import uk.gov.hmcts.ctam.jo.exceptions.UnsupportedReferenceDataTypeException;
@@ -13,6 +13,9 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_ATTRIBUTE_NAME;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.emptyRegistry;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.registry;
 
 class ReferenceDataTypeRegistryTest {
 
@@ -44,7 +47,7 @@ class ReferenceDataTypeRegistryTest {
     void rejectsUnknownNamesAndCaseVariants(String attributeName) {
         assertThatThrownBy(() -> registry.resolve(attributeName))
                 .isInstanceOf(UnsupportedReferenceDataTypeException.class)
-                .hasMessage("Unsupported reference data attribute_name.");
+                .hasMessage(UNSUPPORTED_ATTRIBUTE_NAME);
     }
 
     @Test
@@ -71,7 +74,7 @@ class ReferenceDataTypeRegistryTest {
 
     @Test
     void zeroTypesIsValid() {
-        ReferenceDataTypeRegistry empty = new ReferenceDataTypeRegistry(new ReferenceDataProperties(null));
+        ReferenceDataTypeRegistry empty = emptyRegistry();
 
         assertThat(empty.types()).isEmpty();
         assertThat(empty.supportedAttributeNames()).isEmpty();
@@ -115,25 +118,23 @@ class ReferenceDataTypeRegistryTest {
                 .withMessageContaining("duplicate alias");
     }
 
-    @Test
-    void failsStartupOnADuplicateTypeName() {
-        assertThatIllegalStateException()
-                .isThrownBy(() -> registry(WIDGETS, new TypeProperties("widgets", List.of(), "classpath:y.json")))
-                .withMessageContaining("'widgets'");
-    }
+    /**
+     * Names and aliases share one namespace: no string may be declared twice, whichever roles it plays.
+     */
+    @ParameterizedTest(name = "{0}")
+    @CsvSource({
+        "a duplicate type name,                       widgets, '',     widgets",
+        "an alias clashing with another type's name,  gadgets, widgets, widgets",
+        "two types sharing an alias,                  gadgets, widget,  widget"
+    })
+    void failsStartupWhenANameOrAliasIsDeclaredTwice(String rule, String secondType, String secondTypeAlias,
+                                                     String clash) {
+        List<String> aliases = secondTypeAlias.isEmpty() ? List.of() : List.of(secondTypeAlias);
 
-    @Test
-    void failsStartupWhenAnAliasClashesWithAnotherTypesName() {
         assertThatIllegalStateException()
-                .isThrownBy(() -> registry(WIDGETS, new TypeProperties("gadgets", List.of("widgets"), "classpath:y")))
-                .withMessageContaining("'widgets'");
-    }
-
-    @Test
-    void failsStartupWhenTwoTypesShareAnAlias() {
-        assertThatIllegalStateException()
-                .isThrownBy(() -> registry(WIDGETS, new TypeProperties("gadgets", List.of("widget"), "classpath:y")))
-                .withMessageContaining("'widget'");
+                .isThrownBy(() -> registry(WIDGETS, new TypeProperties(secondType, aliases, "classpath:y.json")))
+                .withMessage("Invalid reference-data configuration: '" + clash + "' is declared by both widgets and "
+                             + secondType);
     }
 
     @ParameterizedTest
@@ -142,9 +143,5 @@ class ReferenceDataTypeRegistryTest {
         assertThatIllegalStateException()
                 .isThrownBy(() -> registry(new TypeProperties("widgets", List.of(), fixture)))
                 .withMessageContaining("fixture is required");
-    }
-
-    private static ReferenceDataTypeRegistry registry(TypeProperties... types) {
-        return new ReferenceDataTypeRegistry(new ReferenceDataProperties(List.of(types)));
     }
 }

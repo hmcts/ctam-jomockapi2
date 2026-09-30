@@ -21,15 +21,6 @@ class HealthcheckSmokeTest {
     private final TestRestTemplate restTemplate = new TestRestTemplate();
 
     @Test
-    void healthcheckRoundTripReturnsOkStatus() {
-        ResponseEntity<String> response = restTemplate.getForEntity(
-                "http://localhost:" + port + "/api/v1/healthcheck", String.class);
-
-        assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(response.getBody()).isEqualTo("{\"status\":\"ok\"}");
-    }
-
-    @Test
     void healthcheckRespondsWithinOneSecond() {
         Instant start = Instant.now();
 

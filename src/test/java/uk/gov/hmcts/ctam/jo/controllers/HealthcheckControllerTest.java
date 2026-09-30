@@ -27,26 +27,18 @@ import java.util.concurrent.Future;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.TOKEN;
 
 @WebMvcTest(HealthcheckController.class)
 @Import({WebConfig.class, ErrorResponseFactory.class, CorrelationIdFilter.class, BearerTokenAuthenticationFilter.class})
 @EnableConfigurationProperties(SecurityProperties.class)
-@TestPropertySource(properties = "jo.security.bearer-tokens=test-token")
+@TestPropertySource(properties = "jo.security.bearer-tokens=" + TOKEN)
 class HealthcheckControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Test
-    void healthcheckReturnsOkStatusWithNoAuthentication() throws Exception {
-        mockMvc.perform(get("/api/v1/healthcheck"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("ok"));
-    }
 
     @Test
     void healthcheckResponseContainsOnlyStatusFieldAndNoSensitiveHeaders() throws Exception {
@@ -79,15 +71,6 @@ class HealthcheckControllerTest {
     }
 
     @Test
-    void healthcheckReturnsConsistentResultSequentially() throws Exception {
-        for (int i = 0; i < 20; i++) {
-            mockMvc.perform(get("/api/v1/healthcheck"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("ok"));
-        }
-    }
-
-    @Test
     void healthcheckReturnsConsistentResultUnderConcurrentAccess() throws Exception {
         int callCount = 20;
         ExecutorService executor = Executors.newFixedThreadPool(10);
@@ -106,14 +89,5 @@ class HealthcheckControllerTest {
         } finally {
             executor.shutdown();
         }
-    }
-
-    @Test
-    void healthcheckRejectsNonGetMethods() throws Exception {
-        mockMvc.perform(post("/api/v1/healthcheck"))
-                .andExpect(status().isMethodNotAllowed());
-
-        mockMvc.perform(put("/api/v1/healthcheck"))
-                .andExpect(status().isMethodNotAllowed());
     }
 }

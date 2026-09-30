@@ -48,7 +48,7 @@ Always run `/speckit-analyze` before `/speckit-implement` — it catches coverag
   - correlation IDs (`CorrelationIdFilter`, `X-Correlation-Id`), structured logstash JSON logging, and `LogSanitiser` for caller values
   - one `ErrorResponse` shape from `ErrorResponseFactory`, used by `GlobalExceptionHandler`, the filters and `JsonErrorController` (`/error`)
   - Lombok/MapStruct, `-Werror`, Checkstyle (HMCTS plugin), OWASP dependency-check, JaCoCo, Sonar config, `dependencyUpdates`, and CI/CodeQL workflows in `.github/workflows/`
-- **Test suites** (Gradle JVM Test Suite plugin), all run by `check`: `test` (unit and `@WebMvcTest`, `src/test`), `integrationTest` (full context and OpenAPI contract tests), `functionalTest` (every acceptance scenario over real HTTP), `smokeTest` (live round trips and a latency guard). The full-context suites use `@ActiveProfiles("test")` with token `test-token`.
+- **Test suites** (Gradle JVM Test Suite plugin), all run by `check`: `test` (unit and `@WebMvcTest`, `src/test`), `integrationTest` (full context and OpenAPI contract tests), `functionalTest` (every acceptance scenario over real HTTP), `smokeTest` (latency guards over live HTTP calls, each call also asserting `200`). The full-context suites use `@ActiveProfiles("test")` with token `test-token`.
 - `NoTypeSpecificCodeTest` fails the build if any main source file (comments included) names a specific reference-data type, or if anything other than `ReferenceDataTypeRegistry` reads aliases.
 
 ## Commands
@@ -61,7 +61,7 @@ Always run `/speckit-analyze` before `/speckit-implement` — it catches coverag
 ./gradlew test                               # unit suite
 ./gradlew integrationTest                    # full-context and OpenAPI contract tests
 ./gradlew functionalTest                     # acceptance scenarios over real HTTP
-./gradlew smokeTest                          # live round trips (add -Dperf.strict=true for the 100 ms p95 target)
+./gradlew smokeTest                          # latency guards (add -Dperf.strict=true for the 100 ms p95 target)
 ./gradlew dependencyUpdates                  # dependency freshness report
 ./gradlew build                              # full build (compile + test)
 ./gradlew dependencies --write-locks         # regenerate gradle.lockfile after dependency changes

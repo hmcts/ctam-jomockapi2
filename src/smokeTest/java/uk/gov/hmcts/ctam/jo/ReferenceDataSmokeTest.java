@@ -9,7 +9,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -18,16 +17,17 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.APPOINTMENT_TITLES;
+import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.TOKEN;
 
 /**
- * One authenticated live round trip, plus a latency regression guard (research R13). The default 1 s p95
- * bound is reliable on shared CI runners; {@code -Dperf.strict=true} applies the 100 ms developer target.
+ * A latency regression guard for an authenticated collection call (research R13). Every measured call must
+ * also return 200. The default 1 s p95 bound is reliable on shared CI runners; {@code -Dperf.strict=true}
+ * applies the 100 ms developer target. The response body is covered by the functional suite.
  */
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @ActiveProfiles("test")
 class ReferenceDataSmokeTest {
-
-    private static final String COLLECTION = "/api/v1/reference_data/appointment_titles";
 
     private static final int WARM_UP_CALLS = 5;
 
@@ -39,22 +39,14 @@ class ReferenceDataSmokeTest {
     private final TestRestTemplate restTemplate = new TestRestTemplate();
 
     @Test
-    void authenticatedCollectionRoundTripReturnsAllTitles() {
-        ResponseEntity<String> response = get(COLLECTION);
-
-        assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(JsonMapper.builder().build().readTree(response.getBody()).get("results").size()).isEqualTo(194);
-    }
-
-    @Test
     void collectionP95LatencyIsWithinBound() {
         for (int i = 0; i < WARM_UP_CALLS; i++) {
-            get(COLLECTION);
+            get(APPOINTMENT_TITLES);
         }
         List<Duration> durations = new ArrayList<>();
         for (int i = 0; i < MEASURED_CALLS; i++) {
             long start = System.nanoTime();
-            assertThat(get(COLLECTION).getStatusCode().value()).isEqualTo(200);
+            assertThat(get(APPOINTMENT_TITLES).getStatusCode().value()).isEqualTo(200);
             durations.add(Duration.ofNanos(System.nanoTime() - start));
         }
         Collections.sort(durations);
@@ -66,7 +58,7 @@ class ReferenceDataSmokeTest {
 
     private ResponseEntity<String> get(String path) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth("test-token");
+        headers.setBearerAuth(TOKEN);
         return restTemplate.exchange("http://localhost:" + port + path, HttpMethod.GET, new HttpEntity<>(headers),
                                      String.class);
     }

@@ -7,16 +7,17 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
+import static uk.gov.hmcts.ctam.jo.testsupport.JsonTrees.parse;
 
 /**
- * Asserts the generated {@code /v3/api-docs} against contracts/reference-data-api.md (Principle XVIII).
+ * Asserts the generated {@code /v3/api-docs} against the contracts (Principle XVIII):
+ * contracts/reference-data-api.md, and the healthcheck contract from specs/001-healthcheck-api.
  */
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @ActiveProfiles("test")
@@ -34,7 +35,21 @@ class ReferenceDataOpenApiContractTest {
     @BeforeEach
     void fetchApiDocs() {
         String apiDocs = new TestRestTemplate().getForObject("http://localhost:" + port + "/v3/api-docs", String.class);
-        root = JsonMapper.builder().build().readTree(apiDocs);
+        root = parse(apiDocs);
+    }
+
+    @Test
+    void openApiDocumentsHealthcheckEndpointPerContract() {
+        JsonNode operation = root.path("paths").path("/api/v1/healthcheck").path("get");
+
+        assertThat(operation.path("summary").asString()).isEqualTo("Healthcheck");
+
+        JsonNode okResponse = operation.path("responses").path("200");
+        assertThat(okResponse.path("description").asString()).isEqualTo("Service is healthy");
+
+        JsonNode properties = schema(schemaRef(okResponse).replace("#/components/schemas/", "")).path("properties");
+        assertThat(properties.propertyNames()).containsExactly("status");
+        assertThat(properties.path("status").path("type").asString()).isEqualTo("string");
     }
 
     @Test

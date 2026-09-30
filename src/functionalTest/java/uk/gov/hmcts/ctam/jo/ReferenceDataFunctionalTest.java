@@ -14,7 +14,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
@@ -27,6 +26,17 @@ import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.MALFORMED_REFERENCE_ID;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.METHOD_NOT_ALLOWED;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.QUERY_PARAMETERS_NOT_SUPPORTED;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.RECORD_NOT_FOUND;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.RESOURCE_NOT_FOUND;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNAUTHORIZED;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_ATTRIBUTE_NAME;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.APPOINTMENT_TITLES;
+import static uk.gov.hmcts.ctam.jo.testsupport.ErrorResponseAssertions.assertErrorBody;
+import static uk.gov.hmcts.ctam.jo.testsupport.JsonTrees.parse;
+import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.BEARER_TOKEN;
 
 /**
  * The spec's acceptance scenarios, end to end over real HTTP. One nested class per user story.
@@ -35,24 +45,10 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 @ActiveProfiles("test")
 class ReferenceDataFunctionalTest {
 
-    private static final String COLLECTION = "/api/v1/reference_data/appointment_titles";
-
-    private static final String BAD_ID = "reference_id must be a non-negative whole number.";
-
-    private static final String RECORD_NOT_FOUND = "Reference data record not found.";
-
-    private static final String NO_QUERY = "Query parameters are not supported on this endpoint.";
-
-    private static final String RESOURCE_NOT_FOUND = "Resource not found.";
-
-    private static final String UNAUTHORIZED = "Unauthorized. Invalid or missing token.";
-
     private static final List<String> CONTRACT_FIELDS =
             List.of("id", "name", "created_at", "updated_at", "start_date", "end_date");
 
     private final TestRestTemplate restTemplate = new TestRestTemplate();
-
-    private final JsonMapper jsonMapper = JsonMapper.builder().build();
 
     @LocalServerPort
     private int port;
@@ -62,7 +58,7 @@ class ReferenceDataFunctionalTest {
     }
 
     ResponseEntity<String> send(HttpMethod method, String path) {
-        return send(method, path, "Bearer test-token");
+        return send(method, path, BEARER_TOKEN);
     }
 
     /**
@@ -83,15 +79,13 @@ class ReferenceDataFunctionalTest {
     JsonNode assertError(ResponseEntity<String> response, int status, String message) {
         assertThat(response.getStatusCode().value()).isEqualTo(status);
         assertThat(response.getHeaders().getContentType()).hasToString("application/json");
-        JsonNode body = json(response);
-        assertThat(body.propertyNames()).containsExactlyInAnyOrder("error", "timestamp", "traceId");
-        assertThat(body.get("error").asString()).isEqualTo(message);
+        JsonNode body = assertErrorBody(response.getBody(), message);
         assertThat(body.get("traceId").asString()).isEqualTo(response.getHeaders().getFirst("X-Correlation-Id"));
         return body;
     }
 
     JsonNode json(ResponseEntity<String> response) {
-        return jsonMapper.readTree(response.getBody());
+        return parse(response.getBody());
     }
 
     @Nested
@@ -99,7 +93,7 @@ class ReferenceDataFunctionalTest {
 
         @Test
         void ac001ReturnsAll194TitlesInAscendingIdOrder() {
-            ResponseEntity<String> response = get(COLLECTION);
+            ResponseEntity<String> response = get(APPOINTMENT_TITLES);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getHeaders().getContentType()).hasToString("application/json");
@@ -126,13 +120,13 @@ class ReferenceDataFunctionalTest {
         void ac015RepeatedCallsAreIdenticalAndMatchTheGoldenFile() throws IOException {
             String golden = golden();
             for (int i = 0; i < 100; i++) {
-                assertThat(get(COLLECTION).getBody()).isEqualTo(golden);
+                assertThat(get(APPOINTMENT_TITLES).getBody()).isEqualTo(golden);
             }
         }
 
         @Test
         void everyRecordHasExactlyTheSixContractFields() {
-            json(get(COLLECTION)).get("results").forEach(record ->
+            json(get(APPOINTMENT_TITLES)).get("results").forEach(record ->
                     assertThat(record.propertyNames()).containsExactlyElementsOf(CONTRACT_FIELDS));
         }
 
@@ -165,7 +159,7 @@ class ReferenceDataFunctionalTest {
 
         @Test
         void ac004ReturnsTheSingleRecordEqualToTheCollectionElement() {
-            ResponseEntity<String> response = get(COLLECTION + "/70");
+            ResponseEntity<String> response = get(APPOINTMENT_TITLES + "/70");
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getHeaders().getContentType()).hasToString("application/json");
@@ -176,7 +170,7 @@ class ReferenceDataFunctionalTest {
             assertThat(record.get("end_date").asString()).isEqualTo("2025-03-31");
 
             JsonNode fromCollection = null;
-            for (JsonNode candidate : json(get(COLLECTION)).get("results")) {
+            for (JsonNode candidate : json(get(APPOINTMENT_TITLES)).get("results")) {
                 if (candidate.get("id").asLong() == 70) {
                     fromCollection = candidate;
                 }
@@ -187,44 +181,46 @@ class ReferenceDataFunctionalTest {
         @ParameterizedTest
         @ValueSource(strings = {"abc", "12x", "1.5", "-1"})
         void ac008MalformedIdsReturn400(String id) {
-            assertError(get(COLLECTION + "/" + id), 400, BAD_ID);
+            assertError(get(APPOINTMENT_TITLES + "/" + id), 400, MALFORMED_REFERENCE_ID);
         }
 
         @ParameterizedTest
         @ValueSource(strings = {"15", "999999", "007", "99999999999999999999"})
         void ac009AndEc003UnknownIdsReturn404(String id) {
-            assertError(get(COLLECTION + "/" + id), 404, RECORD_NOT_FOUND);
+            assertError(get(APPOINTMENT_TITLES + "/" + id), 404, RECORD_NOT_FOUND);
         }
 
         @Test
         void ec003LeadingZerosAreAccepted() {
-            ResponseEntity<String> response = get(COLLECTION + "/010");
+            ResponseEntity<String> response = get(APPOINTMENT_TITLES + "/010");
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(json(response).get("id").asLong()).isEqualTo(10);
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {COLLECTION + "?page=2", COLLECTION + "/70?name=Judge"})
+        @ValueSource(strings = {APPOINTMENT_TITLES + "?page=2", APPOINTMENT_TITLES + "/70?name=Judge"})
         void ac020QueryParametersReturn400(String path) {
-            assertError(get(path), 400, NO_QUERY);
+            assertError(get(path), 400, QUERY_PARAMETERS_NOT_SUPPORTED);
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {COLLECTION + "/", COLLECTION + "/70/", COLLECTION + "/1/extra",
-            COLLECTION + "/?page=2", COLLECTION + "/1/extra?x=1"})
+        @ValueSource(strings = {APPOINTMENT_TITLES + "/", APPOINTMENT_TITLES + "/70/", APPOINTMENT_TITLES + "/1/extra",
+            APPOINTMENT_TITLES + "/?page=2", APPOINTMENT_TITLES + "/1/extra?x=1"})
         void ec002Ec004Ec005UnmatchedRoutesReturn404BeforeQueryChecks(String path) {
             assertError(get(path), 404, RESOURCE_NOT_FOUND);
         }
 
         @ParameterizedTest
         @CsvSource({
-            "POST, " + COLLECTION, "PUT, " + COLLECTION, "PATCH, " + COLLECTION, "DELETE, " + COLLECTION,
-            "POST, " + COLLECTION + "/70", "PUT, " + COLLECTION + "/70", "PATCH, " + COLLECTION + "/70",
-            "DELETE, " + COLLECTION + "/70", "POST, /api/v1/reference_data/appointment_title"
+            "POST, " + APPOINTMENT_TITLES, "PUT, " + APPOINTMENT_TITLES,
+            "PATCH, " + APPOINTMENT_TITLES, "DELETE, " + APPOINTMENT_TITLES,
+            "POST, " + APPOINTMENT_TITLES + "/70", "PUT, " + APPOINTMENT_TITLES + "/70",
+            "PATCH, " + APPOINTMENT_TITLES + "/70", "DELETE, " + APPOINTMENT_TITLES + "/70",
+            "POST, /api/v1/reference_data/appointment_title"
         })
         void ec007OtherMethodsReturn405(String method, String path) {
-            JsonNode body = assertError(send(HttpMethod.valueOf(method), path), 405, "Method not allowed.");
+            JsonNode body = assertError(send(HttpMethod.valueOf(method), path), 405, METHOD_NOT_ALLOWED);
 
             assertThat(body.has("results")).isFalse();
             assertThat(body.has("id")).isFalse();
@@ -236,9 +232,10 @@ class ReferenceDataFunctionalTest {
 
         @ParameterizedTest
         @CsvSource({
-            "GET, " + COLLECTION, "GET, " + COLLECTION + "/70", "GET, /api/v1/reference_data/genders",
-            "GET, " + COLLECTION + "/abc", "GET, " + COLLECTION + "?page=2", "GET, " + COLLECTION + "/",
-            "POST, " + COLLECTION
+            "GET, " + APPOINTMENT_TITLES, "GET, " + APPOINTMENT_TITLES + "/70",
+            "GET, /api/v1/reference_data/genders", "GET, " + APPOINTMENT_TITLES + "/abc",
+            "GET, " + APPOINTMENT_TITLES + "?page=2", "GET, " + APPOINTMENT_TITLES + "/",
+            "POST, " + APPOINTMENT_TITLES
         })
         void ac010AndEc009MissingTokenIsRejectedBeforeAnyOtherCheck(String method, String path) {
             assertUnauthorized(send(HttpMethod.valueOf(method), path, null));
@@ -251,8 +248,8 @@ class ReferenceDataFunctionalTest {
         @ValueSource(strings = {"Basic dGVzdA==", "Bearer", "Bearer ", "Bearer wrong", "Bearer  test-token",
             "Bearer test-token x"})
         void ac011InvalidCredentialsAreRejectedOnBothRoutes(String authorization) {
-            assertUnauthorized(send(HttpMethod.GET, COLLECTION, authorization));
-            assertUnauthorized(send(HttpMethod.GET, COLLECTION + "/70", authorization));
+            assertUnauthorized(send(HttpMethod.GET, APPOINTMENT_TITLES, authorization));
+            assertUnauthorized(send(HttpMethod.GET, APPOINTMENT_TITLES + "/70", authorization));
         }
 
         @Test
@@ -308,7 +305,7 @@ class ReferenceDataFunctionalTest {
         @ParameterizedTest(name = "suffix \"{0}\"")
         @ValueSource(strings = {"", "/10", "/70", "/15", "/abc", "?page=2"})
         void ac002Ac003Ac005Ac006TheAliasBehavesExactlyLikeTheCanonicalName(String suffix) {
-            ResponseEntity<String> canonical = get(COLLECTION + suffix);
+            ResponseEntity<String> canonical = get(APPOINTMENT_TITLES + suffix);
             ResponseEntity<String> alias = get(ALIAS + suffix);
 
             assertThat(alias.getStatusCode()).isEqualTo(canonical.getStatusCode());
@@ -323,7 +320,7 @@ class ReferenceDataFunctionalTest {
         @ParameterizedTest(name = "suffix \"{0}\"")
         @ValueSource(strings = {"", "/70", "/15"})
         void ac016TheAliasIsTransparentToTheCaller(String suffix) {
-            ResponseEntity<String> canonical = get(COLLECTION + suffix);
+            ResponseEntity<String> canonical = get(APPOINTMENT_TITLES + suffix);
             ResponseEntity<String> alias = get(ALIAS + suffix);
 
             assertThat(alias.getHeaders().headerNames()).isEqualTo(canonical.getHeaders().headerNames());
@@ -346,8 +343,6 @@ class ReferenceDataFunctionalTest {
     @Nested
     class UnsupportedTypeTests {
 
-        private static final String UNSUPPORTED = "Unsupported reference data attribute_name.";
-
         @ParameterizedTest
         @ValueSource(strings = {
             // The other 20 E-Links attribute names: ten canonical types and their ten deprecated aliases.
@@ -361,7 +356,7 @@ class ReferenceDataFunctionalTest {
         void ac007Ac014UnsupportedNamesAreRejectedOnBothRoutes(String name) {
             String collection = "/api/v1/reference_data/" + name;
             for (String path : new String[] {collection, collection + "/10"}) {
-                JsonNode body = assertError(get(path), 400, UNSUPPORTED);
+                JsonNode body = assertError(get(path), 400, UNSUPPORTED_ATTRIBUTE_NAME);
                 assertThat(body.has("results")).as(path).isFalse();
                 assertThat(body.has("id")).as(path).isFalse();
             }
@@ -369,7 +364,7 @@ class ReferenceDataFunctionalTest {
 
         @Test
         void theTypeIsCheckedBeforeTheId() {
-            assertError(get("/api/v1/reference_data/foo/abc"), 400, UNSUPPORTED);
+            assertError(get("/api/v1/reference_data/foo/abc"), 400, UNSUPPORTED_ATTRIBUTE_NAME);
         }
     }
 }

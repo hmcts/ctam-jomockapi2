@@ -5,14 +5,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.core.io.DefaultResourceLoader;
 import tools.jackson.databind.json.JsonMapper;
-import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties;
 import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties.TypeProperties;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataRecord;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataType;
 import uk.gov.hmcts.ctam.jo.services.ReferenceDataTypeRegistry;
+import uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures;
 
-import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
@@ -20,6 +18,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.CREATED_AT;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.END_DATE;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.emptyRegistry;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.recordBuilder;
 
 class FixtureReferenceDataRepositoryTest {
 
@@ -33,14 +35,9 @@ class FixtureReferenceDataRepositoryTest {
         List<ReferenceDataRecord> records = repository.findAll(registry.resolve("widgets"));
 
         assertThat(records).extracting(ReferenceDataRecord::getId).containsExactly(10L, 20L, 30L);
-        assertThat(records.getFirst()).isEqualTo(ReferenceDataRecord.builder()
-                .id(10)
-                .name("Alpha")
-                .createdAt(Instant.parse("2024-01-15T09:00:00Z"))
-                .updatedAt(Instant.parse("2024-01-15T09:00:00Z"))
-                .startDate(LocalDate.parse("2024-01-01"))
-                .endDate(LocalDate.parse("2025-03-31"))
-                .build());
+        // valid-unsorted.json: Alpha was never updated after creation, and has ended.
+        assertThat(records.getFirst()).isEqualTo(
+                recordBuilder(10, "Alpha").updatedAt(CREATED_AT).endDate(END_DATE).build());
         assertThat(records.get(1).getEndDate()).isNull();
     }
 
@@ -72,7 +69,7 @@ class FixtureReferenceDataRepositoryTest {
 
     @Test
     void zeroRegistryTypesLoadsNothing() {
-        ReferenceDataTypeRegistry registry = new ReferenceDataTypeRegistry(new ReferenceDataProperties(null));
+        ReferenceDataTypeRegistry registry = emptyRegistry();
         ReferenceDataRepository repository = repository(registry);
 
         assertThatIllegalArgumentException()
@@ -120,8 +117,7 @@ class FixtureReferenceDataRepositoryTest {
     }
 
     private static ReferenceDataTypeRegistry registry(String name, String fixture) {
-        return new ReferenceDataTypeRegistry(new ReferenceDataProperties(
-                List.of(new TypeProperties(name, List.of(), FIXTURES + fixture))));
+        return ReferenceDataFixtures.registry(new TypeProperties(name, List.of(), FIXTURES + fixture));
     }
 
     private static FixtureReferenceDataRepository repository(ReferenceDataTypeRegistry registry) {

@@ -20,6 +20,8 @@ import java.util.Arrays;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.APPOINTMENT_TITLES;
+import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.TOKEN;
 
 /**
  * Tokens are configurable but authentication cannot be turned off (spec AC-017, FR-017). No class here
@@ -31,10 +33,8 @@ class AuthenticationConfigurationIntegrationTest {
     private static final String EXPECTED_STARTUP_FAILURE =
             "jo.security.bearer-tokens must contain at least one non-blank token";
 
-    private static final String COLLECTION = "/api/v1/reference_data/appointment_titles";
-
     static int status(MockMvc mockMvc, String token) throws Exception {
-        return mockMvc.perform(get(COLLECTION).header("Authorization", "Bearer " + token))
+        return mockMvc.perform(get(APPOINTMENT_TITLES).header("Authorization", "Bearer " + token))
                 .andReturn().getResponse().getStatus();
     }
 
@@ -62,7 +62,7 @@ class AuthenticationConfigurationIntegrationTest {
         @Test
         void ac017TheNewTokenIsAcceptedAndOldOnesAreRejected() throws Exception {
             assertThat(status(mockMvc, "rotated-token")).isEqualTo(200);
-            assertThat(status(mockMvc, "test-token")).isEqualTo(401);
+            assertThat(status(mockMvc, TOKEN)).isEqualTo(401);
             assertThat(status(mockMvc, "local-dev-token")).isEqualTo(401);
         }
     }
@@ -80,7 +80,7 @@ class AuthenticationConfigurationIntegrationTest {
         void bothConfiguredTokensAreAccepted() throws Exception {
             assertThat(status(mockMvc, "a")).isEqualTo(200);
             assertThat(status(mockMvc, "b")).isEqualTo(200);
-            assertThat(status(mockMvc, "test-token")).isEqualTo(401);
+            assertThat(status(mockMvc, TOKEN)).isEqualTo(401);
         }
     }
 
@@ -98,7 +98,7 @@ class AuthenticationConfigurationIntegrationTest {
             assertThat(status(mockMvc, "env-a")).isEqualTo(200);
             assertThat(status(mockMvc, "env-b")).isEqualTo(200);
             assertThat(status(mockMvc, "local-dev-token")).isEqualTo(401);
-            assertThat(status(mockMvc, "test-token")).isEqualTo(401);
+            assertThat(status(mockMvc, TOKEN)).isEqualTo(401);
         }
     }
 
@@ -106,7 +106,7 @@ class AuthenticationConfigurationIntegrationTest {
     @SpringBootTest
     @AutoConfigureMockMvc
     @ExtendWith(OutputCaptureExtension.class)
-    @TestPropertySource(properties = "jo.security.bearer-tokens=test-token")
+    @TestPropertySource(properties = "jo.security.bearer-tokens=" + TOKEN)
     class TokensAreNeverLogged {
 
         @Autowired
@@ -115,11 +115,11 @@ class AuthenticationConfigurationIntegrationTest {
         @Test
         void neitherARejectedNorAnAcceptedTokenAppearsInTheLogs(CapturedOutput output) throws Exception {
             assertThat(status(mockMvc, "super-secret-value")).isEqualTo(401);
-            assertThat(status(mockMvc, "test-token")).isEqualTo(200);
+            assertThat(status(mockMvc, TOKEN)).isEqualTo(200);
 
             assertThat(output.getAll())
                     .contains("Authentication failed")
-                    .doesNotContain("super-secret-value", "test-token");
+                    .doesNotContain("super-secret-value", TOKEN);
         }
     }
 

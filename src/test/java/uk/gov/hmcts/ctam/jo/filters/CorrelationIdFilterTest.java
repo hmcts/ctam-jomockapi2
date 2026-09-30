@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.hmcts.ctam.jo.testsupport.RequestFixtures.servletRequest;
 
 class CorrelationIdFilterTest {
 
@@ -31,7 +32,7 @@ class CorrelationIdFilterTest {
 
     @Test
     void echoesAValidInboundHeader() throws Exception {
-        MockHttpServletRequest request = request("/api/v1/reference_data/x");
+        MockHttpServletRequest request = servletRequest("/api/v1/reference_data/x");
         request.addHeader(CorrelationIds.HEADER, "abc-123_X.9");
 
         filter.doFilter(request, response, chain);
@@ -49,7 +50,7 @@ class CorrelationIdFilterTest {
         ""
     })
     void replacesAnInvalidInboundHeaderWithAUuid(String invalid) throws Exception {
-        MockHttpServletRequest request = request("/api/v1/reference_data/x");
+        MockHttpServletRequest request = servletRequest("/api/v1/reference_data/x");
         request.addHeader(CorrelationIds.HEADER, invalid);
 
         filter.doFilter(request, response, chain);
@@ -62,7 +63,7 @@ class CorrelationIdFilterTest {
     @Test
     void acceptsExactly64Characters() throws Exception {
         String maxLength = "a".repeat(64);
-        MockHttpServletRequest request = request("/api/v1/reference_data/x");
+        MockHttpServletRequest request = servletRequest("/api/v1/reference_data/x");
         request.addHeader(CorrelationIds.HEADER, maxLength);
 
         filter.doFilter(request, response, chain);
@@ -72,7 +73,7 @@ class CorrelationIdFilterTest {
 
     @Test
     void generatesAUuidWhenTheHeaderIsMissing() throws Exception {
-        filter.doFilter(request("/api/v1/reference_data/x"), response, chain);
+        filter.doFilter(servletRequest("/api/v1/reference_data/x"), response, chain);
 
         String generated = response.getHeader(CorrelationIds.HEADER);
         assertThat(UUID.fromString(generated)).hasToString(generated);
@@ -81,7 +82,7 @@ class CorrelationIdFilterTest {
 
     @Test
     void clearsMdcAfterwardsButKeepsTheRequestAttribute() throws Exception {
-        MockHttpServletRequest request = request("/api/v1/reference_data/x");
+        MockHttpServletRequest request = servletRequest("/api/v1/reference_data/x");
         request.addHeader(CorrelationIds.HEADER, "keep-me");
 
         filter.doFilter(request, response, chain);
@@ -97,7 +98,7 @@ class CorrelationIdFilterTest {
         };
 
         try {
-            filter.doFilter(request("/api/v1/reference_data/x"), response, failing);
+            filter.doFilter(servletRequest("/api/v1/reference_data/x"), response, failing);
         } catch (Exception expected) {
             // the exception itself is not under test
         }
@@ -107,7 +108,7 @@ class CorrelationIdFilterTest {
 
     @Test
     void skipsTheHealthcheck() throws Exception {
-        MockHttpServletRequest request = request("/api/v1/healthcheck");
+        MockHttpServletRequest request = servletRequest("/api/v1/healthcheck");
         request.addHeader(CorrelationIds.HEADER, "ignored");
 
         filter.doFilter(request, response, chain);
@@ -119,14 +120,8 @@ class CorrelationIdFilterTest {
 
     @Test
     void doesNotSkipPathsThatOnlyStartWithTheHealthcheck() throws Exception {
-        filter.doFilter(request("/api/v1/healthcheck/extra"), response, chain);
+        filter.doFilter(servletRequest("/api/v1/healthcheck/extra"), response, chain);
 
         assertThat(response.getHeader(CorrelationIds.HEADER)).isNotNull();
-    }
-
-    private static MockHttpServletRequest request(String path) {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", path);
-        request.setServletPath(path);
-        return request;
     }
 }

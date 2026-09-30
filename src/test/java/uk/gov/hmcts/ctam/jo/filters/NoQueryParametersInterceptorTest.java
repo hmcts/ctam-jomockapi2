@@ -11,6 +11,8 @@ import uk.gov.hmcts.ctam.jo.exceptions.UnsupportedQueryParameterException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.QUERY_PARAMETERS_NOT_SUPPORTED;
+import static uk.gov.hmcts.ctam.jo.testsupport.RequestFixtures.servletRequest;
 
 class NoQueryParametersInterceptorTest {
 
@@ -27,7 +29,7 @@ class NoQueryParametersInterceptorTest {
 
         assertThatThrownBy(() -> interceptor.preHandle(request, response, handlerMethod))
                 .isInstanceOf(UnsupportedQueryParameterException.class)
-                .hasMessage("Query parameters are not supported on this endpoint.");
+                .hasMessage(QUERY_PARAMETERS_NOT_SUPPORTED);
     }
 
     @Test
@@ -52,7 +54,7 @@ class NoQueryParametersInterceptorTest {
     }
 
     private static MockHttpServletRequest request(String query) {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/reference_data/x");
+        MockHttpServletRequest request = servletRequest("/api/v1/reference_data/x");
         request.setQueryString(query);
         return request;
     }

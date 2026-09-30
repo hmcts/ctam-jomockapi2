@@ -10,6 +10,7 @@ import java.util.OptionalLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.MALFORMED_REFERENCE_ID;
 
 class ReferenceIdParserTest {
 
@@ -26,7 +27,7 @@ class ReferenceIdParserTest {
     void rejectsAnythingElse(String raw) {
         assertThatThrownBy(() -> parser.parse(raw))
                 .isInstanceOf(InvalidReferenceIdException.class)
-                .hasMessage("reference_id must be a non-negative whole number.");
+                .hasMessage(MALFORMED_REFERENCE_ID);
     }
 
     @ParameterizedTest

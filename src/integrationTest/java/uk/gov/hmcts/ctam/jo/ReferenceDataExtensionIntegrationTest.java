@@ -13,7 +13,6 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties;
 import uk.gov.hmcts.ctam.jo.services.ReferenceDataTypeRegistry;
 
@@ -22,6 +21,13 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.MALFORMED_REFERENCE_ID;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.QUERY_PARAMETERS_NOT_SUPPORTED;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.RECORD_NOT_FOUND;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNAUTHORIZED;
+import static uk.gov.hmcts.ctam.jo.testsupport.ErrorResponseAssertions.assertErrorBody;
+import static uk.gov.hmcts.ctam.jo.testsupport.JsonTrees.parse;
+import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.BEARER_TOKEN;
 
 /**
  * A new type needs only a configuration entry and a fixture: {@code test_widgets} and {@code empty_things}
@@ -48,9 +54,6 @@ class ReferenceDataExtensionIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private JsonMapper jsonMapper;
-
     @Test
     void ac019TheNewTypeIsServedInAscendingIdOrder() throws Exception {
         MockHttpServletResponse response = perform(authorised(BASE + "test_widgets"));
@@ -72,12 +75,12 @@ class ReferenceDataExtensionIntegrationTest {
 
     @Test
     void ac019TheNewTypeGetsTheSameValidationAuthenticationAndErrors() throws Exception {
-        assertError(perform(authorised(BASE + "test_widgets/4")), 404, "Reference data record not found.");
+        assertError(perform(authorised(BASE + "test_widgets/4")), 404, RECORD_NOT_FOUND);
         assertError(perform(authorised(BASE + "test_widgets/x")), 400,
-                    "reference_id must be a non-negative whole number.");
-        assertError(perform(get(BASE + "test_widgets")), 401, "Unauthorized. Invalid or missing token.");
+                    MALFORMED_REFERENCE_ID);
+        assertError(perform(get(BASE + "test_widgets")), 401, UNAUTHORIZED);
         assertError(perform(authorised(BASE + "test_widgets?a=1")), 400,
-                    "Query parameters are not supported on this endpoint.");
+                    QUERY_PARAMETERS_NOT_SUPPORTED);
     }
 
     @Test
@@ -86,7 +89,7 @@ class ReferenceDataExtensionIntegrationTest {
 
         assertThat(collection.getStatus()).isEqualTo(200);
         assertThat(collection.getContentAsString()).isEqualTo("{\"results\":[]}");
-        assertError(perform(authorised(BASE + "empty_things/1")), 404, "Reference data record not found.");
+        assertError(perform(authorised(BASE + "empty_things/1")), 404, RECORD_NOT_FOUND);
     }
 
     @Test
@@ -122,7 +125,7 @@ class ReferenceDataExtensionIntegrationTest {
     }
 
     private MockHttpServletRequestBuilder authorised(String path) {
-        return get(path).header("Authorization", "Bearer test-token");
+        return get(path).header("Authorization", BEARER_TOKEN);
     }
 
     private MockHttpServletResponse perform(MockHttpServletRequestBuilder request) throws Exception {
@@ -130,14 +133,12 @@ class ReferenceDataExtensionIntegrationTest {
     }
 
     private JsonNode json(MockHttpServletResponse response) throws Exception {
-        return jsonMapper.readTree(response.getContentAsString());
+        return parse(response.getContentAsString());
     }
 
     private void assertError(MockHttpServletResponse response, int status, String message) throws Exception {
         assertThat(response.getStatus()).isEqualTo(status);
-        JsonNode body = json(response);
-        assertThat(body.propertyNames()).containsExactlyInAnyOrder("error", "timestamp", "traceId");
-        assertThat(body.get("error").asString()).isEqualTo(message);
+        assertErrorBody(response.getContentAsString(), message);
     }
 
     /**
