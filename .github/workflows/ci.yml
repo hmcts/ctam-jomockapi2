@@ -24,20 +24,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
 
       # Full build: compile (-Werror), Checkstyle, all four test suites, JaCoCo and OWASP dependency-check.
-      # DEFERRAL (Principle XIII): see specs/002-reference-data-api/plan.md § Complexity Tracking,
-      # "OWASP scan in CI waits for NVD_API_KEY". Until the NVD_API_KEY secret exists, the scan is skipped
-      # with a visible warning on the run. Once the secret is added, the full scan runs with no change here.
-      # When that happens, replace this script with a plain `./gradlew check`, so a missing key fails loudly
-      # again (the build.gradle guard). Pull requests from forks never receive secrets, so for them the scan
-      # is skipped too: a maintainer must re-run them from a branch in this repository before merge.
+      # Never pass -PskipOwasp here. If NVD_API_KEY is missing, the build fails loudly (the guard in
+      # build.gradle). Pull requests from forks don't receive secrets, so they fail this step: a maintainer
+      # must re-run them from a branch in this repository before merge.
       - name: Build and check
-        run: |
-          if [ -n "$NVD_API_KEY" ]; then
-            ./gradlew check
-          else
-            echo "::warning title=OWASP dependency-check skipped::NVD_API_KEY is not set, so the OWASP scan did not run (documented deferral in specs/002-reference-data-api/plan.md)."
-            ./gradlew check -PskipOwasp
-          fi
+        run: ./gradlew check
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
