@@ -4,6 +4,11 @@ plugins {
     id 'application'
     id 'jacoco'
     id 'uk.gov.hmcts.java' version '0.12.70'
+    // The HMCTS plugin brings dependency-check 12.2.0, which fails to store CVEs with reference URLs over
+    // 1,000 characters (CVE-2026-6785/6786). 12.2.2 widens that column (dependency-check issue #8466).
+    // Declaring it here makes Gradle resolve 12.2.2 for the HMCTS plugin too. Drop this line once the
+    // HMCTS plugin itself brings 12.2.2 or later.
+    id 'org.owasp.dependencycheck' version '12.2.2'
     id 'org.sonarqube' version '7.5.0.8588'
     id 'io.github.ben-manes.versions' version '0.64.0'
 }
