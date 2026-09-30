@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class CorrelationIdFilter extends OncePerRequestFilter {
 
-    private static final Pattern VALID_ID = Pattern.compile("^[A-Za-z0-9._-]{1,64}$");
+    private static final Pattern VALID_ID = Pattern.compile(CorrelationIds.VALID_PATTERN);
 
     private static final String HEALTHCHECK_PATH = "/api/v1/healthcheck";
 

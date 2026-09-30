@@ -33,14 +33,12 @@ public class OpenApiConfig {
 
     private static final String ATTRIBUTE_NAME = "attribute_name";
 
-    private static final String CORRELATION_ID_PATTERN = "^[A-Za-z0-9._-]{1,64}$";
-
     private static final Parameter CORRELATION_ID_REQUEST_HEADER = new HeaderParameter()
             .name(CorrelationIds.HEADER)
             .required(false)
             .description("Optional correlation ID. Used if it matches the pattern; otherwise a UUID is generated. "
                          + "Echoed in the `X-Correlation-Id` response header and in `traceId` on errors.")
-            .schema(new StringSchema().pattern(CORRELATION_ID_PATTERN));
+            .schema(new StringSchema().pattern(CorrelationIds.VALID_PATTERN));
 
     private static final Header CORRELATION_ID_RESPONSE_HEADER = new Header()
             .description("The correlation ID in use: the caller's, if valid, or a generated UUID.")
