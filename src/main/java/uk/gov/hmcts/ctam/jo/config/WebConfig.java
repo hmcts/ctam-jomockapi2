@@ -5,7 +5,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import uk.gov.hmcts.ctam.jo.controllers.ReferenceDataController;
 import uk.gov.hmcts.ctam.jo.filters.NoQueryParametersInterceptor;
 
 import java.time.Clock;
@@ -25,6 +24,6 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(noQueryParametersInterceptor)
-                .addPathPatterns(ReferenceDataController.BASE_PATH + "/**");
+                .addPathPatterns(ApiPaths.REFERENCE_DATA + "/**");
     }
 }

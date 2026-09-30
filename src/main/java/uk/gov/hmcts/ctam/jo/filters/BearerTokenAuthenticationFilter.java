@@ -12,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import uk.gov.hmcts.ctam.jo.config.ApiPaths;
 import uk.gov.hmcts.ctam.jo.config.SecurityProperties;
 import uk.gov.hmcts.ctam.jo.exceptions.ErrorMessages;
 import uk.gov.hmcts.ctam.jo.exceptions.ErrorResponseFactory;
@@ -34,7 +35,8 @@ public class BearerTokenAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String PROTECTED_PREFIX = "/api/";
 
-    private static final String HEALTHCHECK_PATH = "/api/v1/healthcheck";
+    // A code constant, not configuration, so the exemption can't be widened by editing settings.
+    private static final String HEALTHCHECK_PATH = ApiPaths.HEALTHCHECK;
 
     private static final String BEARER_SCHEME = "Bearer";
 

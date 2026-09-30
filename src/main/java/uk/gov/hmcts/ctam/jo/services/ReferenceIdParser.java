@@ -14,8 +14,14 @@ import java.util.regex.Pattern;
 @Component
 public class ReferenceIdParser {
 
+    /**
+     * A well-formed {@code reference_id}: ASCII digits only. Enforced here and published in the OpenAPI
+     * document ({@code ReferenceDataController}) from this one place.
+     */
+    public static final String PATTERN = "^[0-9]+$";
+
     // Checked before Long.parseLong, which would also accept a sign and non-ASCII digits.
-    private static final Pattern DIGITS_ONLY = Pattern.compile("^[0-9]+$");
+    private static final Pattern DIGITS_ONLY = Pattern.compile(PATTERN);
 
     /**
      * Returns the id, or empty when the value is well formed but too large to be an id.

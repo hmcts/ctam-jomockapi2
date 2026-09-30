@@ -13,6 +13,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import uk.gov.hmcts.ctam.jo.config.ApiPaths;
 
 /**
  * Gives every request (except the healthcheck) a correlation ID: the caller's {@code X-Correlation-Id} if it
@@ -25,7 +26,8 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
 
     private static final Pattern VALID_ID = Pattern.compile(CorrelationIds.VALID_PATTERN);
 
-    private static final String HEALTHCHECK_PATH = "/api/v1/healthcheck";
+    // A code constant, not configuration, so the exemption can't be widened by editing settings.
+    private static final String HEALTHCHECK_PATH = ApiPaths.HEALTHCHECK;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
