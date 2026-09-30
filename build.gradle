@@ -29,6 +29,11 @@ repositories {
     mavenCentral()
 }
 
+// Spring Boot 4.1.1 (the latest 4.1 release) manages Tomcat 11.0.24, which the OWASP scan flags with
+// CVSS 7.5-9.8 vulnerabilities fixed in 11.0.25 (e.g. CVE-2026-65637, CVE-2026-65905). Override the
+// managed version until a Spring Boot release brings Tomcat 11.0.25 or later, then remove this line.
+ext['tomcat.version'] = '11.0.26'
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'

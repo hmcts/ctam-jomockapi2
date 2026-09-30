@@ -24,9 +24,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
 
       # The NVD database for the OWASP scan takes 30+ minutes to download from scratch. Restore the most
-      # recent copy, and save an updated one after every run, so later runs only fetch recent changes.
-      - name: Cache the OWASP dependency-check database
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      # recent copy here, and save the updated one after the build (even a failed build, see "Save …"
+      # below), so later runs only fetch recent changes.
+      - name: Restore the OWASP dependency-check database
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.gradle/dependency-check-data
           key: dependency-check-data-${{ runner.os }}-${{ github.run_id }}
@@ -41,6 +42,15 @@ jobs:
         run: ./gradlew check
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+      # Saved even when the build fails: a vulnerability finding fails the build, but the downloaded
+      # database is still good and saves the next run 30+ minutes.
+      - name: Save the OWASP dependency-check database
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.gradle/dependency-check-data
+          key: dependency-check-data-${{ runner.os }}-${{ github.run_id }}
 
       # DEFERRAL (Principle XIII): see specs/002-reference-data-api/plan.md § Complexity Tracking,
       # "Sonar step in CI stays inactive". SONAR_TOKEN is available as an HMCTS organisation secret, but the
