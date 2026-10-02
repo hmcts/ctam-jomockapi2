@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          fetch-depth: 0 # full history for Sonar blame/new-code detection
+
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+
+      # The NVD database for the OWASP scan takes 30+ minutes to download from scratch. Restore the most
+      # recent copy here, and save the updated one after the build (even a failed build, see "Save …"
+      # below), so later runs only fetch recent changes.
+      - name: Restore the OWASP dependency-check database
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.gradle/dependency-check-data
+          key: dependency-check-data-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            dependency-check-data-${{ runner.os }}-
+
+      # Full build: compile (-Werror), Checkstyle, all four test suites, JaCoCo and OWASP dependency-check.
+      # Never pass -PskipOwasp here. If NVD_API_KEY is missing, the build fails loudly (the guard in
+      # build.gradle). Pull requests from forks don't receive secrets, so they fail this step: a maintainer
+      # must re-run them from a branch in this repository before merge.
+      - name: Build and check
+        run: ./gradlew check
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+      # Saved even when the build fails: a vulnerability finding fails the build, but the downloaded
+      # database is still good and saves the next run 30+ minutes.
+      - name: Save the OWASP dependency-check database
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.gradle/dependency-check-data
+          key: dependency-check-data-${{ runner.os }}-${{ github.run_id }}
+
+      # DEFERRAL (Principle XIII): see specs/002-reference-data-api/plan.md § Complexity Tracking,
+      # "Sonar step in CI stays inactive". SONAR_TOKEN is available as an HMCTS organisation secret, but the
+      # SonarQube Cloud project uses Automatic Analysis, which rejects a CI analysis, so this step is disabled.
+      # Once a SonarQube Cloud admin switches Automatic Analysis off (Administration -> Analysis Method),
+      # delete the `if: false` line so a failing quality gate fails CI.
+      - name: Sonar analysis
+        if: false
+        run: ./gradlew sonar
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Dependency freshness
+        if: always()
+        run: ./gradlew dependencyUpdates
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: build-reports
+          path: |
+            build/dependencyUpdates/
+            build/reports/jacoco/
+            build/reports/tests/
+            build/test-results/
+            build/reports/checkstyle/
+            build/reports/dependency-check-report.*
+          if-no-files-found: ignore

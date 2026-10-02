@@ -2,6 +2,16 @@ plugins {
     id 'org.springframework.boot' version '4.1.1'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'application'
+    id 'jacoco'
+    id 'java-test-fixtures'
+    id 'uk.gov.hmcts.java' version '0.12.70'
+    // The HMCTS plugin brings dependency-check 12.2.0, which fails to store CVEs with reference URLs over
+    // 1,000 characters (CVE-2026-6785/6786). 12.2.2 widens that column (dependency-check issue #8466).
+    // Declaring it here makes Gradle resolve 12.2.2 for the HMCTS plugin too. Drop this line once the
+    // HMCTS plugin itself brings 12.2.2 or later.
+    id 'org.owasp.dependencycheck' version '12.2.2'
+    id 'org.sonarqube' version '7.5.0.8588'
+    id 'io.github.ben-manes.versions' version '0.64.0'
 }
 
 group = 'uk.gov.hmcts.ctam.jo'
@@ -20,17 +30,161 @@ repositories {
     mavenCentral()
 }
 
+// Spring Boot 4.1.1 (the latest 4.1 release) manages Tomcat 11.0.24, which the OWASP scan flags with
+// CVSS 7.5-9.8 vulnerabilities fixed in 11.0.25 (e.g. CVE-2026-65637, CVE-2026-65905). Override the
+// managed version until a Spring Boot release brings Tomcat 11.0.25 or later, then remove this line.
+ext['tomcat.version'] = '11.0.26'
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
+    implementation 'org.mapstruct:mapstruct:1.6.3'
+    implementation 'org.owasp.encoder:encoder:1.4.0'
+
+    compileOnly 'org.projectlombok:lombok:1.18.48'
+    annotationProcessor 'org.projectlombok:lombok:1.18.48'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+
+    // Shared test helpers (src/testFixtures): the unit suite gets them automatically, the others below.
+    testFixturesImplementation 'org.assertj:assertj-core'
+    testFixturesImplementation 'tools.jackson.core:jackson-databind'
+
+    testCompileOnly 'org.projectlombok:lombok:1.18.48'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.48'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.springframework.boot:spring-boot-http-client'
     testImplementation 'org.springframework.boot:spring-boot-restclient'
 }
 
-tasks.named('test') {
-    useJUnitPlatform()
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += ['-Xlint:all,-processing', '-Werror']
+}
+
+testing {
+    suites {
+        configureEach {
+            // Use the JUnit version Spring Boot manages, not Gradle's built-in default.
+            useJUnitJupiter(dependencyManagement.importedProperties['junit-jupiter.version'])
+        }
+
+        // Unit suite: component tests and @WebMvcTest controller slices.
+        test(JvmTestSuite)
+
+        // Full-context suites (research R11). Each gets its own src/<suite>/java source set.
+        [integrationTest: 'test', functionalTest: 'integrationTest', smokeTest: 'functionalTest'].each { suiteName, runsAfter ->
+            register(suiteName, JvmTestSuite) {
+                dependencies {
+                    implementation project()
+                    implementation testFixtures(project())
+                    implementation 'org.springframework.boot:spring-boot-starter-test'
+                    implementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+                    implementation 'org.springframework.boot:spring-boot-http-client'
+                    implementation 'org.springframework.boot:spring-boot-restclient'
+                    compileOnly 'org.projectlombok:lombok:1.18.48'
+                    annotationProcessor 'org.projectlombok:lombok:1.18.48'
+                }
+                targets.configureEach {
+                    testTask.configure {
+                        shouldRunAfter(runsAfter)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Like the unit suite, the other suites compile against main's libraries (Jackson, springdoc, ...).
+['integrationTest', 'functionalTest', 'smokeTest'].each { suiteName ->
+    configurations.named("${suiteName}Implementation") {
+        extendsFrom configurations.implementation
+    }
+}
+
+// Opt-in strict latency target for the smoke suite's p95 check: ./gradlew smokeTest -Dperf.strict=true
+tasks.named('smokeTest', Test) {
+    systemProperty 'perf.strict', providers.systemProperty('perf.strict').getOrElse('false')
+}
+
+tasks.named('check') {
+    dependsOn testing.suites.integrationTest, testing.suites.functionalTest, testing.suites.smokeTest
+}
+
+jacoco {
+    toolVersion = '0.8.15'
+}
+
+// One coverage report merged from every suite (Principle XIII).
+tasks.named('jacocoTestReport', JacocoReport) {
+    def suiteTests = ['test', 'integrationTest', 'functionalTest', 'smokeTest'].collect { tasks.named(it) }
+    mustRunAfter suiteTests
+    executionData.setFrom(suiteTests.collect { it.map { t -> t.extensions.getByType(JacocoTaskExtension).destinationFile } })
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('jacocoTestReport')
+}
+
+// Checkstyle and OWASP dependency-check (Principle XIII, research R11).
+// Route taken: the shared HMCTS plugin `uk.gov.hmcts.java` 0.12.70, which works under Gradle 9.7.1 / Java 25,
+// so the fallback (core `checkstyle` + `org.owasp.dependencycheck` 13.0.0) is not needed.
+// The plugin supplies the HMCTS Checkstyle rule set and reads NVD_API_KEY from the environment.
+dependencyCheck {
+    failBuildOnCVSS = 7.0f
+    suppressionFile = file('config/owasp/suppressions.xml').path
+}
+
+def nvdApiKeyMissing = { -> !System.getenv('NVD_API_KEY')?.trim() }
+def skipOwasp = providers.gradleProperty('skipOwasp').isPresent()
+
+if (!skipOwasp) {
+    tasks.named('check') {
+        dependsOn tasks.named('dependencyCheckAggregate')
+    }
+}
+
+// In CI the scan must never run keyless (slow, rate-limited) or be skipped silently: fail before any task runs.
+gradle.taskGraph.whenReady { graph ->
+    if (graph.hasTask(':dependencyCheckAggregate') && System.getenv('CI') == 'true' && nvdApiKeyMissing()) {
+        throw new GradleException('NVD_API_KEY is not set; OWASP dependency-check cannot run in CI')
+    }
+}
+
+tasks.named('dependencyCheckAggregate') {
+    doFirst {
+        if (nvdApiKeyMissing()) {
+            logger.warn('NVD_API_KEY is not set; OWASP dependency-check will run without an API key (slow, rate-limited).')
+        }
+    }
+}
+
+// SonarQube Cloud project hmcts_ctam-jomockapi2 (confirmed 2026-09-23). CI runs `./gradlew sonar` only once
+// SONAR_TOKEN exists and Automatic Analysis is off: see specs/002-reference-data-api/plan.md § Complexity Tracking.
+sonar {
+    properties {
+        property 'sonar.projectKey', 'hmcts_ctam-jomockapi2'
+        property 'sonar.organization', 'hmcts'
+        property 'sonar.host.url', 'https://sonarcloud.io'
+        property 'sonar.coverage.jacoco.xmlReportPaths',
+                layout.buildDirectory.file('reports/jacoco/test/jacocoTestReport.xml').get().asFile.path
+    }
+}
+
+// Dependency freshness (Principle XIII): only stable releases are offered as upgrades.
+def isNonStable = { String version ->
+    version ==~ /(?i).*[.\-](alpha|beta|rc|cr|m|preview|snapshot)([.\-]?\d+)?([.\-].*)?/
+}
+
+tasks.named('dependencyUpdates') {
+    rejectVersionIf {
+        isNonStable(it.candidate.version)
+    }
 }
 
 dependencyLocking {

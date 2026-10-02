@@ -1,0 +1,5 @@
+[
+  {"id": 30, "name": "Charlie", "created_at": "2024-01-15T09:00:00Z", "updated_at": "2024-06-03T10:30:00Z", "start_date": "2024-01-01", "end_date": null},
+  {"id": 10, "name": "Alpha", "created_at": "2024-01-15T09:00:00Z", "updated_at": "2024-01-15T09:00:00Z", "start_date": "2024-01-01", "end_date": "2025-03-31"},
+  {"id": 20, "name": "Bravo", "created_at": "2024-01-15T09:00:00Z", "updated_at": "2024-06-03T10:30:00Z", "start_date": "2024-01-01", "end_date": null}
+]

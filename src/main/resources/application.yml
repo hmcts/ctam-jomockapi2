@@ -4,3 +4,24 @@ spring:
 
 server:
   port: 8080
+  error:
+    # Error bodies never expose internals (FR-026); JsonErrorController renders the shared shape.
+    include-stacktrace: never
+    include-message: never
+
+logging:
+  structured:
+    format:
+      # One JSON object per line; MDC entries such as correlationId are included automatically (research R8).
+      console: logstash
+
+jo:
+  security:
+    # NON-SECRET default for local/dev/Postman. Override with JO_SECURITY_BEARER_TOKENS (comma-separated).
+    # The explicit placeholder is required: relaxed binding would otherwise expect JO_SECURITY_BEARERTOKENS.
+    bearer-tokens: ${JO_SECURITY_BEARER_TOKENS:local-dev-token}
+  reference-data:
+    types:
+      - name: appointment_titles
+        aliases: [appointment_title]
+        fixture: classpath:reference-data/appointment_titles.json
