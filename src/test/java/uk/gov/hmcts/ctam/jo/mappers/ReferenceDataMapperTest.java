@@ -37,4 +37,10 @@ class ReferenceDataMapperTest {
 
         assertThat(responses).extracting(ReferenceDataResponse::id).containsExactly(30L, 10L, 20L);
     }
+
+    @Test
+    void mapsNullToNull() {
+        assertThat(mapper.toResponse(null)).isNull();
+        assertThat(mapper.toResponses(null)).isNull();
+    }
 }

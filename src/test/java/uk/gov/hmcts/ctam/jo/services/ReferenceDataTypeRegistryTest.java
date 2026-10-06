@@ -3,6 +3,7 @@ package uk.gov.hmcts.ctam.jo.services;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties.TypeProperties;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataType;
@@ -138,6 +139,7 @@ class ReferenceDataTypeRegistryTest {
     }
 
     @ParameterizedTest
+    @NullSource
     @ValueSource(strings = {"", "  "})
     void failsStartupWithoutAFixture(String fixture) {
         assertThatIllegalStateException()

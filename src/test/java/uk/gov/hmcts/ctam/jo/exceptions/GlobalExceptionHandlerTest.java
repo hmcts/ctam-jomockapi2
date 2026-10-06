@@ -81,6 +81,21 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getHeader("Allow")).isEqualTo("GET");
     }
 
+    @ParameterizedTest
+    @MethodSource("noSupportedMethods")
+    void methodNotAllowedWithoutSupportedMethodsSendsNoAllowHeader(HttpRequestMethodNotSupportedException ex)
+            throws Exception {
+        handler.handleMethodNotAllowed(ex, request, response);
+
+        assertError(405, METHOD_NOT_ALLOWED);
+        assertThat(response.getHeader("Allow")).isNull();
+    }
+
+    static Stream<HttpRequestMethodNotSupportedException> noSupportedMethods() {
+        return Stream.of(new HttpRequestMethodNotSupportedException("POST"),
+                         new HttpRequestMethodNotSupportedException("POST", List.of()));
+    }
+
     @Test
     void notAcceptableReturns406AsJson() throws Exception {
         handler.handleNotAcceptable(new HttpMediaTypeNotAcceptableException(SECRET_DETAIL), request, response);
@@ -94,6 +109,18 @@ class GlobalExceptionHandlerTest {
 
         assertError(500, INTERNAL_SERVER_ERROR);
         assertThat(response.getContentAsString()).doesNotContain("IllegalStateException", "java.");
+    }
+
+    @Test
+    void unexpectedErrorLeavesAnAlreadyCommittedResponseAlone() throws Exception {
+        response.setStatus(200);
+        response.getWriter().write("partial");
+        response.setCommitted(true);
+
+        handler.handleUnexpected(new IllegalStateException(SECRET_DETAIL), request, response);
+
+        assertThat(response.getStatus()).isEqualTo(200);
+        assertThat(response.getContentAsString()).isEqualTo("partial");
     }
 
     private void assertError(int status, String message) throws Exception {
