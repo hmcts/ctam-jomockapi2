@@ -34,7 +34,7 @@ jobs:
           restore-keys: |
             dependency-check-data-${{ runner.os }}-
 
-      # Full build: compile (-Werror), Checkstyle, all four test suites, JaCoCo and OWASP dependency-check.
+      # Full build: compile (-Werror), Checkstyle, all four test suites, JaCoCo report and coverage gate, and OWASP dependency-check.
       # Never pass -PskipOwasp here. If NVD_API_KEY is missing, the build fails loudly (the guard in
       # build.gradle). Pull requests from forks don't receive secrets, so they fail this step: a maintainer
       # must re-run them from a branch in this repository before merge.
@@ -42,6 +42,24 @@ jobs:
         run: ./gradlew check
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+      # Shows the merged JaCoCo figures on the run's summary page, so nobody has to download the artifact.
+      # Runs even when the build fails (a failed coverage gate is when the numbers matter most).
+      - name: Coverage summary
+        if: always() && hashFiles('build/reports/jacoco/test/jacocoTestReport.xml') != ''
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import xml.etree.ElementTree as ET
+          report = ET.parse('build/reports/jacoco/test/jacocoTestReport.xml').getroot()
+          print('### Test coverage (all suites, JaCoCo)\n')
+          print('| Counter | Covered | Total | Coverage |')
+          print('|---|---:|---:|---:|')
+          for counter in report.findall('counter'):
+              covered = int(counter.get('covered'))
+              total = covered + int(counter.get('missed'))
+              pct = f'{100 * covered / total:.1f}%' if total else 'n/a'
+              print(f"| {counter.get('type').title()} | {covered} | {total} | {pct} |")
+          EOF
 
       # Saved even when the build fails: a vulnerability finding fails the build, but the downloaded
       # database is still good and saves the next run 30+ minutes.

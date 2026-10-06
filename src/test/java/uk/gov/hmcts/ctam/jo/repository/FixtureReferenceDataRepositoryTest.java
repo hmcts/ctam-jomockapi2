@@ -78,19 +78,21 @@ class FixtureReferenceDataRepositoryTest {
 
     @ParameterizedTest(name = "{0}")
     @CsvSource(delimiter = '|', textBlock = """
-            id-not-positive        | record id 0: id must be greater than 0
-            id-duplicate           | record id 5: duplicate id
-            name-blank             | record id 5: name is required
-            name-missing           | record id 5: name is required
-            name-untrimmed         | record id 5: name must be trimmed
-            name-duplicate         | record id 6: duplicate name
-            created-at-missing     | record id 5: created_at is required
-            updated-at-missing     | record id 5: updated_at is required
-            start-date-missing     | record id 5: start_date is required
-            fractional-seconds     | record id 5: timestamps must be whole seconds
-            updated-before-created | record id 5: updated_at must not be before created_at
-            end-before-start       | record id 5: end_date must not be before start_date
-            null-record            | null record
+            id-not-positive            | record id 0: id must be greater than 0
+            id-duplicate               | record id 5: duplicate id
+            name-blank                 | record id 5: name is required
+            name-missing               | record id 5: name is required
+            name-untrimmed             | record id 5: name must be trimmed
+            name-duplicate             | record id 6: duplicate name
+            created-at-missing         | record id 5: created_at is required
+            updated-at-missing         | record id 5: updated_at is required
+            start-date-missing         | record id 5: start_date is required
+            fractional-seconds         | record id 5: timestamps must be whole seconds
+            fractional-seconds-updated | record id 5: timestamps must be whole seconds
+            updated-before-created     | record id 5: updated_at must not be before created_at
+            end-before-start           | record id 5: end_date must not be before start_date
+            null-record                | null record
+            null-document              | must be a JSON array of records
             """)
     void failsStartupOnAnInvalidRecord(String fixture, String expectedProblem) {
         assertThatIllegalStateException()
