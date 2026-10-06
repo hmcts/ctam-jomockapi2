@@ -43,12 +43,14 @@ Implemented and covered by automated tests:
 ### Quality gates
 
 ```bash
-./gradlew check                 # compile (-Werror), Checkstyle, the four test suites, JaCoCo, OWASP check
+./gradlew check                 # compile (-Werror), Checkstyle, the four test suites, JaCoCo + coverage gate, OWASP check
 ./gradlew check -PskipOwasp     # quicker local run without the NVD download (CI never skips it)
 ./gradlew dependencyUpdates     # dependency freshness report
 ```
 
-The coverage report is at `build/reports/jacoco/test/html/index.html`. Run one suite at a time with
+The coverage report, merged from all four suites, is at `build/reports/jacoco/test/html/index.html`.
+`check` fails if line coverage drops below 90% or branch coverage below 80%, and CI shows the figures
+on each run's summary page. Run one suite at a time with
 `./gradlew test`, `integrationTest`, `functionalTest` or `smokeTest`. The OWASP check reads an NVD
 API key from `NVD_API_KEY`; without one it runs slowly, and in CI it fails rather than run keyless.
 

@@ -56,7 +56,7 @@ Always run `/speckit-analyze` before `/speckit-implement` — it catches coverag
 ```bash
 ./start.sh                                   # build and run on http://localhost:8080 (foreground; wraps ./gradlew bootRun)
 ./gradlew bootRun                            # run the application locally
-./gradlew check                              # every quality gate: -Werror compile, Checkstyle, all four suites, JaCoCo, OWASP
+./gradlew check                              # every quality gate: -Werror compile, Checkstyle, all four suites, JaCoCo report + coverage gate (90% lines, 80% branches), OWASP
 ./gradlew check -PskipOwasp                  # the same without the slow OWASP/NVD scan (local only; CI never skips it)
 ./gradlew test                               # unit suite
 ./gradlew integrationTest                    # full-context and OpenAPI contract tests
