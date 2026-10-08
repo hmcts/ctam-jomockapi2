@@ -23,7 +23,7 @@ Nothing else in the OpenAPI document changes: no new path, operation, parameter,
 
 ## 2. `GET /api/v1/reference_data/base_locations`
 
-**200**, `application/json`, `ReferenceDataApiResponse`: `results` holds 1,276 records in ascending `id` order. Each record has exactly the six `ReferenceDataResponse` fields.
+**200**, `application/json`, `ReferenceDataApiResponse`: `results` holds 1,462 records in ascending `id` order. Each record has exactly the six `ReferenceDataResponse` fields. Names are not unique: 1,276 distinct names, and a name shared by several real locations appears on several records with different ids (e.g. `Bedfordshire LJA`, ids 540 and 550).
 
 Example (first and last elements; compact JSON in the real response):
 
@@ -39,7 +39,7 @@ Example (first and last elements; compact JSON in the real response):
       "end_date": null
     },
     {
-      "id": 12760,
+      "id": 14620,
       "name": "Yorkshire & Humberside",
       "created_at": "2024-01-15T09:00:00Z",
       "updated_at": "2024-06-03T10:30:00Z",
@@ -67,9 +67,9 @@ Example (first and last elements; compact JSON in the real response):
 }
 ```
 
-Non-ASCII names are sent as UTF-8 characters, not escapes. `GET …/base_locations/8880` returns `"name": "Royal Courts of Justice – Office of the Judge Advocate General"` with U+2013 between "Justice" and "Office".
+Non-ASCII names are sent as UTF-8 characters, not escapes. `GET …/base_locations/10290` returns `"name": "Royal Courts of Justice – Office of the Judge Advocate General"` with U+2013 between "Justice" and "Office".
 
-**404**: a well-formed id with no base location (e.g. `15`, `8885`, `12770`) returns `Reference data record not found.` Ids are scoped to the type: `appointment_titles/1940` exists, `base_locations/1940` is the base location at position 194, "Central/South Western Staffordshire Sub Committee".
+**404**: a well-formed id with no base location (e.g. `15`, `8885`, `14630`) returns `Reference data record not found.` Ids are scoped to the type: `appointment_titles/1940` exists, `base_locations/1940` is the base location at position 194, "Central Buckinghamshire".
 
 **400**: malformed ids (e.g. `abc`, `1.5`, `-1`) return `reference_id must be a non-negative whole number.`
 

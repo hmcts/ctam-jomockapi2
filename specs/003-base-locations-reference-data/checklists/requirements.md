@@ -44,5 +44,5 @@
   must account for 002 tests that currently assert `base_locations`/`base_location` return
   400 (002 AC-007, AC-014); `base_locations` leaves that list, and the expectations stay on the
   19 still-unsupported names, including `base_location`, which 003 doesn't serve (AC-009, AC-015).
-- Reference-point values (positions 1, 7, 888, 1,276) were computed from the local extract
+- Reference-point values (positions 1, 7, 1,029, 1,462) were computed from the local extract
   using the FR-009 rules and should be re-confirmed when the fixture is generated.

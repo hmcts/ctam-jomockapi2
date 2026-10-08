@@ -16,14 +16,14 @@ This guide checks the feature end to end. Building, running and token setup are 
 - `ReferenceDataFixtureRulesTest` passes for both fixtures (FR-009, research R4).
 - The smoke suite reports a p95 guard per collection path.
 
-## 2. Confirm the change is configuration and data only
+## 2. Confirm the change is configuration, data and one generic deletion
 
 ```bash
-git diff --stat main -- src/main/java      # expected: no output (AC-017, SC-007)
+git diff main -- src/main/java             # expected: FixtureReferenceDataRepository.java only (AC-017, SC-007)
 git diff --stat main -- src/main/resources
 ```
 
-**Expected**: no changes under `src/main/java`; under `src/main/resources`, only `application.yml` (one type entry) and the new `reference-data/base_locations.json`.
+**Expected**: under `src/main/java`, only `FixtureReferenceDataRepository.java`, with nothing but deletions: the duplicate-name check, its `Set` and the two unused imports (FR-017, research R10); under `src/main/resources`, only `application.yml` (one type entry) and the new `reference-data/base_locations.json`.
 
 ## 3. Manual checks with curl
 
@@ -36,12 +36,12 @@ AUTH='Authorization: Bearer local-dev-token'
 
 | # | Command | Expected | Spec |
 |---|---------|----------|------|
-| 1 | `curl -s -H "$AUTH" $BASE/base_locations \| jq '.results \| length'` | `1276` | AC-001, SC-002 |
-| 2 | `curl -s -H "$AUTH" $BASE/base_locations \| jq -c '[.results[0].id, .results[-1].id, ([.results[].id] == ([.results[].id] \| sort))]'` | `[10,12760,true]` | AC-001, AC-002 |
-| 3 | `curl -s -H "$AUTH" $BASE/base_locations \| jq '[.results[].name] \| unique \| length'` | `1276` (all names distinct) | SC-002 |
+| 1 | `curl -s -H "$AUTH" $BASE/base_locations \| jq '.results \| length'` | `1462` | AC-001, SC-002 |
+| 2 | `curl -s -H "$AUTH" $BASE/base_locations \| jq -c '[.results[0].id, .results[-1].id, ([.results[].id] == ([.results[].id] \| sort))]'` | `[10,14620,true]` | AC-001, AC-002 |
+| 3 | `curl -s -H "$AUTH" $BASE/base_locations \| jq '[.results[].name] \| unique \| length'` | `1276` (distinct names; some repeat, e.g. `National` 40 times) | SC-002, EC-001 |
 | 4 | `curl -s -H "$AUTH" $BASE/base_locations/70` | Aldridge and Brownhills, `end_date` `2025-03-31` | AC-002, AC-005 |
-| 5 | `curl -s -H "$AUTH" $BASE/base_locations/8880 \| jq -r .name` | `Royal Courts of Justice – Office of the Judge Advocate General`, with an en dash | AC-003 |
-| 6 | `curl -s -H "$AUTH" $BASE/base_locations/8880 \| grep -c 'u2013'` | `0` (sent as a UTF-8 character, not an escape) | FR-010 |
+| 5 | `curl -s -H "$AUTH" $BASE/base_locations/10290 \| jq -r .name` | `Royal Courts of Justice – Office of the Judge Advocate General`, with an en dash | AC-003 |
+| 6 | `curl -s -H "$AUTH" $BASE/base_locations/10290 \| grep -c 'u2013'` | `0` (sent as a UTF-8 character, not an escape) | FR-010 |
 | 7 | `curl -si -H "$AUTH" $BASE/base_location` | `400`, unsupported attribute | AC-009 |
 | 8 | `curl -si -H "$AUTH" $BASE/base_location/70` | `400`, unsupported attribute | AC-010 |
 | 9 | `curl -si -H "$AUTH" $BASE/base_locations/15` | `404`, record not found | AC-006 |
