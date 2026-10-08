@@ -172,7 +172,7 @@ As a tester or integrating team, I want ready-made example requests for base loc
 - **EC-005 — Same id, different type**: `GET /api/v1/reference_data/base_locations/10` and `GET /api/v1/reference_data/appointment_titles/10` return different records (Aberconwy and Acting Senior Coroner); identifiers are scoped to their type.
 - **EC-006 — Case and spelling variants**: `Base_Locations`, `BASE_LOCATIONS` and `base-locations` are unsupported attribute names (`400`); matching is exact and case-sensitive, as in 002.
 - **EC-007 — Large collection response**: The default collection holds about 6.5 times as many records as the appointment-title collection. It is still returned in a single response, with no pagination, as the contract defines none.
-- **EC-008 — Inherited edge cases**: Trailing slashes, extra path segments, leading zeros, oversized ids, unsupported methods, unacceptable media types, evaluation order, unexpected failures and null end dates behave for base locations exactly as 002's EC-002 to EC-013 define for appointment titles.
+- **EC-008 — Inherited edge cases**: Covered by FR-004. For base locations, 002's EC-002 to EC-013 (trailing slashes, extra path segments, leading zeros, oversized ids, unsupported methods, unacceptable media types, evaluation order, unexpected failures and null end dates) apply unchanged.
 
 ## Requirements *(mandatory)*
 
@@ -207,7 +207,7 @@ As a tester or integrating team, I want ready-made example requests for base loc
 **Quality**
 
 - **FR-015**: The base-location collection route MUST meet the same latency guards as the appointment-title collection route, under both the default bound and the strict target.
-- **FR-016**: Unit, integration, functional and smoke coverage MUST be extended to the new type, and the project's coverage gate MUST pass wherever it is in force (it arrives with PR #9, `test-coverage-improvements`); until then, overall line and branch coverage MUST NOT fall below the baseline recorded before this feature's changes.
+- **FR-016**: Unit, integration, functional and smoke coverage MUST be extended to the new type, and the project's JaCoCo coverage gate (90% lines, 80% branches) MUST pass.
 
 ### Reference Points
 

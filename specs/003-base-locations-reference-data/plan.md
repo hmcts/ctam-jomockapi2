@@ -59,7 +59,7 @@ This feature serves BaseLocation through the generic reference-data routes 002 b
 | X. Configuration Over Hard-Coding | **Pass.** The type and its fixture location are configuration. |
 | XI. Testability | **Pass (planned).** Unit (fixture-rule test, guard), integration (OpenAPI contract), functional (AC-001 to AC-016 over HTTP) and smoke (latency per collection) coverage. |
 | XII. Simplicity and Maintainability | **Pass.** No caching, pagination or new abstraction (research R7). |
-| XIII. Automated Quality Gates | **Pass, inheriting 002's open Sonar deferral unchanged.** No gate is added, removed or relaxed. **Dependency**: the JaCoCo coverage gate FR-016 refers to arrives with PR #9 (`test-coverage-improvements`), which isn't on `main` yet. If PR #9 merges first, rebase this branch onto it; if not, FR-016 is met by JaCoCo reporting alone, and the gate applies once PR #9 lands. |
+| XIII. Automated Quality Gates | **Pass, inheriting 002's open Sonar deferral unchanged.** No gate is added, removed or relaxed. The JaCoCo coverage gate (PR #9) is already on this branch's base, so FR-016 is enforced by `check`. |
 | XIV. Observability & Traceability | **Pass.** Correlation IDs and logging are path-generic and need no change. |
 | XV. Security by Design | **Pass.** The new routes are under `/api/`, so the existing filter authenticates them before routing; AC-012/013 test it. No security control is relaxed. |
 | XVI. Object-Oriented Design Discipline | **Pass.** No production code changes. |
@@ -141,4 +141,4 @@ The design added no dependency, layer, abstraction or production code. Three des
 - The widened guard (R8) turns "no type-specific code" for the new type from a review item into a build failure — supports VII.
 - A per-collection latency guard (R7) holds the larger response to the same bound instead of relaxing it — supports XI and XIII.
 
-Every row stays **Pass**. Open items: the inherited Sonar deferral, and the PR #9 dependency for the coverage gate (XIII row).
+Every row stays **Pass**. Open item: the inherited Sonar deferral.
