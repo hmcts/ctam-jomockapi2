@@ -42,6 +42,7 @@
   framework or library is named.
 - FR-002 supersedes 002's FR-003 and FR-007 (AppointmentTitle-only scope). /speckit-plan
   must account for 002 tests that currently assert `base_locations`/`base_location` return
-  400 (002 AC-007, AC-014); those expectations move to the 18 still-unsupported names (AC-015).
+  400 (002 AC-007, AC-014); `base_locations` leaves that list, and the expectations stay on the
+  19 still-unsupported names, including `base_location`, which 003 doesn't serve (AC-009, AC-015).
 - Reference-point values (positions 1, 7, 888, 1,276) were computed from the local extract
   using the FR-009 rules and should be re-confirmed when the fixture is generated.

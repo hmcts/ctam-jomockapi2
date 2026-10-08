@@ -12,11 +12,10 @@ Every decision here builds on [002's research](../002-reference-data-api/researc
 
 ```yaml
       - name: base_locations
-        aliases: [base_location]
         fixture: classpath:reference-data/base_locations.json
 ```
 
-and the fixture `src/main/resources/reference-data/base_locations.json`. No file under `src/main/java` changes.
+with no `aliases` (the spec doesn't serve `base_location`; `aliases` is optional, as `empty_things` in `ReferenceDataExtensionIntegrationTest` shows), and the fixture `src/main/resources/reference-data/base_locations.json`. No file under `src/main/java` changes.
 
 **Rationale**: This is the extension path 002 designed (002 R5) and tested with test-only types (`ReferenceDataExtensionIntegrationTest`). The registry already validates names, rejects clashes between names and aliases, and fills the OpenAPI enum and description from configuration. The repository already loads and validates any declared fixture at start-up. Using the path exactly as designed is what AC-017 and SC-007 measure.
 
@@ -85,8 +84,8 @@ The test is parameterised by fixture, so `appointment_titles.json` is checked by
 
 | Test | Today | After |
 |------|-------|-------|
-| `ReferenceDataFunctionalTest.UnsupportedTypeTests` (002 AC-007/AC-014) | 20 contract names rejected, including `base_locations` and `base_location` | The 18 still-unsupported names (003 AC-015); `base_locations`/`base_location` move to the new functional tests. Case variants gain `Base_Locations`, `BASE_LOCATIONS` and `base-locations` (003 EC-006). |
-| `ReferenceDataOpenApiContractTest` | `enum` = `appointment_titles, appointment_title`; description lists one type | `enum` = `appointment_titles, base_locations, appointment_title, base_location`; description `Can be one of: appointment_titles, base_locations. Also supports deprecated values: appointment_title, base_location` (AC-019). The order is the registry's: canonical names in configuration order, then aliases. |
+| `ReferenceDataFunctionalTest.UnsupportedTypeTests` (002 AC-007/AC-014) | 20 contract names rejected, including `base_locations` and `base_location` | The 19 still-unsupported names (003 AC-015): `base_locations` moves to the new functional tests; `base_location` stays, because it is still unsupported (003 AC-009/AC-010). Case variants gain `Base_Locations`, `BASE_LOCATIONS` and `base-locations` (003 EC-006). |
+| `ReferenceDataOpenApiContractTest` | `enum` = `appointment_titles, appointment_title`; description lists one type | `enum` = `appointment_titles, base_locations, appointment_title`; description `Can be one of: appointment_titles, base_locations. Also supports deprecated values: appointment_title` (AC-019). The order is the registry's: canonical names in configuration order, then aliases. |
 | `ReferenceDataExtensionIntegrationTest` | Redeclares `types[0]` and adds test types at `[1]`, `[2]` | No change expected: an indexed list in `@TestPropertySource` replaces the whole list from `application.yml`, so `base_locations` is not loaded there. Confirm by running it; if Spring merges instead, redeclare the list in full. |
 
 `ReferenceDataFunctionalTest`'s AppointmentTitle tests (002 AC-001 to AC-020) otherwise run unchanged, which is 003 AC-014.
@@ -136,7 +135,7 @@ Determinism (AC-004) is checked against a captured golden response, `src/functio
 ## R9. Documentation and example requests
 
 **Decision**:
-- **Postman**: add a "Base Locations" sub-folder under the existing "Reference Data" folder, with six requests: collection (canonical), collection (alias), single record `70` (canonical), single record `70` (alias), unknown id `15` (`404`) and malformed id `abc` (`400`). Each has tests for status, structure and key values (count 1,276; first, ended and last reference points; the 404 message). The existing "unsupported (contract-valid)" request keeps `genders`, which is still unsupported. No new environment variables are needed.
+- **Postman**: add a "Base Locations" sub-folder under the existing "Reference Data" folder, with five requests: collection, single record `70`, unknown id `15` (`404`), malformed id `abc` (`400`) and the unserved alias `base_location` (`400`, unsupported attribute name). Each has tests for status, structure and key values (count 1,276; first, ended and last reference points; the error messages). The existing "unsupported (contract-valid)" request keeps `genders`, which is still unsupported. No new environment variables are needed.
 - **OpenAPI**: nothing to edit by hand; the enum and description are generated from the registry (002 R10). The contract test in R5 asserts the new values.
 - **README**: § Reference data lists both types and counts; the "Adding a reference-data type" steps are unchanged (FR-014).
 - **CLAUDE.md**: § Current repo state gains a `003-base-locations-reference-data` line.

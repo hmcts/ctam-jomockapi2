@@ -42,13 +42,13 @@ AUTH='Authorization: Bearer local-dev-token'
 | 4 | `curl -s -H "$AUTH" $BASE/base_locations/70` | Aldridge and Brownhills, `end_date` `2025-03-31` | AC-002, AC-005 |
 | 5 | `curl -s -H "$AUTH" $BASE/base_locations/8880 \| jq -r .name` | `Royal Courts of Justice – Office of the Judge Advocate General`, with an en dash | AC-003 |
 | 6 | `curl -s -H "$AUTH" $BASE/base_locations/8880 \| grep -c 'u2013'` | `0` (sent as a UTF-8 character, not an escape) | FR-010 |
-| 7 | `diff <(curl -s -H "$AUTH" $BASE/base_locations) <(curl -s -H "$AUTH" $BASE/base_location)` | No differences | AC-009 |
-| 8 | `diff <(curl -s -H "$AUTH" $BASE/base_locations/70) <(curl -s -H "$AUTH" $BASE/base_location/70)` | No differences | AC-010 |
+| 7 | `curl -si -H "$AUTH" $BASE/base_location` | `400`, unsupported attribute | AC-009 |
+| 8 | `curl -si -H "$AUTH" $BASE/base_location/70` | `400`, unsupported attribute | AC-010 |
 | 9 | `curl -si -H "$AUTH" $BASE/base_locations/15` | `404`, record not found | AC-006 |
 | 10 | `curl -si -H "$AUTH" $BASE/base_locations/abc` | `400`, malformed id | AC-007 |
 | 11 | `curl -s -H "$AUTH" $BASE/base_locations/10 \| jq -r .name; curl -s -H "$AUTH" $BASE/appointment_titles/10 \| jq -r .name` | `Aberconwy`, then `Acting Senior Coroner` | AC-008, EC-005 |
 | 12 | `curl -si $BASE/base_locations` | `401`, `WWW-Authenticate: Bearer` | AC-012 |
-| 13 | `curl -si -H 'Authorization: Bearer wrong' $BASE/base_location/70` | `401` | AC-013 |
+| 13 | `curl -si -H 'Authorization: Bearer wrong' $BASE/base_locations/70` | `401` | AC-013 |
 | 14 | `curl -si -H "$AUTH" $BASE/genders` | `400`, unsupported attribute | AC-015 |
 | 15 | `curl -si -H "$AUTH" "$BASE/base_locations?name=Aberconwy"` | `400`, query parameter message | AC-016 |
 | 16 | `curl -s -H "$AUTH" $BASE/appointment_titles \| jq '.results \| length'` | `194` (unchanged) | AC-014 |
@@ -60,7 +60,7 @@ curl -s http://localhost:8080/v3/api-docs \
   | jq -c '.paths["/api/v1/reference_data/{attribute_name}"].get.parameters[] | select(.name=="attribute_name") | .schema.enum'
 ```
 
-**Expected**: `["appointment_titles","base_locations","appointment_title","base_location"]` (AC-019). In Swagger UI (`/swagger-ui.html`), the `attribute_name` drop-down offers `base_locations`.
+**Expected**: `["appointment_titles","base_locations","appointment_title"]`, with no `base_location` (AC-019). In Swagger UI (`/swagger-ui.html`), the `attribute_name` drop-down offers `base_locations`.
 
 ## 5. Postman
 
@@ -69,4 +69,4 @@ npx newman run postman/ctam-jomockapi.postman_collection.json \
   -e postman/ctam-jomockapi.postman_environment.json
 ```
 
-**Expected**: every request passes, including the six in **Reference Data › Base Locations** (AC-020).
+**Expected**: every request passes, including the five in **Reference Data › Base Locations** (AC-020).

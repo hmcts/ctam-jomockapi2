@@ -12,7 +12,7 @@
 
 Feature `002-reference-data-api` built one generic reference-data capability and served a single type through it, AppointmentTitle (`appointment_titles`, alias `appointment_title`). Its User Story 6 (AC-019, SC-007) promised that a later feature could add another type by supplying a type definition and its data, without new route, validation, authentication or error-handling logic.
 
-This feature is the first to use that promise. It adds BaseLocation, the second of the eleven E-Links reference-data types. Everything 002 specified for AppointmentTitle — routes, authentication, validation, error shape, ordering, alias transparency, determinism and edge cases EC-001 to EC-013 — applies to BaseLocation unchanged, and is not restated here except where this feature tests it.
+This feature is the first to use that promise. It adds BaseLocation, the second of the eleven E-Links reference-data types. Everything 002 specified for AppointmentTitle — routes, authentication, validation, error shape, ordering, determinism and edge cases EC-001 to EC-013 — applies to BaseLocation unchanged, and is not restated here except where this feature tests it. One difference is deliberate: the mock doesn't serve BaseLocation's deprecated alias `base_location` (Clarifications; Constitution Principle VII, v1.11.0).
 
 ## Clarifications
 
@@ -21,6 +21,7 @@ This feature is the first to use that promise. It adds BaseLocation, the second 
 - Q: Should base-location names that differ only by extra internal spaces or capitalisation be kept as separate records, or merged into one? → A: Kept as separate records, verbatim. `Cheshire  LJA` / `Cheshire LJA` and `City of Westminster Sub Committee` / `City of Westminster Sub committee` each remain two records, so the default dataset has 1,276 records.
 - Q: Should the seven placeholder-style names in the extract ("Unknown" and "Unknown Sub Committee S2/S3/S4/S5/S9/S94") be served as base locations, or left out of the dataset? → A: Kept, like any other name. They are real values of the E-Links data, at positions 1,141–1,147 (ids 11410–11470).
 - Q: Should the one name containing an en dash ("Royal Courts of Justice – Office of the Judge Advocate General") keep the en dash exactly, or should it be replaced with a plain hyphen? → A: Keep the en dash (U+2013) exactly; it is served as UTF-8 and is the only non-ASCII name (position 888, id 8880).
+- Q: Should the mock serve the deprecated alias `base_location`? → A: No. Only the canonical name `base_locations` is served; `base_location` is rejected with `400` like any unsupported attribute name. Constitution v1.11.0 (Principles I and VII) makes serving a deprecated alias optional per type and requires the spec to state the choice, so this is not a contract deviation. AppointmentTitle's alias `appointment_title` is unaffected.
 
 ## Behavioural Reference
 
@@ -29,7 +30,7 @@ The supplied E-Links Swagger (`swagger-ui-elinks-api-v5.pdf`, "Reference Data" s
 | Aspect | E-Links reference behaviour | This mock |
 |--------|-----------------------------|-----------|
 | Canonical name | `base_locations` | Same |
-| Deprecated alias | `base_location` | Same |
+| Deprecated alias | `base_location` | Not served: rejected with `400` like any unsupported name (Clarifications; Constitution Principle VII) |
 | Collection 200 body | `{ "results": [ ReferenceDataResponse, ... ] }` | Same |
 | Single-record 200 body | One `ReferenceDataResponse` object | Same |
 | `ReferenceDataResponse` fields | `id`, `updated_at`, `created_at`, `start_date`, `end_date` | Same, plus `name` (deviation D-1 from 002, extended to this type) |
@@ -86,19 +87,19 @@ As an integrator, I want to fetch one base location by its reference identifier 
 
 ---
 
-### User Story 3 - Legacy Consumer Uses the Deprecated Alias (Priority: P2)
+### User Story 3 - The Deprecated Alias Is Not Served (Priority: P2)
 
-As a consumer still using the deprecated singular name `base_location`, I want my requests to keep working and return the same data as the canonical name.
+As an integrator, I want the deprecated singular name `base_location` rejected clearly, so that my system moves to the canonical name `base_locations` instead of relying on an alias the mock doesn't serve.
 
-**Why this priority**: The E-Links contract supports the alias, so omitting it would break contract fidelity for legacy consumers; most consumers use the canonical name.
+**Why this priority**: The alias is deprecated in the E-Links contract itself, and this feature chooses not to serve it (Clarifications). The choice must be observable and tested, so a request via the alias never returns data.
 
-**Independent Test**: Call the canonical and alias routes, collection and single-record, with the same credentials and compare responses.
+**Independent Test**: Call `base_location` and `base_location/{id}` with and without valid credentials, and confirm `400` (or `401` without valid credentials) in the shared error shape.
 
 **Acceptance Scenarios**:
 
-1. **AC-009**: **Given** valid authentication, **When** the collection is fetched via `base_locations` and via `base_location`, **Then** the two responses are equal in status, content type and body, including record order.
-2. **AC-010**: **Given** valid authentication, **When** the same `reference_id` is fetched via `base_locations/{id}` and via `base_location/{id}`, **Then** the two responses are equal in status, content type and body, for existing, unknown and malformed ids alike.
-3. **AC-011**: **Given** any request via the alias, **When** the response is returned, **Then** it carries no indication that a different attribute name was resolved.
+1. **AC-009**: **Given** valid authentication, **When** the caller sends `GET /api/v1/reference_data/base_location`, **Then** the response is `400 Bad Request` in the shared error response shape, with the unsupported attribute-name message, and no reference data is returned.
+2. **AC-010**: **Given** valid authentication, **When** the caller sends `GET /api/v1/reference_data/base_location/{reference_id}` for any `reference_id` (one that exists under `base_locations` such as `70`, an unknown one such as `15`, or a malformed one such as `abc`), **Then** the response is `400 Bad Request` with the unsupported attribute-name message: the type is checked before the id, as in 002.
+3. **AC-011**: **Given** a request to a `base_location` route with no credentials or with invalid credentials, **When** it is sent, **Then** the response is `401 Unauthorized` in the shared error response shape: authentication is checked before the attribute name, as for any unsupported name.
 
 ---
 
@@ -108,11 +109,11 @@ As a security reviewer, I want base-location requests without valid credentials 
 
 **Why this priority**: A new type must not weaken the authentication that 002 made mandatory for every reference-data route.
 
-**Independent Test**: Call each base-location route, canonical and alias, with no credentials and with invalid credentials, and confirm `401` in the shared error shape.
+**Independent Test**: Call each base-location route with no credentials and with invalid credentials, and confirm `401` in the shared error shape.
 
 **Acceptance Scenarios**:
 
-1. **AC-012**: **Given** a request with no credentials, **When** it is sent to any base-location route (canonical or alias, collection or single-record, well-formed or malformed id), **Then** the response is `401 Unauthorized` in the shared error response shape and no reference data is returned.
+1. **AC-012**: **Given** a request with no credentials, **When** it is sent to any base-location route (collection or single-record, well-formed or malformed id), **Then** the response is `401 Unauthorized` in the shared error response shape and no reference data is returned.
 2. **AC-013**: **Given** a request with present but invalid credentials, **When** it is sent to any base-location route, **Then** the response is `401 Unauthorized` in the shared error response shape, with the same generic message as for missing credentials.
 
 ---
@@ -128,7 +129,7 @@ As an integrator already using appointment titles, I want adding base locations 
 **Acceptance Scenarios**:
 
 1. **AC-014**: **Given** the delivered feature, **When** 002's AppointmentTitle acceptance scenarios are run, **Then** they all pass, with the same assertions and the same responses as before this feature (shared test helpers may be moved without changing what is asserted).
-2. **AC-015**: **Given** valid authentication, **When** each of the 18 E-Links attribute names that are still unsupported (the nine canonical types other than `appointment_titles` and `base_locations`, and their nine deprecated aliases, e.g. `genders`, `gender`) is requested on either route, **Then** every one is rejected with `400 Bad Request` in the shared error response shape; none returns `200`, including with an empty `results` array.
+2. **AC-015**: **Given** valid authentication, **When** each of the 19 E-Links attribute names that are still unsupported (the nine canonical types other than `appointment_titles` and `base_locations`, their nine deprecated aliases, e.g. `genders`, `gender`, and `base_location`) is requested on either route, **Then** every one is rejected with `400 Bad Request` in the shared error response shape; none returns `200`, including with an empty `results` array.
 3. **AC-016**: **Given** valid authentication, **When** the caller sends a base-location request with any query parameter (e.g. `?name=Aberconwy`), **Then** it is rejected with `400 Bad Request` in the shared error response shape, as for appointment titles.
 
 ---
@@ -145,7 +146,7 @@ As a maintainer, I want base locations added purely by declaring the type and su
 
 1. **AC-017**: **Given** the delivered change, **When** it is reviewed, **Then** it adds no route, handler, validation, authentication, error-handling or mapping logic; the only additions are the type entry, its dataset, tests, documentation and example requests.
 2. **AC-018**: **Given** the delivered change, **When** the automated guard against type-specific code runs, **Then** it passes: no main source file names a specific reference-data type.
-3. **AC-019**: **Given** the running service, **When** its published API documentation is inspected, **Then** the `attribute_name` parameter lists `base_locations` as a supported value and `base_location` as a deprecated value alongside the appointment-title values, without that documentation having been edited by hand.
+3. **AC-019**: **Given** the running service, **When** its published API documentation is inspected, **Then** the `attribute_name` parameter lists `base_locations` as a supported value alongside the appointment-title values, does not list `base_location`, and still lists `appointment_title` as the only deprecated value, without that documentation having been edited by hand.
 
 ---
 
@@ -159,7 +160,7 @@ As a tester or integrating team, I want ready-made example requests for base loc
 
 **Acceptance Scenarios**:
 
-1. **AC-020**: **Given** a running instance and the example request collection with its environment, **When** the collection is run, **Then** it includes passing requests for the base-location collection (canonical and alias), a single record by a reference-point id (canonical and alias), an unknown `reference_id` returning `404`, and a malformed `reference_id` returning `400`, each with checks for status, response structure and key field values, and no hard-coded environment values.
+1. **AC-020**: **Given** a running instance and the example request collection with its environment, **When** the collection is run, **Then** it includes passing requests for the base-location collection, a single record by a reference-point id, an unknown `reference_id` returning `404`, a malformed `reference_id` returning `400`, and the unserved alias `base_location` returning `400`, each with checks for status, response structure and key field values, and no hard-coded environment values.
 
 ---
 
@@ -180,10 +181,10 @@ As a tester or integrating team, I want ready-made example requests for base loc
 
 **Scope**
 
-- **FR-001**: The system MUST serve the BaseLocation reference-data type through the existing collection and single-record reference-data routes, under the canonical attribute name `base_locations` and the deprecated alias `base_location`.
-- **FR-002**: The supported attribute names MUST become exactly `appointment_titles`, `appointment_title`, `base_locations` and `base_location`. This supersedes 002's FR-003 and FR-007, which limited support to AppointmentTitle; every other E-Links attribute name MUST remain unsupported (`400`).
+- **FR-001**: The system MUST serve the BaseLocation reference-data type through the existing collection and single-record reference-data routes, under the canonical attribute name `base_locations` only. The deprecated alias `base_location` MUST NOT be served (Constitution Principle VII).
+- **FR-002**: The supported attribute names MUST become exactly `appointment_titles`, `appointment_title` and `base_locations`. This supersedes 002's FR-003 and FR-007, which limited support to AppointmentTitle; every other E-Links attribute name, including `base_location`, MUST remain unsupported (`400`).
 - **FR-003**: BaseLocation MUST be added through the generic reference-data capability alone: a type entry and its dataset. The change MUST NOT add or modify route, validation, authentication, error-handling or mapping logic, and MUST NOT introduce code that names a specific reference-data type.
-- **FR-004**: All behaviour 002 defines for a supported type — authentication first, `reference_id` validation, `404` for unknown ids, `400` for query parameters, the shared error shape, ascending `id` order, alias equivalence and transparency, read-only access and determinism — MUST apply to BaseLocation without exception.
+- **FR-004**: All behaviour 002 defines for a supported type — authentication first, `reference_id` validation, `404` for unknown ids, `400` for query parameters, the shared error shape, ascending `id` order, read-only access and determinism — MUST apply to BaseLocation without exception.
 
 **Response content**
 
@@ -200,7 +201,7 @@ As a tester or integrating team, I want ready-made example requests for base loc
 
 **Documentation and example requests**
 
-- **FR-012**: The generated API documentation MUST list `base_locations` among the supported `attribute_name` values and `base_location` among the deprecated ones, derived from the type entry rather than edited by hand.
+- **FR-012**: The generated API documentation MUST list `base_locations` among the supported `attribute_name` values and MUST NOT list `base_location`, derived from the type entry rather than edited by hand.
 - **FR-013**: The example request collection MUST cover the base-location routes as AC-020 describes, using environment variables for every environment-specific value.
 - **FR-014**: The project's documentation of supported reference-data types MUST list base locations, and the instructions for adding a type MUST remain accurate.
 
@@ -227,7 +228,7 @@ Every record has `created_at` 2024-01-15T09:00:00Z and `start_date` 2024-01-01.
 | Scenario | Example request | Expected result |
 |----------|-----------------|-----------------|
 | Collection (canonical) | `GET /api/v1/reference_data/base_locations` | `200`, 1,276 records |
-| Collection (alias) | `GET /api/v1/reference_data/base_location` | `200`, identical to canonical |
+| Unserved alias | `GET /api/v1/reference_data/base_location` | `400`, shared error shape |
 | Single record | `GET /api/v1/reference_data/base_locations/70` | `200`, Aldridge and Brownhills |
 | Unknown id (gap) | `GET /api/v1/reference_data/base_locations/15` | `404`, shared error shape |
 | Malformed id | `GET /api/v1/reference_data/base_locations/abc` | `400`, shared error shape |
@@ -237,7 +238,7 @@ Every record has `created_at` 2024-01-15T09:00:00Z and `start_date` 2024-01-01.
 
 ### Key Entities
 
-- **Reference-data type**: As defined in 002. This feature adds a second instance, BaseLocation, with canonical name `base_locations` and deprecated alias `base_location`.
+- **Reference-data type**: As defined in 002. This feature adds a second instance, BaseLocation, with canonical name `base_locations` and no served alias.
 - **BaseLocation record**: One judicial base location (a court, tribunal venue, bench or committee area). Attributes: `id` (unique, stable integer), `name` (unique public location name, deviation D-1), `created_at`, `updated_at` (UTC timestamps), `start_date` and optional `end_date`. Its identifiers are independent of AppointmentTitle identifiers. Relationships to location types, parent locations and jurisdictions are deferred (DF-1).
 
 ## Success Criteria *(mandatory)*
@@ -246,8 +247,8 @@ Every record has `created_at` 2024-01-15T09:00:00Z and `start_date` 2024-01-01.
 
 - **SC-001**: 100% of the 20 acceptance scenarios (AC-001 to AC-020) pass as automated tests or, for AC-017 and AC-020, as review and collection-run checks.
 - **SC-002**: The default base-location collection contains exactly 1,276 records with 1,276 distinct names, and the four reference points match the Reference Points table.
-- **SC-003**: For every tested request pair differing only by `base_locations` vs `base_location`, responses are identical in 100% of cases.
-- **SC-004**: 0 of the 18 still-unsupported attribute names return a `200` response.
+- **SC-003**: 0 requests via the unserved alias `base_location` return reference data; 100% with valid credentials return `400`.
+- **SC-004**: 0 of the 19 still-unsupported attribute names return a `200` response.
 - **SC-005**: 0 base-location requests without valid credentials receive any reference data; 100% receive `401`.
 - **SC-006**: 100% of 002's AppointmentTitle acceptance tests pass with their assertions and expected responses unchanged.
 - **SC-007**: Adding the type changes 0 lines of route, validation, authentication, error-handling or mapping logic.

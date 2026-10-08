@@ -11,19 +11,19 @@
 | | Before (002) | After (003) |
 |-|--------------|-------------|
 | Canonical | `appointment_titles` | `appointment_titles`, `base_locations` |
-| Deprecated alias | `appointment_title` | `appointment_title`, `base_location` |
-| OpenAPI `enum` (in order) | `appointment_titles`, `appointment_title` | `appointment_titles`, `base_locations`, `appointment_title`, `base_location` |
-| OpenAPI `description` | `Can be one of: appointment_titles. Also supports deprecated values: appointment_title` | `Can be one of: appointment_titles, base_locations. Also supports deprecated values: appointment_title, base_location` |
+| Deprecated alias | `appointment_title` | `appointment_title` (unchanged; `base_location` is not served) |
+| OpenAPI `enum` (in order) | `appointment_titles`, `appointment_title` | `appointment_titles`, `base_locations`, `appointment_title` |
+| OpenAPI `description` | `Can be one of: appointment_titles. Also supports deprecated values: appointment_title` | `Can be one of: appointment_titles, base_locations. Also supports deprecated values: appointment_title` |
 
-Any other value, including the remaining nine E-Links canonical names and their nine aliases, still returns `400` with `Unsupported reference data attribute_name.`
+Any other value, including `base_location` (BaseLocation's deprecated alias, deliberately not served per spec Clarifications and Constitution VII), the remaining nine E-Links canonical names and their nine aliases, still returns `400` with `Unsupported reference data attribute_name.`
 
 Nothing else in the OpenAPI document changes: no new path, operation, parameter, schema, header or response code.
 
 ---
 
-## 2. `GET /api/v1/reference_data/base_locations` (and `base_location`)
+## 2. `GET /api/v1/reference_data/base_locations`
 
-**200**, `application/json`, `ReferenceDataApiResponse`: `results` holds 1,276 records in ascending `id` order. Each record has exactly the six `ReferenceDataResponse` fields. The alias returns a byte-identical body.
+**200**, `application/json`, `ReferenceDataApiResponse`: `results` holds 1,276 records in ascending `id` order. Each record has exactly the six `ReferenceDataResponse` fields.
 
 Example (first and last elements; compact JSON in the real response):
 
@@ -52,7 +52,7 @@ Example (first and last elements; compact JSON in the real response):
 
 ---
 
-## 3. `GET /api/v1/reference_data/base_locations/{reference_id}` (and `base_location/{reference_id}`)
+## 3. `GET /api/v1/reference_data/base_locations/{reference_id}`
 
 **200**, `application/json`, a single `ReferenceDataResponse`:
 
@@ -69,7 +69,7 @@ Example (first and last elements; compact JSON in the real response):
 
 Non-ASCII names are sent as UTF-8 characters, not escapes. `GET …/base_locations/8880` returns `"name": "Royal Courts of Justice – Office of the Judge Advocate General"` with U+2013 between "Justice" and "Office".
 
-**404**: a well-formed id with no base location (e.g. `15`, `8885`, `12770`) returns `Reference data record not found.` Ids are scoped to the type: `appointment_titles/1940` exists, `base_locations/1940` is the base location at position 194.
+**404**: a well-formed id with no base location (e.g. `15`, `8885`, `12770`) returns `Reference data record not found.` Ids are scoped to the type: `appointment_titles/1940` exists, `base_locations/1940` is the base location at position 194, "Central/South Western Staffordshire Sub Committee".
 
 **400**: malformed ids (e.g. `abc`, `1.5`, `-1`) return `reference_id must be a non-negative whole number.`
 
@@ -84,3 +84,5 @@ Non-ASCII names are sent as UTF-8 characters, not escapes. `GET …/base_locatio
 | `POST /api/v1/reference_data/base_locations` | `405`, `Method not allowed.`, `Allow: GET` |
 | Any base-location route without a valid token | `401`, `Unauthorized. Invalid or missing token.`, `WWW-Authenticate: Bearer` |
 | `GET /api/v1/reference_data/Base_Locations` | `400`, `Unsupported reference data attribute_name.` |
+| `GET /api/v1/reference_data/base_location` or `…/base_location/70` | `400`, `Unsupported reference data attribute_name.` (alias not served) |
+| `GET /api/v1/reference_data/base_location` without a valid token | `401`, `Unauthorized. Invalid or missing token.` (authentication first) |

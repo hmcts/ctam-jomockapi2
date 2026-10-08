@@ -8,7 +8,7 @@
 
 ## Summary
 
-This feature serves BaseLocation through the generic reference-data routes 002 built, as `base_locations` with the deprecated alias `base_location`. It is the first real use of 002's extension design: one entry in `jo.reference-data.types` and one checked-in fixture, with **no change under `src/main/java`** (research R1).
+This feature serves BaseLocation through the generic reference-data routes 002 built, as `base_locations` only: the deprecated alias `base_location` is deliberately not served (spec Clarifications; Constitution VII, v1.11.0). It is the first real use of 002's extension design: one entry in `jo.reference-data.types` and one checked-in fixture, with **no change under `src/main/java`** (research R1).
 
 **What changes**:
 - **Data**: `base_locations.json`, 1,276 synthetic records generated once from the distinct public names in the local extract, using 002's generation rules (research R2, data-model.md § 3).
@@ -47,13 +47,13 @@ This feature serves BaseLocation through the generic reference-data routes 002 b
 
 | Principle | Assessment |
 |---|---|
-| I. Contract-First Development | **Pass.** `base_locations` and `base_location` are contract-valid values the E-Links Swagger enumerates. Response shape is the contract's `ReferenceDataResponse`, plus `name` under the existing agreed deviation D-1, which 002 recorded as applying to the shared record shape. No new deviation. |
+| I. Contract-First Development | **Pass.** `base_locations` is a contract-valid value the E-Links Swagger enumerates. Its deprecated alias `base_location` is not served, which Principle I (v1.11.0) allows for deprecated aliases and which is not a contract deviation. Response shape is the contract's `ReferenceDataResponse`, plus `name` under the existing agreed deviation D-1, which 002 recorded as applying to the shared record shape. No new deviation. |
 | II. Java Spring Boot Architecture | **Pass.** No architectural change; no main Java file changes. |
 | III. Reuse Before Duplication | **Pass.** The type reuses every shared component. In tests, the functional HTTP helpers move into a shared helper instead of being copied (research R6). |
 | IV. Synthetic Data Only | **Pass.** Only public location names come from the extract; ids, timestamps and dates are synthetic (data-model.md § 3). The names were scanned for personal data (spec Assumptions). The extract's foreign-key columns are deliberately not served, because the records they reference don't exist in the mock (DF-1); serving them would break the coherence this principle requires. |
 | V. Deterministic Behaviour | **Pass.** Static fixture, fixed generation rules, ascending `id` order. A golden-file test covers the new collection (research R6). |
 | VI. Behavioural Fidelity | **Pass.** No parameters added; query parameters still rejected. No pagination is added for the larger collection, because the contract defines none. |
-| VII. Generic Reference-Data Handling | **Pass, and demonstrated.** The type is added through configuration only; the alias is resolved by the registry. The guard test is widened so type-specific code for base locations would fail the build (research R8). |
+| VII. Generic Reference-Data Handling | **Pass, and demonstrated.** The type is added through configuration only. The spec states that no alias is served (`base_location` → `400`), as VII requires; the entry has no `aliases`, and `appointment_title` is still resolved centrally by the registry. The guard test is widened so type-specific code for base locations would fail the build (research R8). |
 | VIII. Typed API Models | **Pass.** Existing DTOs; no new fields. |
 | IX. Centralised Validation and Error Handling | **Pass.** No new error path; every error on the new type comes from the shared handler with 002's messages. |
 | X. Configuration Over Hard-Coding | **Pass.** The type and its fixture location are configuration. |
@@ -63,7 +63,7 @@ This feature serves BaseLocation through the generic reference-data routes 002 b
 | XIV. Observability & Traceability | **Pass.** Correlation IDs and logging are path-generic and need no change. |
 | XV. Security by Design | **Pass.** The new routes are under `/api/`, so the existing filter authenticates them before routing; AC-012/013 test it. No security control is relaxed. |
 | XVI. Object-Oriented Design Discipline | **Pass.** No production code changes. |
-| XVII. API Testability and Postman Artifacts | **Pass (planned).** "Reference Data › Base Locations" sub-folder with six requests and tests; no hard-coded environment values (research R9). |
+| XVII. API Testability and Postman Artifacts | **Pass (planned).** "Reference Data › Base Locations" sub-folder with five requests and tests; no hard-coded environment values (research R9). |
 | XVIII. API Contract and Swagger/OpenAPI | **Pass (planned).** The enum and description are generated from configuration; the contract test is updated to the new values (research R5). A contract delta document records the change. |
 
 **Non-principle checks**:
@@ -110,7 +110,7 @@ src/integrationTest/java/uk/gov/hmcts/ctam/jo/
 
 src/functionalTest/java/uk/gov/hmcts/ctam/jo/
 ├── testsupport/ReferenceDataHttp.java             # NEW: get/send/assertError/json shared by both classes (R6)
-├── ReferenceDataFunctionalTest.java               # uses the helper; unsupported list now 18 names (R5)
+├── ReferenceDataFunctionalTest.java               # uses the helper; unsupported list now 19 names, base_location stays (R5)
 └── BaseLocationsFunctionalTest.java               # NEW: 003 AC-001 … AC-016 over real HTTP (R6)
 src/functionalTest/resources/golden/
 └── base_locations.json                            # NEW: captured collection response (AC-004)
@@ -118,7 +118,7 @@ src/functionalTest/resources/golden/
 src/smokeTest/java/uk/gov/hmcts/ctam/jo/
 └── ReferenceDataSmokeTest.java                    # p95 guard per collection path (R7)
 
-postman/ctam-jomockapi.postman_collection.json     # + Reference Data › Base Locations (6 requests)
+postman/ctam-jomockapi.postman_collection.json     # + Reference Data › Base Locations (5 requests)
 README.md                                          # § Reference data lists both types
 CLAUDE.md                                          # § Current repo state: + 003 line
 specs/002-reference-data-api/contracts/reference-data-api.md  # one-line pointer to the 003 delta

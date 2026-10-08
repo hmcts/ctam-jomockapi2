@@ -11,7 +11,7 @@ This feature adds no new classes, fields or DTOs. It adds one **instance** of ea
 | Field | Value |
 |-------|-------|
 | `name` | `base_locations` |
-| `aliases` | `{base_location}` |
+| `aliases` | none: `base_location` is not served (spec Clarifications) |
 | `fixture` | `classpath:reference-data/base_locations.json` |
 
 **Shipped configuration** (`jo.reference-data.types`, in this order):
@@ -19,11 +19,11 @@ This feature adds no new classes, fields or DTOs. It adds one **instance** of ea
 | # | `name` | `aliases` | Records |
 |---|--------|-----------|---------|
 | 1 | `appointment_titles` | `appointment_title` | 194 |
-| 2 | `base_locations` | `base_location` | 1,276 |
+| 2 | `base_locations` | none | 1,276 |
 
-The order decides the order of names in the OpenAPI `enum`: canonical names in configuration order, then aliases (`appointment_titles`, `base_locations`, `appointment_title`, `base_location`). The registry's existing start-up rules hold: the four strings are distinct, and no type lists its own name as an alias.
+The order decides the order of names in the OpenAPI `enum`: canonical names in configuration order, then aliases (`appointment_titles`, `base_locations`, `appointment_title`). The registry's existing start-up rules hold: the three strings are distinct, and no type lists its own name as an alias.
 
-Every other E-Links attribute name (nine canonical, nine aliases) stays unsupported and resolves to `400` (spec FR-002).
+Every other E-Links attribute name (nine canonical, their nine aliases, and `base_location`) stays unsupported and resolves to `400` (spec FR-002).
 
 ---
 
