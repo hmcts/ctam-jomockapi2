@@ -21,7 +21,7 @@ A mock implementation of the **E-Links API** (Ministry of Justice / judiciary.uk
 - Every endpoint MUST have Postman artifacts in `postman/` (collection + environment, with test scripts and no hard-coded environment values), updated in the same feature (Principle XVII)
 - Gradle dependency locking is on: after changing dependencies, regenerate `gradle.lockfile` with `./gradlew dependencies --write-locks`
 
-The constitution is currently at **v1.10.0** (last amended 2026-09-22).
+The constitution is currently at **v1.11.0** (last amended 2026-10-08).
 
 If a change would conflict with the constitution, that's a blocker — resolve it by updating the constitution deliberately (via `/speckit-constitution`), not by working around it silently.
 

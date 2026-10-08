@@ -1,34 +1,26 @@
 <!--
 Sync Impact Report
-- Version change: 1.9.0 → 1.10.0
-- Rationale: Added a new Core Principle (XVIII. API Contract and Swagger/OpenAPI
-  Requirements), requiring every new REST API or service in this repository to
-  provide and maintain a generated OpenAPI/Swagger specification for every
-  implemented endpoint — path, method, parameters, headers, request/response
-  schemas, status codes, validation constraints, and error responses, all matching
-  the actual implementation and updated whenever the contract changes — with Swagger
-  UI exposed wherever the framework supports it and generation reproducible as part
-  of the build/runtime, not hand-maintained. This is a new principle, so this is a
-  MINOR bump per the versioning policy below.
-- Added principles: XVIII. API Contract and Swagger/OpenAPI Requirements
-- Modified sections: Development Workflow & Quality Gates (added a bullet requiring a
-  matching, regenerated OpenAPI/Swagger specification for any endpoint change,
-  cross-referencing Principle XVIII — matching this section's existing pattern of
-  citing the principle each quality gate enforces).
+- Version change: 1.10.0 → 1.11.0
+- Rationale: Serving a deprecated reference-data alias that the E-Links contract
+  defines is now optional per type. A type's feature decides which aliases, if any,
+  it serves, and its spec MUST say so. An alias that isn't served is rejected like any
+  unsupported attribute_name (400). Every alias that is served is still resolved
+  centrally. Not serving an alias is not a contract deviation. Motivation: feature
+  003-base-locations-reference-data drops the base_location alias. This is a MINOR
+  bump: it adds a bounded exception to Principle I and expands Principle VII's
+  guidance. Nothing that complied before stops complying (002 still serves
+  appointment_title), so it isn't backward-incompatible.
+- Modified principles: I. Contract-First Development (adds a deprecated-alias
+  exception that points to VII); VII. Generic Reference-Data Handling (aliases are
+  optional per type; the spec states the choice; unserved aliases return 400; served
+  aliases are resolved centrally).
+- Added sections: none
 - Removed sections: none
-- Downstream impact: `/speckit-tasks` MUST now generate explicit tasks for creating
-  or updating the Swagger/OpenAPI definition for any feature that adds or changes an
-  endpoint; `/speckit-implement` MUST complete API implementation and its
-  Swagger/OpenAPI documentation together, not as separate passes; `/speckit-converge`
-  MUST verify every implemented endpoint appears in the OpenAPI specification, that
-  request/response schemas and documented status codes match actual behaviour, and
-  that no undocumented endpoints have been introduced. This principle formalizes,
-  repo-wide, the springdoc-based approach this project's first feature
-  (001-healthcheck-api) already established ad hoc in its own research.md, and
-  directly underpins Principle XVII's requirement that Postman collections stay
-  aligned with "the API/OpenAPI specification" — that specification must now
-  reliably exist for every endpoint. No existing principle, constraint, or
-  governance clause changed in substance.
+- Downstream impact: `/speckit-specify` specs for reference-data types MUST say which
+  deprecated aliases they serve. `/speckit-analyze` should no longer flag an omitted
+  alias as a Principle I conflict. CLAUDE.md quotes the constitution version and needs
+  updating to v1.11.0. No template changes are needed.
+- Deferred TODOs: none
 -->
 
 # JO Mock API Constitution
@@ -41,7 +33,10 @@ the mock API. Endpoint paths, HTTP methods, request/response parameters, respons
 structures, status codes, filtering behaviour, and pagination behaviour MUST match the
 contract exactly. Implementation convenience MUST NOT be used as a justification for
 altering the external contract. Any change to the mock's observable HTTP behaviour MUST
-be traceable to a corresponding change in the source specification.
+be traceable to a corresponding change in the source specification. One exception:
+serving a deprecated reference-data alias that the contract defines (e.g. `base_location`
+for `base_locations`) is optional per type, as Principle VII sets out. An alias the mock
+doesn't serve is not a contract deviation.
 **Rationale**: Consumers integrate against the contract, not the implementation. Silent
 drift between the mock and the contract breaks the mock's purpose — a reliable stand-in
 for the real E-Links API.
@@ -119,12 +114,19 @@ confidence and hides integration bugs that would surface against the real API.
 ### VII. Generic Reference-Data Handling
 Reference-data endpoints MUST be served through a common, reusable mechanism rather than
 bespoke per-type implementations. Adding a new reference-data type MUST NOT require
-duplicating endpoint logic. Deprecated aliases defined by the API contract MUST be
-resolved centrally, in one place, rather than handled ad hoc per endpoint.
+duplicating endpoint logic. Serving a deprecated alias defined by the API contract is
+optional per type: a type's feature decides which of its aliases, if any, the mock serves,
+and its spec MUST state that choice explicitly. An alias that isn't served MUST be
+rejected exactly like any other unsupported `attribute_name` (`400`). Not serving an alias
+is not a contract deviation and needs no Contract Deviations or Deferred Items entry.
+Every alias that is served MUST be resolved centrally, in one place, rather than handled
+ad hoc per endpoint.
 **Rationale**: Reference data is structurally uniform across many types; a generic
 mechanism avoids the combinatorial duplication that would otherwise accompany each new
 reference-data type, and centralises the one piece of legacy complexity (deprecated
-aliases) that would otherwise leak into every consumer.
+aliases) that would otherwise leak into every consumer. Aliases are deprecated in the
+contract itself, so each type's feature may leave them out to keep the mock's surface
+small; stating the choice in the spec keeps it a deliberate, reviewable decision.
 
 ### VIII. Typed API Models
 Endpoints MUST use explicit request and response DTOs derived from the API contract.
@@ -427,4 +429,4 @@ Where the deviation is a deferral rather than a permanent, scope-justified excep
 documentation MUST state a path to eventual compliance (e.g., a named future feature that
 will close it), not merely a reason the gap exists today.
 
-**Version**: 1.10.0 | **Ratified**: 2026-09-08 | **Last Amended**: 2026-09-22
+**Version**: 1.11.0 | **Ratified**: 2026-09-08 | **Last Amended**: 2026-10-08
