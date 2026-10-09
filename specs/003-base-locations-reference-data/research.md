@@ -96,7 +96,7 @@ The test is parameterised by fixture, so `appointment_titles.json` is checked by
 
 ## R6. Functional tests for the new type
 
-**Decision**: Add `BaseLocationsFunctionalTest` in the functional suite, one nested class per 003 user story (US1–US5), over real HTTP like 002's. Move the HTTP helpers that both functional classes need (`get`, `send`, `assertError`, `json`) out of `ReferenceDataFunctionalTest` into a small helper in the functional suite's own `testsupport` package, so neither class copies the other (Principle III applies to tests too). Add `BASE_LOCATIONS` to `ContractPaths`.
+**Decision**: Add `BaseLocationsFunctionalTest` in the functional suite, over real HTTP like 002's, as one flat class without `@Nested` classes: each test method's name starts with the scenario it covers (`ac001…`, `ec008…`), which groups the tests by user story without nesting. 002's `ReferenceDataFunctionalTest` keeps its nested classes; this feature doesn't restructure it. Move the HTTP helpers that both functional classes need (`get`, `send`, `assertError`, `json`) out of `ReferenceDataFunctionalTest` into a small helper in the functional suite's own `testsupport` package, so neither class copies the other (Principle III applies to tests too). Add `BASE_LOCATIONS` to `ContractPaths`.
 
 Determinism (AC-004) is checked against a captured golden response, `src/functionalTest/resources/golden/base_locations.json` (≈ 226 KB), as 002 did for appointment titles.
 
