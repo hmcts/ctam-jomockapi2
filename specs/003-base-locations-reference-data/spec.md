@@ -220,7 +220,7 @@ These records of the default dataset are fixed by FR-009 and are used by tests a
 |----------|------|--------|------------|--------------|
 | 1 (first) | 10 | Aberconwy | null | 2024-06-03T10:30:00Z |
 | 7 (first ended) | 70 | Aldridge and Brownhills | 2025-03-31 | 2025-04-01T08:00:00Z |
-| 1,029 (non-ASCII) | 10290 | Royal Courts of Justice – Office of the Judge Advocate General | null | 2024-06-03T10:30:00Z |
+| 1,029 (non-ASCII) | 10290 | Royal Courts of Justice – Office of the Judge Advocate General | 2025-03-31 | 2025-04-01T08:00:00Z |
 | 1,462 (last) | 14620 | Yorkshire & Humberside | null | 2024-06-03T10:30:00Z |
 
 Every record has `created_at` 2024-01-15T09:00:00Z and `start_date` 2024-01-01.

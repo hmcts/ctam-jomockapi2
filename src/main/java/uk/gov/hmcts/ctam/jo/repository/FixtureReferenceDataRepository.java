@@ -15,11 +15,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -88,7 +86,6 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
         }
 
         TreeMap<Long, ReferenceDataRecord> byId = new TreeMap<>();
-        Set<String> names = new HashSet<>();
         for (ReferenceDataRecord record : records) {
             if (record == null) {
                 throw invalid(fixture, "null record");
@@ -96,9 +93,6 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
             validate(fixture, record);
             if (byId.putIfAbsent(record.getId(), record) != null) {
                 throw invalid(fixture, record.getId(), "duplicate id");
-            }
-            if (!names.add(record.getName())) {
-                throw invalid(fixture, record.getId(), "duplicate name");
             }
         }
         return Collections.unmodifiableSortedMap(byId);

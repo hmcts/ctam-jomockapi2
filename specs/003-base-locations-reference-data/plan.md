@@ -148,3 +148,11 @@ The design added no dependency, layer or abstraction, and its only production ch
 - The repository test keeps a fixture with a repeated name and asserts it loads, so FR-017 can't be reverted silently — supports XI.
 
 Every row stays **Pass**. Open item: the inherited Sonar deferral.
+
+## Implementation notes
+
+**Baseline (T002, before any change)**: `./gradlew check -PskipOwasp` green. Tests per suite: `test` 181, `integrationTest` 33, `functionalTest` 84, `smokeTest` 3. JaCoCo: lines 383/383 (100%), branches 172/172 (100%).
+
+**Differences from the planned design**:
+- The reference-point tables in spec.md and data-model.md § 3 had record 10290 (position 1,029) as open. 1,029 is 7 × 147, so generation rule 7 makes it ended (`end_date 2025-03-31`, `updated_at 2025-04-01T08:00:00Z`). The rule is the source of truth; both tables were corrected during T005.
+- `ReferenceDataHttp` also holds `CONTRACT_FIELDS`, the six contract field names both functional classes check, so neither class declares its own copy.

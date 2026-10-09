@@ -64,7 +64,7 @@ Rules 5 to 9 are 002's rules unchanged. Every value meets 002's FR-022 rules; on
 |----------|------|--------|------------|--------------|
 | 1 | 10 | Aberconwy | null | 2024-06-03T10:30:00Z |
 | 7 | 70 | Aldridge and Brownhills | 2025-03-31 | 2025-04-01T08:00:00Z |
-| 1,029 | 10290 | Royal Courts of Justice – Office of the Judge Advocate General | null | 2024-06-03T10:30:00Z |
+| 1,029 | 10290 | Royal Courts of Justice – Office of the Judge Advocate General | 2025-03-31 | 2025-04-01T08:00:00Z |
 | 1,462 | 14620 | Yorkshire & Humberside | null | 2024-06-03T10:30:00Z |
 
 **Placeholder rows**: the eight "Unknown…" rows sit at positions 1,313 to 1,320 (ids 13130 to 13200) and follow rules 7 and 8 like every other record. Position 1,316 is `7 × 188`, so `Unknown Sub Committee S3` (id 13160) happens to be an ended record; tests need not single it out, because the rule test (research R4) covers every record.

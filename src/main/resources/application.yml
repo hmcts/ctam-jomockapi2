@@ -25,3 +25,5 @@ jo:
       - name: appointment_titles
         aliases: [appointment_title]
         fixture: classpath:reference-data/appointment_titles.json
+      - name: base_locations
+        fixture: classpath:reference-data/base_locations.json

@@ -68,9 +68,10 @@ class ReferenceDataOpenApiContractTest {
         assertThat(parameter.path("in").asString()).isEqualTo("path");
         assertThat(parameter.path("required").asBoolean()).isTrue();
         assertThat(texts(parameter.path("schema").path("enum")))
-                .containsExactly("appointment_titles", "appointment_title");
+                .containsExactly("appointment_titles", "base_locations", "appointment_title");
         assertThat(parameter.path("description").asString())
-                .isEqualTo("Can be one of: appointment_titles. Also supports deprecated values: appointment_title");
+                .isEqualTo("Can be one of: appointment_titles, base_locations. "
+                         + "Also supports deprecated values: appointment_title");
     }
 
     @Test
@@ -135,7 +136,7 @@ class ReferenceDataOpenApiContractTest {
         assertThat(referenceId.path("schema").path("type").asString()).isEqualTo("string");
         assertThat(referenceId.path("schema").path("pattern").asString()).isEqualTo("^[0-9]+$");
         assertThat(texts(parameter(operation, "attribute_name").path("schema").path("enum")))
-                .containsExactly("appointment_titles", "appointment_title");
+                .containsExactly("appointment_titles", "base_locations", "appointment_title");
 
         JsonNode responses = operation.path("responses");
         assertThat(responses.propertyNames()).containsExactlyInAnyOrder("200", "400", "401", "404", "406", "500");

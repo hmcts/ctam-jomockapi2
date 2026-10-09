@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.CREATED_AT;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.END_DATE;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.emptyRegistry;
@@ -61,6 +62,20 @@ class FixtureReferenceDataRepositoryTest {
     }
 
     @Test
+    void loadsRecordsThatShareAName() {
+        // Different real locations can share a name, so names may repeat; ids may not.
+        ReferenceDataTypeRegistry registry = registry("widgets", "valid-repeated-names.json");
+        ReferenceDataRepository repository = repository(registry);
+        ReferenceDataType widgets = registry.resolve("widgets");
+
+        assertThat(repository.findAll(widgets))
+                .extracting(ReferenceDataRecord::getId, ReferenceDataRecord::getName)
+                .containsExactly(tuple(5L, "A"), tuple(6L, "A"));
+        assertThat(repository.findById(widgets, 5)).map(ReferenceDataRecord::getName).contains("A");
+        assertThat(repository.findById(widgets, 6)).map(ReferenceDataRecord::getName).contains("A");
+    }
+
+    @Test
     void anEmptyArrayGivesAnEmptyList() {
         ReferenceDataTypeRegistry registry = registry("widgets", "empty.json");
 
@@ -83,7 +98,6 @@ class FixtureReferenceDataRepositoryTest {
             name-blank                 | record id 5: name is required
             name-missing               | record id 5: name is required
             name-untrimmed             | record id 5: name must be trimmed
-            name-duplicate             | record id 6: duplicate name
             created-at-missing         | record id 5: created_at is required
             updated-at-missing         | record id 5: updated_at is required
             start-date-missing         | record id 5: start_date is required

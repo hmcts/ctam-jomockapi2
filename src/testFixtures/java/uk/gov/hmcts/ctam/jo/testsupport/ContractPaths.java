@@ -8,6 +8,8 @@ public final class ContractPaths {
 
     public static final String APPOINTMENT_TITLES = "/api/v1/reference_data/appointment_titles";
 
+    public static final String BASE_LOCATIONS = "/api/v1/reference_data/base_locations";
+
     private ContractPaths() {
     }
 }
