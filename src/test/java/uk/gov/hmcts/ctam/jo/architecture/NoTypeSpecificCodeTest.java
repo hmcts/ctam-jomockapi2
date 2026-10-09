@@ -2,6 +2,8 @@ package uk.gov.hmcts.ctam.jo.architecture;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -33,12 +35,13 @@ class NoTypeSpecificCodeTest {
         assertThat(sources).as("main sources found under %s", MAIN_SOURCES.toAbsolutePath()).isNotEmpty();
     }
 
-    @Test
-    void noMainSourceFileNamesTheAppointmentTitleType() {
-        // Checks code, comments and Javadoc alike.
+    // One fragment per configured type; each type's feature adds its own. Checks code, comments and Javadoc alike.
+    @ParameterizedTest
+    @ValueSource(strings = {"appointment", "base_location"})
+    void noMainSourceFileNamesASpecificReferenceDataType(String fragment) {
         assertThat(sources)
-                .filteredOn(path -> read(path).toLowerCase(Locale.ROOT).contains("appointment"))
-                .as("main sources mentioning a specific reference-data type")
+                .filteredOn(path -> read(path).toLowerCase(Locale.ROOT).contains(fragment))
+                .as("main sources mentioning %s", fragment)
                 .isEmpty();
     }
 

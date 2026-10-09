@@ -48,6 +48,7 @@ Always run `/speckit-analyze` before `/speckit-implement` — it catches coverag
   - correlation IDs (`CorrelationIdFilter`, `X-Correlation-Id`), structured logstash JSON logging, and `LogSanitiser` for caller values
   - one `ErrorResponse` shape from `ErrorResponseFactory`, used by `GlobalExceptionHandler`, the filters and `JsonErrorController` (`/error`)
   - Lombok/MapStruct, `-Werror`, Checkstyle (HMCTS plugin), OWASP dependency-check, JaCoCo, Sonar config, `dependencyUpdates`, and CI/CodeQL workflows in `.github/workflows/`
+- **`003-base-locations-reference-data` — implemented** (branch `003-base-locations-reference-data`). Adds `base_locations` through configuration and a fixture only: 1,462 synthetic records, one per source row (1,276 distinct names, since different locations share names). No deprecated alias is served, so `base_location` returns `400` (constitution v1.11.0, Principle VII). One generic change: fixture validation no longer requires unique names (FR-017). Adds `ReferenceDataFixtureRulesTest` (generation rules for every shipped fixture), widens `NoTypeSpecificCodeTest` to `base_location`, and moves the functional HTTP helpers into `src/functionalTest/.../testsupport/ReferenceDataHttp`.
 - **Test suites** (Gradle JVM Test Suite plugin), all run by `check`: `test` (unit and `@WebMvcTest`, `src/test`), `integrationTest` (full context and OpenAPI contract tests), `functionalTest` (every acceptance scenario over real HTTP), `smokeTest` (latency guards over live HTTP calls, each call also asserting `200`). The full-context suites use `@ActiveProfiles("test")` with token `test-token`.
 - `NoTypeSpecificCodeTest` fails the build if any main source file (comments included) names a specific reference-data type, or if anything other than `ReferenceDataTypeRegistry` reads aliases.
 
@@ -73,4 +74,4 @@ With the app running: Swagger UI at `http://localhost:8080/swagger-ui/index.html
 
 ## Reference data
 
-Reference extracts (the E-Links Swagger PDF and reference-data files) are local-only reference material. They are gitignored and never committed, and the build doesn't depend on them. Only public title names were taken from them, once, to generate the checked-in synthetic fixture (see `specs/002-reference-data-api/data-model.md` § Fixture generation rules).
+Reference extracts (the E-Links Swagger PDF and reference-data files) are local-only reference material. They are gitignored and never committed, and the build doesn't depend on them. Only public names (appointment titles and base-location names) were taken from them, once each, to generate the checked-in synthetic fixtures (see `specs/002-reference-data-api/data-model.md` § Fixture generation rules and `specs/003-base-locations-reference-data/data-model.md` § 3).

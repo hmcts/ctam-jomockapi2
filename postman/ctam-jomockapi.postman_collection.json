@@ -615,6 +615,262 @@
             }
           ],
           "response": []
+        },
+        {
+          "name": "Base Locations",
+          "item": [
+            {
+              "name": "GET /api/v1/reference_data/base_locations - success",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/base_locations",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "reference_data", "base_locations"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('results is an array of 1462 records', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body)).to.eql(['results']);",
+                      "    pm.expect(body.results).to.be.an('array').with.lengthOf(1462);",
+                      "});",
+                      "",
+                      "pm.test('Repeated names are separate records: 1276 distinct names', function () {",
+                      "    const names = pm.response.json().results.map(function (record) { return record.name; });",
+                      "    pm.expect(new Set(names).size).to.eql(1276);",
+                      "});",
+                      "",
+                      "pm.test('First and last records are the reference points', function () {",
+                      "    const results = pm.response.json().results;",
+                      "    pm.expect(results[0].id).to.eql(10);",
+                      "    pm.expect(results[0].name).to.eql('Aberconwy');",
+                      "    pm.expect(results[results.length - 1].id).to.eql(14620);",
+                      "    pm.expect(results[results.length - 1].name).to.eql('Yorkshire & Humberside');",
+                      "});",
+                      "",
+                      "pm.test('Each record has exactly the six contract fields', function () {",
+                      "    const expected = ['id', 'name', 'created_at', 'updated_at', 'start_date', 'end_date'];",
+                      "    pm.response.json().results.forEach(function (record) {",
+                      "        pm.expect(Object.keys(record)).to.eql(expected);",
+                      "    });",
+                      "});",
+                      "",
+                      "pm.test('ids are in ascending order', function () {",
+                      "    const ids = pm.response.json().results.map(function (record) { return record.id; });",
+                      "    for (let i = 1; i < ids.length; i++) {",
+                      "        pm.expect(ids[i]).to.be.above(ids[i - 1]);",
+                      "    }",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/base_locations/70 - success",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/base_locations/70",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "reference_data", "base_locations", "70"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('A single record with exactly the six contract fields', function () {",
+                      "    const body = pm.response.json();",
+                      "    const expected = ['id', 'name', 'created_at', 'updated_at', 'start_date', 'end_date'];",
+                      "    pm.expect(Object.keys(body)).to.eql(expected);",
+                      "});",
+                      "",
+                      "pm.test('Record 70 is Aldridge and Brownhills, ended', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.id).to.eql(70);",
+                      "    pm.expect(body.name).to.eql('Aldridge and Brownhills');",
+                      "    pm.expect(body.end_date).to.eql('2025-03-31');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/base_locations/15 - unknown id",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/base_locations/15",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "reference_data", "base_locations", "15"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 404', function () {",
+                      "    pm.response.to.have.status(404);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('Reference data record not found.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/base_locations/abc - malformed id",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/base_locations/abc",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "reference_data", "base_locations", "abc"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 400', function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('reference_id must be a non-negative whole number.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/base_location - deprecated alias not served",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/base_location",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "reference_data", "base_location"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 400', function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('Unsupported reference data attribute_name.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});",
+                      "",
+                      "pm.test('No reference data is returned', function () {",
+                      "    pm.expect(pm.response.json()).to.not.have.property('results');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            }
+          ]
         }
       ]
     }

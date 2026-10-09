@@ -153,6 +153,21 @@ Every row stays **Pass**. Open item: the inherited Sonar deferral.
 
 **Baseline (T002, before any change)**: `./gradlew check -PskipOwasp` green. Tests per suite: `test` 181, `integrationTest` 33, `functionalTest` 84, `smokeTest` 3. JaCoCo: lines 383/383 (100%), branches 172/172 (100%).
 
+**Final (T036)**: `./gradlew check -PskipOwasp` green. Tests per suite: `test` 187 (+6: five fixture-rule cases and the extra guard case; the repository test swapped one failure row for `loadsRecordsThatShareAName`), `integrationTest` 33, `functionalTest` 132 (+48: 46 in `BaseLocationsFunctionalTest`, and 002's unsupported-name list lost `base_locations` and gained three case variants), `smokeTest` 4 (+1: the base-locations collection). JaCoCo: lines 380/380 (100%), branches 170/170 (100%); the totals fell by the deleted check.
+
+**Strict latency (T036, `./gradlew smokeTest -Dperf.strict=true`)**: collection p95 over 20 calls: `appointment_titles` 2 ms, `base_locations` 4 ms (bound 100 ms).
+
+**AC-017 / SC-007 (T028)**: `git diff --numstat main -- src/main/java` lists only `FixtureReferenceDataRepository.java`, `0` added and `6` deleted lines. `git diff --stat main -- src/main/resources` lists only `application.yml` (+2) and `reference-data/base_locations.json` (new).
+
+**Golden file (T015)**: `golden/base_locations.json` is 231,313 bytes, 1,462 records, identical to the fixture's ids and names, en dash written literally.
+
+**Postman (T031)**: newman ran 19 requests (5 new in Reference Data › Base Locations) with 66 assertions, 0 failures.
+
+**Quickstart (T037)**: §§ 1–5 walked through against `./gradlew bootRun`; every expected result matched.
+
+**Open before merge**: the inherited Sonar CI deferral (002), unchanged by this feature.
+
 **Differences from the planned design**:
 - The reference-point tables in spec.md and data-model.md § 3 had record 10290 (position 1,029) as open. 1,029 is 7 × 147, so generation rule 7 makes it ended (`end_date 2025-03-31`, `updated_at 2025-04-01T08:00:00Z`). The rule is the source of truth; both tables were corrected during T005.
+- `ReferenceDataSmokeTest` publishes each path's p95 as a JUnit report entry, so the figures can be read from the test results.
 - `ReferenceDataHttp` also holds `CONTRACT_FIELDS`, the six contract field names both functional classes check, so neither class declares its own copy.
