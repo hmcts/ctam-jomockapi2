@@ -138,7 +138,7 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
      */
     private static void validateReferenceFields(String fixture, ReferenceDataType type, ReferenceDataRecord record) {
         for (ReferenceField field : ReferenceField.values()) {
-            Long value = field.valueOf(record);
+            Long value = field.readFrom(record);
             if (!type.getReferenceFields().contains(field)) {
                 if (value != null) {
                     throw invalid(fixture, record.getId(), field.fieldName() + " is not a reference field of "

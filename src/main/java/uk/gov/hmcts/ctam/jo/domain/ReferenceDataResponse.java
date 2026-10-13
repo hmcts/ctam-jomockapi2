@@ -28,23 +28,22 @@ public record ReferenceDataResponse(
         @JsonProperty("name")
         String name,
 
-        @Schema(description = "Id of the record's location type, in E-Links' numbering. Present only for types "
-                              + "whose records carry it (deviation D-2 from the E-Links schema).",
+        @Schema(description = "Id of the record's type, in E-Links' numbering. Present only for types whose "
+                              + "records carry it (deviation D-2 from the E-Links schema).",
                 format = "int64", requiredMode = Schema.RequiredMode.NOT_REQUIRED, example = "8")
         @JsonProperty("type_id")
         @JsonInclude(JsonInclude.Include.NON_NULL)
         Long typeId,
 
-        @Schema(description = "Id of the record's parent location, in E-Links' numbering. Present only for types "
-                              + "whose records carry it (deviation D-2 from the E-Links schema).",
+        @Schema(description = "Id of the record's parent record, in E-Links' numbering. Present only for types whose "
+                              + "records carry it (deviation D-2 from the E-Links schema).",
                 format = "int64", requiredMode = Schema.RequiredMode.NOT_REQUIRED, example = "1722")
         @JsonProperty("parent_id")
         @JsonInclude(JsonInclude.Include.NON_NULL)
         Long parentId,
 
-        @Schema(description = "Id of the record's jurisdiction, in E-Links' numbering (30 Courts, 34 Tribunals, "
-                              + "84 Magistrates, 86 Coroners). Present only for types whose records carry it "
-                              + "(deviation D-2 from the E-Links schema).",
+        @Schema(description = "Id of the record's jurisdiction, in E-Links' numbering. Present only for types whose "
+                              + "records carry it (deviation D-2 from the E-Links schema).",
                 format = "int64", requiredMode = Schema.RequiredMode.NOT_REQUIRED, example = "84")
         @JsonProperty("jurisdiction_id")
         @JsonInclude(JsonInclude.Include.NON_NULL)

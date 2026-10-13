@@ -19,6 +19,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.emptyRegistry;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.registry;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.type;
 
 /**
  * The reference-data customiser on hand-built documents, including the shapes springdoc does not produce for
@@ -32,10 +33,10 @@ class OpenApiConfigTest {
     private static final String REFERENCE_DATA_PATH = ApiPaths.REFERENCE_DATA + "/{attribute_name}";
 
     private static final TypeProperties WIDGETS =
-            new TypeProperties("widgets", List.of("widget"), "classpath:reference-data/widgets.json");
+            type("widgets", List.of("widget"), "classpath:reference-data/widgets.json");
 
     private static final TypeProperties GADGETS =
-            new TypeProperties("gadgets", List.of(), "classpath:reference-data/gadgets.json");
+            type("gadgets", List.of(), "classpath:reference-data/gadgets.json");
 
     private final OpenApiConfig config = new OpenApiConfig();
 

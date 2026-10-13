@@ -33,7 +33,7 @@ public enum ReferenceField {
     /**
      * The record's value for this field, or null if the record doesn't carry it.
      */
-    public Long valueOf(ReferenceDataRecord record) {
+    public Long readFrom(ReferenceDataRecord record) {
         return accessor.apply(record);
     }
 

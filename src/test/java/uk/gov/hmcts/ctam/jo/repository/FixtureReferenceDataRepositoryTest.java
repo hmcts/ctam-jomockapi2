@@ -23,6 +23,7 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.CREATED_AT;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.END_DATE;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.emptyRegistry;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.recordBuilder;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.type;
 
 class FixtureReferenceDataRepositoryTest {
 
@@ -185,7 +186,7 @@ class FixtureReferenceDataRepositoryTest {
     }
 
     private static ReferenceDataTypeRegistry registry(String name, String fixture) {
-        return ReferenceDataFixtures.registry(new TypeProperties(name, List.of(), FIXTURES + fixture));
+        return ReferenceDataFixtures.registry(type(name, List.of(), FIXTURES + fixture));
     }
 
     private static FixtureReferenceDataRepository repository(ReferenceDataTypeRegistry registry) {

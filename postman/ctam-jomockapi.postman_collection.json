@@ -756,6 +756,94 @@
               "response": []
             },
             {
+              "name": "GET /api/v1/reference_data/base_locations - missing token",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/base_locations",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "reference_data", "base_locations"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 401', function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "",
+                      "pm.test('WWW-Authenticate is Bearer', function () {",
+                      "    pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer');",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('Unauthorized. Invalid or missing token.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/base_locations - invalid token",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{invalidBearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/base_locations",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "reference_data", "base_locations"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 401', function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "",
+                      "pm.test('WWW-Authenticate is Bearer', function () {",
+                      "    pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer');",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('Unauthorized. Invalid or missing token.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
               "name": "GET /api/v1/reference_data/base_location - deprecated alias not served",
               "request": {
                 "method": "GET",

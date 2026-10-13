@@ -10,22 +10,25 @@ import uk.gov.hmcts.ctam.jo.entity.ReferenceDataType;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceField;
 import uk.gov.hmcts.ctam.jo.exceptions.UnsupportedReferenceDataTypeException;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_ATTRIBUTE_NAME;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.emptyRegistry;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.registry;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.type;
 
 class ReferenceDataTypeRegistryTest {
 
     private static final TypeProperties WIDGETS =
-            new TypeProperties("widgets", List.of("widget"), "classpath:reference-data/widgets.json");
+            type("widgets", List.of("widget"), "classpath:reference-data/widgets.json");
 
     private static final TypeProperties GADGETS =
-            new TypeProperties("gadgets", List.of("gadget", "old_gadgets"), "classpath:reference-data/gadgets.json");
+            type("gadgets", List.of("gadget", "old_gadgets"), "classpath:reference-data/gadgets.json");
 
     private final ReferenceDataTypeRegistry registry = registry(WIDGETS, GADGETS);
 
@@ -89,34 +92,34 @@ class ReferenceDataTypeRegistryTest {
     @ValueSource(strings = {"Widgets", "1widgets", "_widgets", "wid-gets", "wid gets", ""})
     void failsStartupOnAnInvalidName(String name) {
         assertThatIllegalStateException()
-                .isThrownBy(() -> registry(new TypeProperties(name, List.of(), "classpath:x.json")))
+                .isThrownBy(() -> registry(type(name, List.of(), "classpath:x.json")))
                 .withMessageContaining("must match");
     }
 
     @Test
     void failsStartupOnANullName() {
         assertThatIllegalStateException()
-                .isThrownBy(() -> registry(new TypeProperties(null, List.of(), "classpath:x.json")));
+                .isThrownBy(() -> registry(type(null, List.of(), "classpath:x.json")));
     }
 
     @Test
     void failsStartupOnAnInvalidAlias() {
         assertThatIllegalStateException()
-                .isThrownBy(() -> registry(new TypeProperties("widgets", List.of("Widget"), "classpath:x.json")))
+                .isThrownBy(() -> registry(type("widgets", List.of("Widget"), "classpath:x.json")))
                 .withMessageContaining("alias of widgets");
     }
 
     @Test
     void failsStartupWhenATypeListsItsOwnNameAsAnAlias() {
         assertThatIllegalStateException()
-                .isThrownBy(() -> registry(new TypeProperties("widgets", List.of("widgets"), "classpath:x.json")))
+                .isThrownBy(() -> registry(type("widgets", List.of("widgets"), "classpath:x.json")))
                 .withMessageContaining("own name");
     }
 
     @Test
     void failsStartupOnADuplicateAliasWithinAType() {
         assertThatIllegalStateException()
-                .isThrownBy(() -> registry(new TypeProperties("widgets", List.of("w", "w"), "classpath:x.json")))
+                .isThrownBy(() -> registry(type("widgets", List.of("w", "w"), "classpath:x.json")))
                 .withMessageContaining("duplicate alias");
     }
 
@@ -134,7 +137,7 @@ class ReferenceDataTypeRegistryTest {
         List<String> aliases = secondTypeAlias.isEmpty() ? List.of() : List.of(secondTypeAlias);
 
         assertThatIllegalStateException()
-                .isThrownBy(() -> registry(WIDGETS, new TypeProperties(secondType, aliases, "classpath:y.json")))
+                .isThrownBy(() -> registry(WIDGETS, type(secondType, aliases, "classpath:y.json")))
                 .withMessage("Invalid reference-data configuration: '" + clash + "' is declared by both widgets and "
                              + secondType);
     }
@@ -166,12 +169,24 @@ class ReferenceDataTypeRegistryTest {
                 .withMessage("Invalid reference-data type widgets: " + expected);
     }
 
+    @Test
+    void failsStartupOnAnEmptyListEntry() {
+        List<String> withEmptyEntry = Arrays.asList("type_id", null);
+
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new TypeProperties("widgets", List.of(), "classpath:x.json", withEmptyEntry))
+                .withMessage("Invalid reference-data type widgets: empty entry in reference-fields");
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new TypeProperties("widgets", withEmptyEntry, "classpath:x.json", List.of()))
+                .withMessage("Invalid reference-data type widgets: empty entry in aliases");
+    }
+
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = {"", "  "})
     void failsStartupWithoutAFixture(String fixture) {
         assertThatIllegalStateException()
-                .isThrownBy(() -> registry(new TypeProperties("widgets", List.of(), fixture)))
+                .isThrownBy(() -> registry(type("widgets", List.of(), fixture)))
                 .withMessageContaining("fixture is required");
     }
 }

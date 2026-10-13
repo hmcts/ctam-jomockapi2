@@ -1,9 +1,9 @@
 package uk.gov.hmcts.ctam.jo.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.bind.ConstructorBinding;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Declared reference-data types ({@code jo.reference-data.types}). Adding a type means adding an entry here
@@ -20,20 +20,24 @@ public record ReferenceDataProperties(List<TypeProperties> types) {
 
     public record TypeProperties(String name, List<String> aliases, String fixture, List<String> referenceFields) {
 
-        /**
-         * The constructor configuration binds through, chosen explicitly because the record has two.
-         */
-        @ConstructorBinding
         public TypeProperties {
-            aliases = aliases == null ? List.of() : List.copyOf(aliases);
-            referenceFields = referenceFields == null ? List.of() : List.copyOf(referenceFields);
+            aliases = copyOf(name, "aliases", aliases);
+            referenceFields = copyOf(name, "reference-fields", referenceFields);
         }
 
         /**
-         * A type whose records carry no reference fields.
+         * An immutable copy, failing with a message naming the type and list on an empty entry, which
+         * {@link List#copyOf} would reject with a bare {@link NullPointerException}.
          */
-        public TypeProperties(String name, List<String> aliases, String fixture) {
-            this(name, aliases, fixture, List.of());
+        private static List<String> copyOf(String name, String list, List<String> values) {
+            if (values == null) {
+                return List.of();
+            }
+            if (values.stream().anyMatch(Objects::isNull)) {
+                throw new IllegalArgumentException(
+                        "Invalid reference-data type " + name + ": empty entry in " + list);
+            }
+            return List.copyOf(values);
         }
     }
 }
