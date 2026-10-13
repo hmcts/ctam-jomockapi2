@@ -65,9 +65,10 @@ class FixtureReferenceDataRepositoryTest {
     }
 
     @Test
-    void loadsRecordsThatShareAName() {
-        // Different real locations can share a name, so names may repeat; ids may not.
-        ReferenceDataTypeRegistry registry = registry("widgets", "valid-repeated-names.json");
+    void loadsRecordsThatShareANameWhenTheTypeAllowsIt() {
+        // Different real locations can share a name, so such a type allows repeats; ids still may not repeat.
+        ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(new TypeProperties(
+                "widgets", List.of(), FIXTURES + "valid-repeated-names.json", List.of(), false));
         ReferenceDataRepository repository = repository(registry);
         ReferenceDataType widgets = registry.resolve("widgets");
 
@@ -81,7 +82,7 @@ class FixtureReferenceDataRepositoryTest {
     @Test
     void loadsTheReferenceFieldsTheTypeDeclares() {
         ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(new TypeProperties(
-                "widgets", List.of(), FIXTURES + "valid-reference-fields.json", ALL_REFERENCE_FIELDS));
+                "widgets", List.of(), FIXTURES + "valid-reference-fields.json", ALL_REFERENCE_FIELDS, null));
 
         assertThat(repository(registry).findAll(registry.resolve("widgets")))
                 .extracting(ReferenceDataRecord::getId, ReferenceDataRecord::getTypeId,
@@ -108,7 +109,7 @@ class FixtureReferenceDataRepositoryTest {
     void failsStartupWhenADeclaredReferenceFieldIsInvalid(String fixture, String expectedProblem) {
         String path = FIXTURES + "invalid/" + fixture + ".json";
         ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(
-                new TypeProperties("widgets", List.of(), path, ALL_REFERENCE_FIELDS));
+                new TypeProperties("widgets", List.of(), path, ALL_REFERENCE_FIELDS, null));
 
         assertThatIllegalStateException()
                 .isThrownBy(() -> repository(registry))
@@ -120,7 +121,7 @@ class FixtureReferenceDataRepositoryTest {
         // Valid for a type that declares every reference field; this one declares only type_id.
         String path = FIXTURES + "valid-reference-fields.json";
         ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(
-                new TypeProperties("widgets", List.of(), path, List.of("type_id")));
+                new TypeProperties("widgets", List.of(), path, List.of("type_id"), null));
 
         assertThatIllegalStateException()
                 .isThrownBy(() -> repository(registry))
@@ -141,7 +142,7 @@ class FixtureReferenceDataRepositoryTest {
         ReferenceDataRepository repository = repository(registry);
 
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> repository.findAll(new ReferenceDataType("widgets", Set.of(), "x", Set.of())));
+                .isThrownBy(() -> repository.findAll(new ReferenceDataType("widgets", Set.of(), "x", Set.of(), true)));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -171,13 +172,21 @@ class FixtureReferenceDataRepositoryTest {
     @ParameterizedTest
     @CsvSource({"unknown-property, colour", "not-an-array, ''", "malformed, ''",
                 "reference-field-fractional, type_id", "reference-field-string, jurisdiction_id",
-                "id-string, id"})
+                "reference-field-empty-string, parent_id", "id-string, id"})
     void failsStartupOnUnparseableFixtures(String fixture, String expectedFragment) {
         assertThatIllegalStateException()
                 .isThrownBy(() -> repository(registry("widgets", "invalid/" + fixture + ".json")))
                 .withMessageStartingWith(
                         "Invalid reference-data fixture " + FIXTURES + "invalid/" + fixture + ".json: ")
                 .withMessageContaining(expectedFragment);
+    }
+
+    @Test
+    void failsStartupOnARepeatedNameByDefault() {
+        assertThatIllegalStateException()
+                .isThrownBy(() -> repository(registry("widgets", "valid-repeated-names.json")))
+                .withMessage("Invalid reference-data fixture " + FIXTURES
+                             + "valid-repeated-names.json: record id 6: duplicate name");
     }
 
     @Test

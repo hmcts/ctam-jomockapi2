@@ -74,7 +74,7 @@ public final class ReferenceDataFixtures {
      * A declared type whose records carry no reference fields.
      */
     public static TypeProperties type(String name, List<String> aliases, String fixture) {
-        return new TypeProperties(name, aliases, fixture, List.of());
+        return new TypeProperties(name, aliases, fixture, List.of(), null);
     }
 
     public static ReferenceDataTypeRegistry registry(TypeProperties... types) {

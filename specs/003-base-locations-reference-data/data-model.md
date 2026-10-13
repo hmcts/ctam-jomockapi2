@@ -47,7 +47,7 @@ A **reference field** holds the id of a record in another reference-data type. T
 
 ## 2. BaseLocation records
 
-Each record is a `ReferenceDataRecord` with 002's six fields and rules (positive unique `id`, trimmed non-blank `name` that need not be unique (spec FR-017, research R10), whole-second UTC timestamps, `created_at ≤ updated_at`, `end_date ≥ start_date` when present), plus all three reference fields (§ 1a), each a positive integer copied unchanged from the extract (spec FR-005, FR-006).
+Each record is a `ReferenceDataRecord` with 002's six fields and rules (positive unique `id`, trimmed non-blank `name` that need not be unique, because the type declares `unique-names: false` (spec FR-017, research R10), whole-second UTC timestamps, `created_at ≤ updated_at`, `end_date ≥ start_date` when present), plus all three reference fields (§ 1a), each a positive integer copied unchanged from the extract (spec FR-005, FR-006).
 
 **Identity**: `id` is unique within `base_locations` only, and is the only identity: 120 names are shared by several records (e.g. `Bedfordshire LJA`, ids 540 and 550; `National`, 40 records from id 7200 to 7590), each a different real location (spec EC-001). The same number in `appointment_titles` is a different record (spec AC-008, EC-005); lookups are always made within the resolved type.
 
@@ -83,7 +83,7 @@ Every value exists in the matching local extract (`REF_LocationType.csv`, `REF_L
 10. **References**: `type_id`, `parent_id` and `jurisdiction_id` are the row's values, copied unchanged as JSON integers.
 11. **Layout**: a JSON array, two-space indented, fields in the order `id`, `name`, `type_id`, `parent_id`, `jurisdiction_id`, `created_at`, `updated_at`, `start_date`, `end_date`, with a trailing newline — `appointment_titles.json`'s layout with the reference fields after `name`.
 
-Rules 6 to 9 are 002's rules unchanged; rule 5 is 002's order with a tie-break for repeated names. Every value meets 002's FR-022 rules; only 002's data-model rule that names are unique is dropped (FR-017).
+Rules 6 to 9 are 002's rules unchanged; rule 5 is 002's order with a tie-break for repeated names. Every value meets 002's FR-022 rules; only 002's data-model rule that names are unique is lifted, for this type only, by `unique-names: false` (FR-017).
 
 **Known reference points** (spec § Reference Points; used by tests and Postman):
 

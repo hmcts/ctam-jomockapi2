@@ -23,7 +23,7 @@ git diff --stat main -- src/main/java      # expected: the duplicate-name deleti
 git diff --stat main -- src/main/resources
 ```
 
-**Expected**: under `src/main/java`, only `FixtureReferenceDataRepository.java`, with nothing but deletions: the duplicate-name check, its `Set` and the two unused imports (FR-017, research R10); under `src/main/resources`, only `application.yml` (one type entry) and the new `reference-data/base_locations.json`.
+**Expected**: under `src/main/java`, only generic changes: the per-type `unique-names` and `reference-fields` declarations and their validation (FR-017, FR-018; research R10, R11), with no type named; under `src/main/resources`, only `application.yml` (one type entry) and the new `reference-data/base_locations.json`.
 
 ## 3. Manual checks with curl
 

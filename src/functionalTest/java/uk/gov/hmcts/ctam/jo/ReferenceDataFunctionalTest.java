@@ -16,11 +16,8 @@ import tools.jackson.databind.node.ObjectNode;
 import uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
@@ -34,6 +31,7 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_ATTR
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.APPOINTMENT_TITLES;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.CONTRACT_FIELDS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertError;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.golden;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.json;
 
 /**
@@ -78,7 +76,7 @@ class ReferenceDataFunctionalTest {
 
         @Test
         void ac015RepeatedCallsAreIdenticalAndMatchTheGoldenFile() throws IOException {
-            String golden = golden();
+            String golden = golden("appointment_titles.json");
             for (int i = 0; i < 100; i++) {
                 assertThat(http.get(APPOINTMENT_TITLES).getBody()).isEqualTo(golden);
             }
@@ -103,13 +101,6 @@ class ReferenceDataFunctionalTest {
                 assertThat(record.get("end_date").isNull()).isTrue();
             } else {
                 assertThat(record.get("end_date").asString()).isEqualTo(endDate);
-            }
-        }
-
-        private String golden() throws IOException {
-            try (InputStream in = Objects.requireNonNull(
-                    getClass().getResourceAsStream("/golden/appointment_titles.json"), "golden file missing")) {
-                return new String(in.readAllBytes(), StandardCharsets.UTF_8);
             }
         }
     }

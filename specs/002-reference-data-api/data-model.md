@@ -45,7 +45,7 @@ This is one reference-data record as stored in a fixture file. The fixture JSON 
 | `startDate` | `LocalDate` | `start_date` (`yyyy-MM-dd`) | Required |
 | `endDate` | `LocalDate` (nullable) | `end_date` (`yyyy-MM-dd` or `null`) | Optional. If set, not before `startDate` (FR-022) |
 
-003 FR-017 drops the rule that `name` is unique within the type: see [003's data model](../003-base-locations-reference-data/data-model.md).
+003 FR-017 lets a type opt out of the rule that `name` is unique within the type (`unique-names: false`); types keep it by default: see [003's data model](../003-base-locations-reference-data/data-model.md).
 
 **Fixture file format**: a top-level JSON array of record objects. The records don't have to be in order, because the repository sorts them by `id`.
 

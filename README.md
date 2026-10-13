@@ -142,7 +142,7 @@ No Java changes are needed. Add two things:
 1. **A fixture**: `src/main/resources/reference-data/<attribute_name>.json`, a JSON array of records
    with the fields `id`, `name`, `created_at`, `updated_at`, `start_date` and `end_date`, plus any
    reference fields the type declares (see below), after `name`. The rules
-   (unique positive ids, trimmed names (names may repeat; ids may not), whole-second UTC timestamps,
+   (unique positive ids, unique trimmed names unless the type allows repeats, whole-second UTC timestamps,
    dates in order) are in [data-model.md §2](specs/002-reference-data-api/data-model.md), as amended
    by [003 FR-017](specs/003-base-locations-reference-data/spec.md). The application refuses to
    start if a fixture breaks one.
@@ -156,11 +156,13 @@ No Java changes are needed. Add two things:
            aliases: [<deprecated_name>]      # optional
            fixture: classpath:reference-data/<attribute_name>.json
            reference-fields: [type_id, parent_id, jurisdiction_id]   # optional: any of the three
+           unique-names: false               # optional: allow repeated names (default true)
    ```
 
    `reference-fields` lists the ids of other types' records that the type's records carry. Every
    record must then have each declared field as a positive integer, and no record may have an
-   undeclared one. Responses include a reference field only when the record has it.
+   undeclared one. Responses include a reference field only when the record has it. Names must be
+   unique within the type unless it declares `unique-names: false`; ids must always be unique.
 
 The new type is then served by both routes, with the same authentication, validation and errors,
 and appears in the OpenAPI `attribute_name` enum. `ReferenceDataExtensionIntegrationTest` shows

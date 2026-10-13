@@ -13,14 +13,11 @@ import tools.jackson.databind.JsonNode;
 import uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,6 +32,7 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_ATTR
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.APPOINTMENT_TITLES;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.BASE_LOCATIONS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertError;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.golden;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.json;
 
 /**
@@ -152,7 +150,7 @@ class BaseLocationsFunctionalTest {
 
     @Test
     void ac004RepeatedCallsAreIdenticalAndMatchTheGoldenFile() throws IOException {
-        String golden = golden();
+        String golden = golden("base_locations.json");
         for (int i = 0; i < 5; i++) {
             assertThat(http.get(BASE_LOCATIONS).getBody()).isEqualTo(golden);
         }
@@ -304,12 +302,5 @@ class BaseLocationsFunctionalTest {
         ResponseEntity<String> response = http.get(path);
         assertThat(response.getStatusCode().value()).as(path).isEqualTo(200);
         return json(response).get("name").asString();
-    }
-
-    private String golden() throws IOException {
-        try (InputStream in = Objects.requireNonNull(
-                getClass().getResourceAsStream("/golden/base_locations.json"), "golden file missing")) {
-            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        }
     }
 }

@@ -14,7 +14,7 @@ This feature serves BaseLocation through the generic reference-data routes 002 b
 
 **What changes**:
 - **Data**: `base_locations.json`, 1,462 synthetic records (one per source row, 1,276 distinct names) generated once from the public names and the three reference codes in the local extract, using 002's generation rules (research R2, R11; data-model.md § 3).
-- **Main code**: remove the duplicate-name check from `FixtureReferenceDataRepository.load` (one `if` and its `Set`), type-agnostic (research R10). Add generic reference fields: a `ReferenceField` enum, a `reference-fields` declaration per type, start-up validation, and three optional response properties written only when present (research R11).
+- **Main code**: make the duplicate-name check in `FixtureReferenceDataRepository.load` a per-type opt-out (`unique-names: false`, default `true`), type-agnostic (research R10, amended after code review; originally the check was removed for every type). Add generic reference fields: a `ReferenceField` enum, a `reference-fields` declaration per type, start-up validation, and three optional response properties written only when present (research R11).
 - **Tests**: a new functional test class for the type, a fixture-rule test for both fixtures, a smoke latency guard per collection, a wider type-specific-code guard, updates to the three tests whose expectations assume a single supported type, and the repository unit test that asserts the duplicate-name check (research R4–R8, R10).
 - **Documentation and examples**: a "Base Locations" Postman sub-folder, README and CLAUDE.md updates (including README's fixture rules, which say names are unique), and pointers from 002's contract and data model to this feature's changes (research R9, R10).
 
@@ -58,7 +58,7 @@ This feature serves BaseLocation through the generic reference-data routes 002 b
 | VI. Behavioural Fidelity | **Pass.** No parameters added; query parameters still rejected. No pagination is added for the larger collection, because the contract defines none. |
 | VII. Generic Reference-Data Handling | **Pass, and demonstrated.** The type is added through configuration only. The spec states that no alias is served (`base_location` → `400`), as VII requires; the entry has no `aliases`, and `appointment_title` is still resolved centrally by the registry. The guard test is widened so type-specific code for base locations would fail the build (research R8). The validation change (R10) applies to every type alike. |
 | VIII. Typed API Models | **Pass.** Existing DTOs gain three typed, optional `Long` properties (`type_id`, `parent_id`, `jurisdiction_id`), modelled by a `ReferenceField` enum; no generic map. MapStruct maps them by name. |
-| IX. Centralised Validation and Error Handling | **Pass.** No new error path; every error on the new type comes from the shared handler with 002's messages. Start-up fixture validation stays in one place and loses only the duplicate-name rule (R10). |
+| IX. Centralised Validation and Error Handling | **Pass.** No new error path; every error on the new type comes from the shared handler with 002's messages. Start-up fixture validation stays in one place; the duplicate-name rule becomes a per-type opt-out (R10, amended). |
 | X. Configuration Over Hard-Coding | **Pass.** The type, its fixture location and its reference fields are configuration. |
 | XI. Testability | **Pass (planned).** Unit (fixture-rule test, guard, repository test accepting repeated names), integration (OpenAPI contract), functional (AC-001 to AC-016 over HTTP) and smoke (latency per collection) coverage. |
 | XII. Simplicity and Maintainability | **Pass.** No caching, pagination or new abstraction (research R7). |
@@ -95,7 +95,7 @@ specs/003-base-locations-reference-data/
 
 ```text
 src/main/java/uk/gov/hmcts/ctam/jo/repository/
-└── FixtureReferenceDataRepository.java            # remove the duplicate-name check only (FR-017, R10)
+└── FixtureReferenceDataRepository.java            # duplicate-name check per type (unique-names), reference fields (FR-017, FR-018; R10, R11)
 
 src/main/resources/
 ├── application.yml                                # + base_locations type entry (research R1)

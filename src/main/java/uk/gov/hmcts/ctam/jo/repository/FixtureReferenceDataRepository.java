@@ -19,9 +19,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -46,7 +48,8 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
                 .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .withCoercionConfig(LogicalType.Integer, config -> config
                         .setCoercion(CoercionInputShape.Float, CoercionAction.Fail)
-                        .setCoercion(CoercionInputShape.String, CoercionAction.Fail))
+                        .setCoercion(CoercionInputShape.String, CoercionAction.Fail)
+                        .setCoercion(CoercionInputShape.EmptyString, CoercionAction.Fail))
                 .build();
         Map<String, SortedMap<Long, ReferenceDataRecord>> byType = new HashMap<>();
         Map<String, List<ReferenceDataRecord>> sorted = new HashMap<>();
@@ -95,6 +98,7 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
         }
 
         TreeMap<Long, ReferenceDataRecord> byId = new TreeMap<>();
+        Set<String> names = new HashSet<>();
         for (ReferenceDataRecord record : records) {
             if (record == null) {
                 throw invalid(fixture, "null record");
@@ -103,6 +107,9 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
             validateReferenceFields(fixture, type, record);
             if (byId.putIfAbsent(record.getId(), record) != null) {
                 throw invalid(fixture, record.getId(), "duplicate id");
+            }
+            if (type.isUniqueNames() && !names.add(record.getName())) {
+                throw invalid(fixture, record.getId(), "duplicate name");
             }
         }
         return Collections.unmodifiableSortedMap(byId);

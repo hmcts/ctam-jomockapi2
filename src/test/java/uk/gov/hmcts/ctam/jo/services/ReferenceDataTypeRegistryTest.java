@@ -147,9 +147,22 @@ class ReferenceDataTypeRegistryTest {
     }
 
     @Test
+    void typesRequireUniqueNamesByDefault() {
+        assertThat(registry.resolve("widgets").isUniqueNames()).isTrue();
+    }
+
+    @Test
+    void typesCanAllowRepeatedNames() {
+        ReferenceDataTypeRegistry repeating = registry(
+                new TypeProperties("widgets", List.of(), "classpath:x.json", List.of(), false));
+
+        assertThat(repeating.resolve("widgets").isUniqueNames()).isFalse();
+    }
+
+    @Test
     void resolvesTheDeclaredReferenceFields() {
         ReferenceDataTypeRegistry declaring = registry(new TypeProperties(
-                "widgets", List.of(), "classpath:x.json", List.of("jurisdiction_id", "type_id", "parent_id")));
+                "widgets", List.of(), "classpath:x.json", List.of("jurisdiction_id", "type_id", "parent_id"), null));
 
         assertThat(declaring.resolve("widgets").getReferenceFields())
                 .containsExactly(ReferenceField.TYPE_ID, ReferenceField.PARENT_ID, ReferenceField.JURISDICTION_ID);
@@ -164,7 +177,7 @@ class ReferenceDataTypeRegistryTest {
     void failsStartupOnAnInvalidReferenceField(String rule, String first, String second, String expected) {
         assertThatIllegalStateException()
                 .isThrownBy(() -> registry(
-                        new TypeProperties("widgets", List.of(), "classpath:x.json", List.of(first, second))))
+                        new TypeProperties("widgets", List.of(), "classpath:x.json", List.of(first, second), null)))
                 .withMessage("Invalid reference-data type widgets: " + expected);
     }
 
@@ -173,10 +186,12 @@ class ReferenceDataTypeRegistryTest {
         List<String> withEmptyEntry = Arrays.asList("type_id", null);
 
         assertThatIllegalStateException()
-                .isThrownBy(() -> new TypeProperties("widgets", List.of(), "classpath:x.json", withEmptyEntry))
+                .isThrownBy(() -> registry(
+                        new TypeProperties("widgets", List.of(), "classpath:x.json", withEmptyEntry, null)))
                 .withMessage("Invalid reference-data type widgets: empty entry in reference-fields");
         assertThatIllegalStateException()
-                .isThrownBy(() -> new TypeProperties("widgets", withEmptyEntry, "classpath:x.json", List.of()))
+                .isThrownBy(() -> registry(
+                        new TypeProperties("widgets", withEmptyEntry, "classpath:x.json", List.of(), null)))
                 .withMessage("Invalid reference-data type widgets: empty entry in aliases");
     }
 

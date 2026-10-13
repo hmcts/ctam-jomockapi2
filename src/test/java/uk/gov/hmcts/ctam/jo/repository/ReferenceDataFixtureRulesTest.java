@@ -6,7 +6,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
 import org.springframework.boot.env.YamlPropertySourceLoader;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
 import tools.jackson.databind.JsonNode;
 import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties;
 import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties.TypeProperties;
@@ -14,18 +14,16 @@ import uk.gov.hmcts.ctam.jo.entity.ReferenceField;
 import uk.gov.hmcts.ctam.jo.testsupport.JsonTrees;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -48,11 +46,7 @@ class ReferenceDataFixtureRulesTest {
 
     private static final String FIXTURE_PREFIX = "classpath:reference-data/";
 
-    /**
-     * Each shipped fixture's declared reference fields, in response field order, read from the shipped
-     * configuration so this test can't drift from it.
-     */
-    private static final Map<String, List<String>> DECLARED_REFERENCE_FIELDS = declaredReferenceFields();
+    private static final Path MAIN_CONFIGURATION = Path.of("src/main/resources/application.yml");
 
     /**
      * The E-Links jurisdictions: 30 Courts, 34 Tribunals, 84 Magistrates, 86 Coroners.
@@ -75,8 +69,12 @@ class ReferenceDataFixtureRulesTest {
      */
     record Fixture(String file, int records, int distinctNames, List<ReferencePoint> referencePoints) {
 
+        /**
+         * The fixture's declared reference fields, in response field order, read from the shipped configuration
+         * so this test can't drift from it.
+         */
         List<String> referenceFields() {
-            return DECLARED_REFERENCE_FIELDS.getOrDefault(file, List.of());
+            return declaredReferenceFields().getOrDefault(file, List.of());
         }
 
         @Override
@@ -110,13 +108,14 @@ class ReferenceDataFixtureRulesTest {
         }
 
         assertThat(fixtures().map(Fixture::file)).containsExactlyInAnyOrderElementsOf(shipped);
-        assertThat(shipped).containsAll(DECLARED_REFERENCE_FIELDS.keySet());
+        assertThat(shipped).containsAll(declaredReferenceFields().keySet());
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("fixtures")
     void followsTheGenerationRules(Fixture fixture) throws IOException {
         JsonNode records = read(fixture.file());
+        List<String> referenceFields = fixture.referenceFields();
 
         assertThat(records.size()).isEqualTo(fixture.records());
         Set<String> names = new HashSet<>();
@@ -126,7 +125,8 @@ class ReferenceDataFixtureRulesTest {
             String name = record.get("name").asString();
             assertThat(record.get("id").asLong()).as("id at position %d", position).isEqualTo(10L * position);
             if (previous != null) {
-                assertThat(previous.compareTo(name)).as("order at position %d", position).isLessThanOrEqualTo(0);
+                assertThat(compareCodePoints(previous, name)).as("order at position %d", position)
+                        .isLessThanOrEqualTo(0);
             }
             boolean ended = position % 7 == 0;
             assertThat(record.get("end_date").isNull()).as("end_date at position %d", position).isEqualTo(!ended);
@@ -138,12 +138,12 @@ class ReferenceDataFixtureRulesTest {
             assertThat(record.get("created_at").asString()).isEqualTo(CREATED_AT);
             assertThat(record.get("start_date").asString()).isEqualTo(START_DATE);
             assertThat(record.propertyNames()).as("fields at position %d", position)
-                    .containsExactlyElementsOf(fieldOrder(fixture));
-            for (String field : fixture.referenceFields()) {
+                    .containsExactlyElementsOf(fieldOrder(referenceFields));
+            for (String field : referenceFields) {
                 assertThat(record.get(field).isIntegralNumber()).as("%s at position %d", field, position).isTrue();
                 assertThat(record.get(field).asLong()).as("%s at position %d", field, position).isPositive();
             }
-            if (fixture.referenceFields().contains(ReferenceField.JURISDICTION_ID.fieldName())) {
+            if (referenceFields.contains(ReferenceField.JURISDICTION_ID.fieldName())) {
                 assertThat(JURISDICTION_IDS).as("jurisdiction_id at position %d", position)
                         .contains(record.get("jurisdiction_id").asLong());
             }
@@ -157,6 +157,7 @@ class ReferenceDataFixtureRulesTest {
     @MethodSource("fixtures")
     void referencePointsMatchTheDataModel(Fixture fixture) throws IOException {
         JsonNode records = read(fixture.file());
+        List<String> referenceFields = fixture.referenceFields();
 
         for (ReferencePoint point : fixture.referencePoints()) {
             JsonNode record = recordWithId(records, point.id());
@@ -168,9 +169,8 @@ class ReferenceDataFixtureRulesTest {
                         .isEqualTo(point.endDate());
             }
             if (point.references() != null) {
-                List<Long> references = fixture.referenceFields().stream()
-                        .map(field -> record.get(field).asLong()).toList();
-                assertThat(references).as("%s of %d", fixture.referenceFields(), point.id())
+                List<Long> references = referenceFields.stream().map(field -> record.get(field).asLong()).toList();
+                assertThat(references).as("%s of %d", referenceFields, point.id())
                         .isEqualTo(point.references());
             }
         }
@@ -179,9 +179,9 @@ class ReferenceDataFixtureRulesTest {
     /**
      * 002's layout, with the reference fields after {@code name} when the type declares them.
      */
-    private static List<String> fieldOrder(Fixture fixture) {
+    private static List<String> fieldOrder(List<String> referenceFields) {
         List<String> fields = new ArrayList<>(List.of("id", "name"));
-        fields.addAll(fixture.referenceFields());
+        fields.addAll(referenceFields);
         fields.addAll(List.of("created_at", "updated_at", "start_date", "end_date"));
         return fields;
     }
@@ -201,14 +201,19 @@ class ReferenceDataFixtureRulesTest {
      */
     private static Map<String, List<String>> declaredReferenceFields() {
         try {
+            // Read from the file system, not the classpath, where test resources come first.
             ReferenceDataProperties properties = new Binder(ConfigurationPropertySources.from(
-                    new YamlPropertySourceLoader().load("application.yml", new ClassPathResource("application.yml"))))
+                    new YamlPropertySourceLoader().load("application.yml", new FileSystemResource(MAIN_CONFIGURATION))))
                     .bind("jo.reference-data", ReferenceDataProperties.class)
                     .orElseThrow(() -> new IllegalStateException("jo.reference-data is not configured"));
-            return properties.types().stream()
-                    .filter(type -> type.fixture().startsWith(FIXTURE_PREFIX))
-                    .collect(Collectors.toMap(type -> type.fixture().substring(FIXTURE_PREFIX.length()),
-                                              ReferenceDataFixtureRulesTest::inResponseOrder));
+            Map<String, List<String>> byFixture = new HashMap<>();
+            for (TypeProperties type : properties.types()) {
+                String file = type.fixture().substring(FIXTURE_PREFIX.length());
+                if (type.fixture().startsWith(FIXTURE_PREFIX) && byFixture.put(file, inResponseOrder(type)) != null) {
+                    throw new AssertionError("more than one type uses the fixture " + type.fixture());
+                }
+            }
+            return byFixture;
         } catch (IOException e) {
             throw new IllegalStateException("Cannot read application.yml", e);
         }
@@ -219,10 +224,20 @@ class ReferenceDataFixtureRulesTest {
                 .filter(type.referenceFields()::contains).toList();
     }
 
+    /**
+     * Code-point order, which differs from {@link String#compareTo} (UTF-16 units) for characters outside the
+     * Basic Multilingual Plane.
+     */
+    private static int compareCodePoints(String first, String second) {
+        int[] a = first.codePoints().toArray();
+        int[] b = second.codePoints().toArray();
+        return Arrays.compare(a, b);
+    }
+
+    /**
+     * Read from the file system, not the classpath, where a test resource of the same name would come first.
+     */
     private static JsonNode read(String file) throws IOException {
-        try (InputStream in = Objects.requireNonNull(
-                ReferenceDataFixtureRulesTest.class.getResourceAsStream("/reference-data/" + file), file)) {
-            return JsonTrees.parse(new String(in.readAllBytes(), StandardCharsets.UTF_8));
-        }
+        return JsonTrees.parse(Files.readString(MAIN_FIXTURES.resolve(file), StandardCharsets.UTF_8));
     }
 }

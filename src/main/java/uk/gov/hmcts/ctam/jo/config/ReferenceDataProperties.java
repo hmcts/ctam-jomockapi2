@@ -2,14 +2,15 @@ package uk.gov.hmcts.ctam.jo.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Declared reference-data types ({@code jo.reference-data.types}). Adding a type means adding an entry here
  * and a fixture file, with no endpoint code (Principle VII). {@code reference-fields} lists the reference
  * fields ({@code type_id}, {@code parent_id}, {@code jurisdiction_id}) the type's records carry; it defaults
- * to none.
+ * to none. {@code unique-names} says whether record names must be unique within the type; it defaults to true.
  */
 @ConfigurationProperties("jo.reference-data")
 public record ReferenceDataProperties(List<TypeProperties> types) {
@@ -18,27 +19,21 @@ public record ReferenceDataProperties(List<TypeProperties> types) {
         types = types == null ? List.of() : List.copyOf(types);
     }
 
-    public record TypeProperties(String name, List<String> aliases, String fixture, List<String> referenceFields) {
+    public record TypeProperties(String name, List<String> aliases, String fixture, List<String> referenceFields,
+                                 Boolean uniqueNames) {
 
         public TypeProperties {
-            aliases = copyOf(name, "aliases", aliases);
-            referenceFields = copyOf(name, "reference-fields", referenceFields);
+            aliases = copyOf(aliases);
+            referenceFields = copyOf(referenceFields);
+            uniqueNames = uniqueNames == null || uniqueNames;
         }
 
         /**
-         * An immutable copy, failing with a message naming the type and list on an empty entry, which
-         * {@link List#copyOf} would reject with a bare {@link NullPointerException}. Like every other invalid
-         * declaration, it throws {@link IllegalStateException}.
+         * An unmodifiable copy that keeps empty entries, so the registry can reject them with its usual
+         * {@link IllegalStateException} rather than {@link List#copyOf} failing during binding.
          */
-        private static List<String> copyOf(String name, String list, List<String> values) {
-            if (values == null) {
-                return List.of();
-            }
-            if (values.stream().anyMatch(Objects::isNull)) {
-                throw new IllegalStateException(
-                        "Invalid reference-data type " + name + ": empty entry in " + list);
-            }
-            return List.copyOf(values);
+        private static List<String> copyOf(List<String> values) {
+            return values == null ? List.of() : Collections.unmodifiableList(new ArrayList<>(values));
         }
     }
 }

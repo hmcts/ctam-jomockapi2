@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -20,8 +21,8 @@ import java.util.regex.Pattern;
  * The ONLY place reference-data names and deprecated aliases are resolved (spec FR-005).
  *
  * <p>Built once from configuration. Any invalid declaration (bad name, duplicate name or alias, missing
- * fixture, unknown or repeated reference field) throws {@link IllegalStateException}, so the application does
- * not start.
+ * fixture, empty list entry, unknown or repeated reference field) throws {@link IllegalStateException}, so the
+ * application does not start.
  */
 @Component
 public class ReferenceDataTypeRegistry {
@@ -108,6 +109,8 @@ public class ReferenceDataTypeRegistry {
     private static ReferenceDataType toType(ReferenceDataProperties.TypeProperties properties) {
         String name = properties.name();
         requireValidName(name, "type name");
+        requireNoEmptyEntry(name, "aliases", properties.aliases());
+        requireNoEmptyEntry(name, "reference-fields", properties.referenceFields());
         LinkedHashSet<String> aliases = new LinkedHashSet<>();
         for (String alias : properties.aliases()) {
             requireValidName(alias, "alias of " + name);
@@ -122,8 +125,14 @@ public class ReferenceDataTypeRegistry {
         if (properties.fixture() == null || properties.fixture().isBlank()) {
             throw new IllegalStateException("Invalid reference-data type " + name + ": fixture is required");
         }
-        return new ReferenceDataType(name, Collections.unmodifiableSet(aliases), properties.fixture(),
-                                     referenceFields(name, properties.referenceFields()));
+        return new ReferenceDataType(name, aliases, properties.fixture(),
+                                     referenceFields(name, properties.referenceFields()), properties.uniqueNames());
+    }
+
+    private static void requireNoEmptyEntry(String typeName, String list, List<String> values) {
+        if (values.stream().anyMatch(Objects::isNull)) {
+            throw new IllegalStateException("Invalid reference-data type " + typeName + ": empty entry in " + list);
+        }
     }
 
     private static Set<ReferenceField> referenceFields(String typeName, List<String> fieldNames) {

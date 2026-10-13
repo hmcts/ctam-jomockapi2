@@ -9,8 +9,10 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,14 +37,38 @@ class NoTypeSpecificCodeTest {
         assertThat(sources).as("main sources found under %s", MAIN_SOURCES.toAbsolutePath()).isNotEmpty();
     }
 
-    // One fragment per configured type; each type's feature adds its own. Checks code, comments and Javadoc alike.
+    // One fragment per configured type; each type's feature adds its own. Checks code, comments and Javadoc alike,
+    // in any spelling: snake_case, spaced words or camelCase ("base_location", "base location", "BaseLocation").
     @ParameterizedTest
     @ValueSource(strings = {"appointment", "base_location"})
     void noMainSourceFileNamesASpecificReferenceDataType(String fragment) {
+        Pattern spellings = spellingsOf(fragment);
         assertThat(sources)
-                .filteredOn(path -> read(path).toLowerCase(Locale.ROOT).contains(fragment))
+                .filteredOn(path -> spellings.matcher(read(path)).find())
                 .as("main sources mentioning %s", fragment)
                 .isEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"base_location", "base_locations", "BASE_LOCATION", "base location", "Base Location",
+        "base-location", "BaseLocation", "baseLocation", "BaseLocationHelper", "myBaseLocation"})
+    void theGuardRecognisesEverySpelling(String text) {
+        assertThat(spellingsOf("base_location").matcher(text).find()).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"database location", "databaseLocation", "base", "location", "baseline location"})
+    void theGuardIgnoresOtherWords(String text) {
+        assertThat(spellingsOf("base_location").matcher(text).find()).isFalse();
+    }
+
+    /**
+     * Matches the fragment's words, case-insensitively, joined by nothing, a space, an underscore or a hyphen, and
+     * starting a word or a camelCase hump (so "database location" doesn't match "base_location").
+     */
+    private static Pattern spellingsOf(String fragment) {
+        String words = Arrays.stream(fragment.split("_")).map(Pattern::quote).collect(Collectors.joining("[\\s_-]?"));
+        return Pattern.compile("(?:(?<![A-Za-z])|(?<=[a-z])(?=[A-Z]))(?i:" + words + ")");
     }
 
     @Test

@@ -7,8 +7,12 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import tools.jackson.databind.JsonNode;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.IntSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -70,5 +74,15 @@ public final class ReferenceDataHttp {
 
     public static JsonNode json(ResponseEntity<String> response) {
         return JsonTrees.parse(response.getBody());
+    }
+
+    /**
+     * A golden response body from {@code src/functionalTest/resources/golden/}.
+     */
+    public static String golden(String file) throws IOException {
+        try (InputStream in = Objects.requireNonNull(
+                ReferenceDataHttp.class.getResourceAsStream("/golden/" + file), "golden file missing: " + file)) {
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 }
