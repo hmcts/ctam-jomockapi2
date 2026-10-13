@@ -169,7 +169,9 @@ class FixtureReferenceDataRepositoryTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"unknown-property, colour", "not-an-array, ''", "malformed, ''"})
+    @CsvSource({"unknown-property, colour", "not-an-array, ''", "malformed, ''",
+                "reference-field-fractional, type_id", "reference-field-string, jurisdiction_id",
+                "id-string, id"})
     void failsStartupOnUnparseableFixtures(String fixture, String expectedFragment) {
         assertThatIllegalStateException()
                 .isThrownBy(() -> repository(registry("widgets", "invalid/" + fixture + ".json")))

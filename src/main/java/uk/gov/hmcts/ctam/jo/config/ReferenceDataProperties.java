@@ -27,14 +27,15 @@ public record ReferenceDataProperties(List<TypeProperties> types) {
 
         /**
          * An immutable copy, failing with a message naming the type and list on an empty entry, which
-         * {@link List#copyOf} would reject with a bare {@link NullPointerException}.
+         * {@link List#copyOf} would reject with a bare {@link NullPointerException}. Like every other invalid
+         * declaration, it throws {@link IllegalStateException}.
          */
         private static List<String> copyOf(String name, String list, List<String> values) {
             if (values == null) {
                 return List.of();
             }
             if (values.stream().anyMatch(Objects::isNull)) {
-                throw new IllegalArgumentException(
+                throw new IllegalStateException(
                         "Invalid reference-data type " + name + ": empty entry in " + list);
             }
             return List.copyOf(values);

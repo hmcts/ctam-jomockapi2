@@ -159,8 +159,7 @@ class ReferenceDataFixtureRulesTest {
         JsonNode records = read(fixture.file());
 
         for (ReferencePoint point : fixture.referencePoints()) {
-            JsonNode record = records.get((int) (point.id() / 10) - 1);
-            assertThat(record.get("id").asLong()).isEqualTo(point.id());
+            JsonNode record = recordWithId(records, point.id());
             assertThat(record.get("name").asString()).as("name of %d", point.id()).isEqualTo(point.name());
             if (point.endDate() == null) {
                 assertThat(record.get("end_date").isNull()).as("end_date of %d", point.id()).isTrue();
@@ -185,6 +184,15 @@ class ReferenceDataFixtureRulesTest {
         fields.addAll(fixture.referenceFields());
         fields.addAll(List.of("created_at", "updated_at", "start_date", "end_date"));
         return fields;
+    }
+
+    private static JsonNode recordWithId(JsonNode records, long id) {
+        for (JsonNode record : records) {
+            if (record.get("id").asLong() == id) {
+                return record;
+            }
+        }
+        throw new AssertionError("no record with id " + id);
     }
 
     /**

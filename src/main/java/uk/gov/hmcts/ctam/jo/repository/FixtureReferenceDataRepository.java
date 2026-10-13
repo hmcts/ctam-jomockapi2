@@ -6,7 +6,10 @@ import org.springframework.stereotype.Repository;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.cfg.CoercionAction;
+import tools.jackson.databind.cfg.CoercionInputShape;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.type.LogicalType;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataRecord;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataType;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceField;
@@ -38,8 +41,12 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
 
     public FixtureReferenceDataRepository(ReferenceDataTypeRegistry registry, ResourceLoader resourceLoader,
                                           JsonMapper jsonMapper) {
+        // Ids must be JSON integers: no rounding of fractions and no parsing of strings.
         JsonMapper strictMapper = jsonMapper.rebuild()
                 .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .withCoercionConfig(LogicalType.Integer, config -> config
+                        .setCoercion(CoercionInputShape.Float, CoercionAction.Fail)
+                        .setCoercion(CoercionInputShape.String, CoercionAction.Fail))
                 .build();
         Map<String, SortedMap<Long, ReferenceDataRecord>> byType = new HashMap<>();
         Map<String, List<ReferenceDataRecord>> sorted = new HashMap<>();

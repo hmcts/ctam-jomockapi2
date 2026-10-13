@@ -14,7 +14,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_ATTRIBUTE_NAME;
@@ -173,10 +172,10 @@ class ReferenceDataTypeRegistryTest {
     void failsStartupOnAnEmptyListEntry() {
         List<String> withEmptyEntry = Arrays.asList("type_id", null);
 
-        assertThatIllegalArgumentException()
+        assertThatIllegalStateException()
                 .isThrownBy(() -> new TypeProperties("widgets", List.of(), "classpath:x.json", withEmptyEntry))
                 .withMessage("Invalid reference-data type widgets: empty entry in reference-fields");
-        assertThatIllegalArgumentException()
+        assertThatIllegalStateException()
                 .isThrownBy(() -> new TypeProperties("widgets", withEmptyEntry, "classpath:x.json", List.of()))
                 .withMessage("Invalid reference-data type widgets: empty entry in aliases");
     }
