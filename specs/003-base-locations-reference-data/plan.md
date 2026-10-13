@@ -66,7 +66,7 @@ This feature serves BaseLocation through the generic reference-data routes 002 b
 | XIV. Observability & Traceability | **Pass.** Correlation IDs and logging are path-generic and need no change. |
 | XV. Security by Design | **Pass.** The new routes are under `/api/`, so the existing filter authenticates them before routing; AC-012/013 test it. No security control is relaxed. |
 | XVI. Object-Oriented Design Discipline | **Pass.** The only production change removes code; no new responsibility or collaborator. |
-| XVII. API Testability and Postman Artifacts | **Pass (planned).** "Reference Data › Base Locations" sub-folder with seven requests and tests (five planned, plus missing- and invalid-token `401` checks added after code review); no hard-coded environment values (research R9). |
+| XVII. API Testability and Postman Artifacts | **Pass (planned).** "Reference Data › Base Locations" sub-folder with nine requests and tests (five planned, plus query-parameter, trailing-slash, missing-token and invalid-token checks added after code review); no hard-coded environment values (research R9). |
 | XVIII. API Contract and Swagger/OpenAPI | **Pass (planned).** The enum and description are generated from configuration; the contract test is updated to the new values (research R5). A contract delta document records the change. |
 
 **Non-principle checks**:
@@ -124,7 +124,7 @@ src/functionalTest/resources/golden/
 src/smokeTest/java/uk/gov/hmcts/ctam/jo/
 └── ReferenceDataSmokeTest.java                    # p95 guard per collection path (R7)
 
-postman/ctam-jomockapi.postman_collection.json     # + Reference Data › Base Locations (7 requests)
+postman/ctam-jomockapi.postman_collection.json     # + Reference Data › Base Locations (9 requests)
 README.md                                          # § Reference data lists both types; fixture rules drop "unique names"
 CLAUDE.md                                          # § Current repo state: + 003 line
 specs/002-reference-data-api/contracts/reference-data-api.md  # one-line pointer to the 003 delta

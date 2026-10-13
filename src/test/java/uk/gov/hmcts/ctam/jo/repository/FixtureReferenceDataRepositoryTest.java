@@ -147,7 +147,11 @@ class FixtureReferenceDataRepositoryTest {
 
     @ParameterizedTest(name = "{0}")
     @CsvSource(delimiter = '|', textBlock = """
-            id-missing                 | record without an id
+            id-missing                 | record at position 1: id is required
+            created-at-number          | record at position 1: created_at must be an ISO-8601 string
+            updated-at-fractional-number | record at position 1: updated_at must be an ISO-8601 string
+            start-date-array           | record at position 1: start_date must be an ISO-8601 string
+            end-date-number            | record at position 1: end_date must be an ISO-8601 string
             id-not-positive            | record id 0: id must be greater than 0
             id-duplicate               | record id 5: duplicate id
             name-blank                 | record id 5: name is required
@@ -174,7 +178,7 @@ class FixtureReferenceDataRepositoryTest {
     @CsvSource({"unknown-property, colour", "not-an-array, ''", "malformed, ''",
                 "reference-field-fractional, type_id", "reference-field-string, jurisdiction_id",
                 "reference-field-empty-string, parent_id", "id-string, id",
-                "reference-field-explicit-null, parent_id"})
+                "reference-field-explicit-null, parent_id", "name-number, name", "name-boolean, name"})
     void failsStartupOnUnparseableFixtures(String fixture, String expectedFragment) {
         assertThatIllegalStateException()
                 .isThrownBy(() -> repository(registry("widgets", "invalid/" + fixture + ".json")))

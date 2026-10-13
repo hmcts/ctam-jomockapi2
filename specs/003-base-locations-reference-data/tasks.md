@@ -186,11 +186,11 @@ Expected values (counts, reference points, messages) come from [data-model.md §
 **Purpose**: Changes made after five `/code-review` rounds on the branch. They replace the "one production Java change only" constraint above for these items, which are all type-agnostic (Principle VII; `NoTypeSpecificCodeTest` passes).
 
 - [X] T051 FR-017 amended: optional per-type `unique-names` (default `true`) on `TypeProperties` and `ReferenceDataType`; `FixtureReferenceDataRepository` keeps the duplicate-name check for types that require unique names; `base_locations` declares `unique-names: false`. Repository tests cover both settings with `valid-repeated-names.json`; research R10 records the change
-- [X] T052 Stricter fixture parsing: integer fields reject fractions, strings and empty strings; an explicit `null` reference field fails; a record without an `id` fails with "record without an id" (`id` is now a boxed `Long`)
+- [X] T052 Stricter fixture parsing: integer fields reject fractions, strings and empty strings; an explicit `null` reference field fails; a record without an `id` fails with its position (`id` is now a boxed `Long`); names must be JSON strings and timestamps and dates ISO-8601 strings
 - [X] T053 Configuration: removed the test-only three-argument `TypeProperties` constructor and `@ConstructorBinding` (tests use `ReferenceDataFixtures.type`); empty entries in `types`, `aliases` or `reference-fields` fail start-up with `IllegalStateException` from the registry; `ReferenceDataType` copies its sets (reference fields as an `EnumSet`)
 - [X] T054 `ReferenceDataFixtureRulesTest` reads `application.yml` and fixtures from `src/main/resources`, binds the configuration once, takes each fixture's reference fields and `unique-names` from it, fails clearly for a fixture outside `classpath:reference-data/` or shared by two types, compares names in code-point order and finds reference points by id
 - [X] T055 `NoTypeSpecificCodeTest` matches a type name in any spelling (snake_case, spaced or wrapped words, camelCase, upper case); `ReferenceField.valueOf(record)` renamed `readFrom`; generic OpenAPI descriptions for the reference fields; the golden-file loader moved to `ReferenceDataHttp.golden`
-- [X] T056 Postman: missing- and invalid-token `401` requests in the Base Locations folder
+- [X] T056 Postman: query-parameter, trailing-slash, missing-token and invalid-token requests in the Base Locations folder, matching Appointment Titles
 - [X] T057 Docs: spec FR-017 and clarifications, research R10, plan, data models, quickstart, README and CLAUDE.md
 
 ---
