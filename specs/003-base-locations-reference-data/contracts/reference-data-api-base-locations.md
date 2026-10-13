@@ -17,13 +17,27 @@
 
 Any other value, including `base_location` (BaseLocation's deprecated alias, deliberately not served per spec Clarifications and Constitution VII), the remaining nine E-Links canonical names and their nine aliases, still returns `400` with `Unsupported reference data attribute_name.`
 
-Nothing else in the OpenAPI document changes: no new path, operation, parameter, schema, header or response code.
+No new path, operation, parameter, header or response code is added.
+
+---
+
+## 1a. `ReferenceDataResponse` schema — reference fields (amendment, 2026-10-13)
+
+The schema gains three optional properties, after `name` (spec FR-005, FR-018; deviation D-2):
+
+| Property | Type | Format | Required | Nullable | Description |
+|----------|------|--------|----------|----------|-------------|
+| `type_id` | integer | int64 | no | no | E-Links id of the record's location type |
+| `parent_id` | integer | int64 | no | no | E-Links id of the record's parent location |
+| `jurisdiction_id` | integer | int64 | no | no | E-Links id of the record's jurisdiction (30 Courts, 34 Tribunals, 84 Magistrates, 86 Coroners) |
+
+`required` stays `id`, `name`, `created_at`, `updated_at`, `start_date`, `end_date`. A property is written only when the record carries it: every BaseLocation record carries all three, and AppointmentTitle records carry none, so 002's responses are unchanged. The values point at `location_types`, `locations` and `jurisdictions`, which the mock doesn't serve yet (forward references, spec DF-1).
 
 ---
 
 ## 2. `GET /api/v1/reference_data/base_locations`
 
-**200**, `application/json`, `ReferenceDataApiResponse`: `results` holds 1,462 records in ascending `id` order. Each record has exactly the six `ReferenceDataResponse` fields. Names are not unique: 1,276 distinct names, and a name shared by several real locations appears on several records with different ids (e.g. `Bedfordshire LJA`, ids 540 and 550).
+**200**, `application/json`, `ReferenceDataApiResponse`: `results` holds 1,462 records in ascending `id` order. Each record has exactly nine fields, in this order: `id`, `name`, `type_id`, `parent_id`, `jurisdiction_id`, `created_at`, `updated_at`, `start_date`, `end_date`. Names are not unique: 1,276 distinct names, and a name shared by several real locations appears on several records with different ids (e.g. `Bedfordshire LJA`, ids 540 and 550).
 
 Example (first and last elements; compact JSON in the real response):
 
@@ -33,6 +47,9 @@ Example (first and last elements; compact JSON in the real response):
     {
       "id": 10,
       "name": "Aberconwy",
+      "type_id": 8,
+      "parent_id": 1722,
+      "jurisdiction_id": 84,
       "created_at": "2024-01-15T09:00:00Z",
       "updated_at": "2024-06-03T10:30:00Z",
       "start_date": "2024-01-01",
@@ -41,6 +58,9 @@ Example (first and last elements; compact JSON in the real response):
     {
       "id": 14620,
       "name": "Yorkshire & Humberside",
+      "type_id": 5,
+      "parent_id": 1031,
+      "jurisdiction_id": 34,
       "created_at": "2024-01-15T09:00:00Z",
       "updated_at": "2024-06-03T10:30:00Z",
       "start_date": "2024-01-01",
@@ -60,6 +80,9 @@ Example (first and last elements; compact JSON in the real response):
 {
   "id": 70,
   "name": "Aldridge and Brownhills",
+  "type_id": 8,
+  "parent_id": 1749,
+  "jurisdiction_id": 84,
   "created_at": "2024-01-15T09:00:00Z",
   "updated_at": "2025-04-01T08:00:00Z",
   "start_date": "2024-01-01",

@@ -150,6 +150,8 @@ OpenAPI: `operationId: getReferenceDataById`, summary "Get reference data by id"
 | `start_date` | string | date | yes | no | Date from which the record is valid |
 | `end_date` | string | date | yes (always present) | yes | Date the record stopped being valid. `null` if it is still current. |
 
+Extended by 003: optional `type_id`, `parent_id` and `jurisdiction_id`, written only for types that declare them (AppointmentTitle declares none); see [the base-locations contract delta § 1a](../../003-base-locations-reference-data/contracts/reference-data-api-base-locations.md).
+
 No other properties are allowed.
 
 ### `ReferenceDataApiResponse`

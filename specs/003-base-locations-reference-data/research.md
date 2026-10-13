@@ -154,10 +154,31 @@ Determinism (AC-004) is checked against a captured golden response, `src/functio
 **Alternatives considered**:
 - *A per-type flag such as `allow-duplicate-names`.* Adds configuration and a branch for a rule nobody needs: no consumer of the contract relies on names being unique, and the real data has repeats.
 - *Keeping the check and making names unique (for example by appending the parent).* Rewrites real names, which FR-008 and FR-010 forbid.
-- *One record per distinct name (1,276).* Rejected in Clarifications: it loses 186 real locations and makes the ids unusable when parent references arrive (DF-1).
+- *One record per distinct name (1,276).* Rejected in Clarifications: it loses 186 real locations, and it would merge records whose references differ (R11).
+
+---
+
+## R11. Serving the reference fields (amendment, 2026-10-13)
+
+**Decision**: Serve the extract's `type_id`, `parent_id` and `jurisdiction_id` on BaseLocation records through a generic, per-type declaration (spec FR-018; data-model § 1a):
+- **Model**: a `ReferenceField` enum (`TYPE_ID`, `PARENT_ID`, `JURISDICTION_ID`) in `entity/`, each with its JSON name and an accessor; three nullable `Long` properties on `ReferenceDataRecord` and on `ReferenceDataResponse`, after `name`. MapStruct maps them by name.
+- **Configuration**: `reference-fields` on a type entry (`TypeProperties.referenceFields`, default empty). `TypeProperties` gains a three-argument constructor for types without reference fields, so existing call sites stay unchanged; the canonical constructor is marked `@ConstructorBinding` because Spring Boot can't choose between two constructors on its own.
+- **Validation**: the registry rejects unknown or repeated field names; the repository requires declared fields (positive) and forbids undeclared ones, so an AppointmentTitle fixture can't silently gain a reference.
+- **Serialisation**: `@JsonInclude(NON_NULL)` on the three properties only. `end_date` keeps `ALWAYS`, so a null end date is still written.
+- **Values**: E-Links ids copied unchanged from the extract (Clarifications, Session 2026-10-13). Repeated names are ordered by the extract's `id` (data-model § 3 rule 5), which keeps every existing `id`, `name` and date unchanged: the regenerated fixture differs from the previous one only by the three added fields.
+- **Coherence**: the target types aren't served yet. Constitution v1.12.0 (Principle IV) allows these forward references because DF-1 records them and names the tests that must close them.
+
+**Rationale**: The real data carries the three fields, and CTAM reads them; a mock without them hides integration bugs (Principle VI). Declaring them per type keeps the code type-agnostic (FR-003, AC-018) and leaves AppointmentTitle's responses byte-for-byte unchanged, which the golden-file test proves (AC-014).
+
+**Alternatives considered**:
+- *A separate DTO per type.* Duplicates the controller, service and mapper paths for each type, against Principle VII.
+- *Always writing the three fields, null for AppointmentTitle.* Changes 002's response shape for a type whose real data doesn't have them.
+- *A free-form `Map<String, Object>` of extra fields.* Forbidden by Principle VIII where the schema is known.
+- *Mapping `jurisdiction_id` to CTAM's own numbering (1–4).* Differs from what the real API returns (Clarifications).
+- *Serving `location_types`, `locations` and `jurisdictions` in the same feature so every reference resolves now.* Much larger scope (2,000 locations with their own references); left to their own features, which DF-1 obliges to close the references.
 
 ---
 
 ## Resolved: no outstanding `NEEDS CLARIFICATION` items
 
-The spec's Clarifications (2026-10-08) settled names (exact; one record per source row, 1,462 records and 1,276 distinct names), placeholder names (kept), the en dash (kept) and the alias (not served). Technical Context has no unknowns; every decision above uses existing dependencies.
+The spec's Clarifications (2026-10-08) settled names (exact; one record per source row, 1,462 records and 1,276 distinct names), placeholder names (kept), the en dash (kept) and the alias (not served). The 2026-10-13 session settled the reference fields (served, with E-Links ids, as forward references). Technical Context has no unknowns; every decision above uses existing dependencies.

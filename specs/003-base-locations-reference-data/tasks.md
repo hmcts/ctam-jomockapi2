@@ -160,6 +160,25 @@ Expected values (counts, reference points, messages) come from [data-model.md §
 - [X] T037 Walk through specs/003-base-locations-reference-data/quickstart.md §§ 1–5 against a running instance and confirm every expected result
 - [X] T038 Add § Implementation notes to specs/003-base-locations-reference-data/plan.md: baseline and final test counts per suite, the strict p95 figures, the AC-017 diff result, newman counts, any difference from the planned design, and items still open before merge (the inherited Sonar deferral)
 
+
+---
+
+## Phase 11: Amendment — Reference Fields (2026-10-13)
+
+**Purpose**: Serve the extract's `type_id`, `parent_id` and `jurisdiction_id` on BaseLocation records (spec Clarifications, Session 2026-10-13; FR-005, FR-006, FR-009, FR-018; D-2; DF-1; AC-021, AC-022). Design: research R11, data-model.md § 1a and § 3.
+
+- [X] T039 Amend the constitution to v1.12.0 via `/speckit-constitution`: Principle IV allows forward references between reference-data types under three conditions (Deferred Item, values copied unchanged from the extract, closing test in the target type's feature); update CLAUDE.md's quoted version
+- [X] T040 Add `ReferenceField` (`TYPE_ID`, `PARENT_ID`, `JURISDICTION_ID`, each with its JSON name and record accessor) in src/main/java/…/jo/entity/; add nullable `Long typeId`, `parentId`, `jurisdictionId` to `ReferenceDataRecord`; add `Set<ReferenceField> referenceFields` to `ReferenceDataType`
+- [X] T041 Add `referenceFields` (`reference-fields`, default empty) to `ReferenceDataProperties.TypeProperties`, with a three-argument constructor for types without reference fields and `@ConstructorBinding` on the canonical one; resolve the names in `ReferenceDataTypeRegistry`, rejecting unknown and repeated names at start-up
+- [X] T042 Validate reference fields in `FixtureReferenceDataRepository`: declared fields required and positive, undeclared fields absent
+- [X] T043 Add `type_id`, `parent_id` and `jurisdiction_id` to `ReferenceDataResponse` after `name`, `@JsonInclude(NON_NULL)`, optional in the OpenAPI schema and described as deviation D-2; declare `reference-fields: [type_id, parent_id, jurisdiction_id]` on `base_locations` in application.yml
+- [X] T044 Regenerate src/main/resources/reference-data/base_locations.json from the extract (data-model.md § 3 rules 1, 5, 10 and 11); confirm that without the new fields the output is byte-for-byte the previous fixture
+- [X] T045 [P] Unit tests: registry (default none, declared fields, unknown/repeated/mis-cased names), repository (declared fields load, absent when undeclared, missing, non-positive and undeclared fields fail start-up; fixtures `valid-reference-fields.json`, `invalid/reference-field-missing.json`, `invalid/reference-field-not-positive.json`), mapper, controller (field order; fields left out when absent), and `ReferenceDataFixtureRulesTest` (field layout, positive references, E-Links jurisdiction ids, references of the six reference points)
+- [X] T046 [P] Integration: extend `referenceDataResponseMatchesTheContractSchema` in `ReferenceDataOpenApiContractTest` to the nine properties, the six required ones, and the three optional `int64` reference fields
+- [X] T047 [P] Functional: in `BaseLocationsFunctionalTest`, check the nine-field layout (AC-001), add `ac021ReferenceFieldsCarryTheExtractsElinksIds` and `ac022RepeatedNamesAreToldApartByTheirReferences`, and regenerate src/functionalTest/resources/golden/base_locations.json; leave `golden/appointment_titles.json` unchanged (AC-014)
+- [X] T048 [P] Postman: the two base-location success requests check the nine fields, the collection's jurisdiction ids and record 70's references; run newman against a running instance
+- [X] T049 [P] Docs: spec.md, data-model.md, research.md (R11), plan.md, contracts/reference-data-api-base-locations.md, quickstart.md, checklists/requirements.md, 002's contract and data model (one-line pointers), README.md and CLAUDE.md
+- [X] T050 Run `./gradlew check -PskipOwasp` and `./gradlew smokeTest -Dperf.strict=true`; record the results in plan.md § Implementation notes (Amendment)
 ---
 
 ## Dependencies & Execution Order
@@ -238,7 +257,7 @@ Meanwhile one person works through BaseLocationsFunctionalTest.java: T016 → T0
 
 ## Notes
 
-- **One production Java change only (T003), and it is a deletion.** If any other task seems to need production code, stop: it means the generic design has a gap, which is a design change to raise (and a constitution-relevant one, Principle VII), not something to patch here.
+- **One production Java change only (T003), and it is a deletion.** If any other task seems to need production code, stop: it means the generic design has a gap, which is a design change to raise (and a constitution-relevant one, Principle VII), not something to patch here. The 2026-10-13 amendment (Phase 11) was raised that way: its production changes are the generic reference fields (FR-018), which name no type.
 - The extract is gitignored and must never be staged. Before every commit, check `git status` shows nothing under `joh-elinks-api/`, and that no generation script was added.
 - Use `ContractMessages` and `ContractPaths` constants in tests, never main code's own constants.
 - Commit after each phase or logical group; keep `./gradlew check -PskipOwasp` green at every commit.

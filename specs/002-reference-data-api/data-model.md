@@ -77,6 +77,8 @@ This matches the E-Links `ReferenceDataResponse`, plus `name`. It is returned as
 
 Field order in the JSON is `id`, `name`, `created_at`, `updated_at`, `start_date`, `end_date`, fixed with `@JsonPropertyOrder` so output is deterministic. No other fields are allowed (FR-013).
 
+003 FR-018 adds optional reference fields (`type_id`, `parent_id`, `jurisdiction_id`) after `name`, written only for types that declare them; AppointmentTitle declares none, so its records keep exactly the fields above. See [003's data model § 1a](../003-base-locations-reference-data/data-model.md).
+
 ### ReferenceDataApiResponse
 
 | JSON field | Java component | Rules |
