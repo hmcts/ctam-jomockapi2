@@ -10,10 +10,13 @@ import java.time.LocalDate;
 
 /**
  * One reference-data record as returned by the API: the E-Links {@code ReferenceDataResponse} plus
- * {@code name} (deviation D-1).
+ * {@code name} (deviation D-1) and, for types that declare them, the reference fields {@code type_id},
+ * {@code parent_id} and {@code jurisdiction_id} (deviation D-2). A reference field is left out of the JSON when
+ * the record doesn't carry it.
  */
 @Schema(description = "One reference-data record.")
-@JsonPropertyOrder({"id", "name", "created_at", "updated_at", "start_date", "end_date"})
+@JsonPropertyOrder({"id", "name", "type_id", "parent_id", "jurisdiction_id", "created_at", "updated_at",
+    "start_date", "end_date"})
 public record ReferenceDataResponse(
         @Schema(description = "Stable reference-data identifier.", format = "int64",
                 requiredMode = Schema.RequiredMode.REQUIRED, example = "10")
@@ -24,6 +27,28 @@ public record ReferenceDataResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED, example = "Acting Senior Coroner")
         @JsonProperty("name")
         String name,
+
+        @Schema(description = "Id of the record's location type, in E-Links' numbering. Present only for types "
+                              + "whose records carry it (deviation D-2 from the E-Links schema).",
+                format = "int64", requiredMode = Schema.RequiredMode.NOT_REQUIRED, example = "8")
+        @JsonProperty("type_id")
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        Long typeId,
+
+        @Schema(description = "Id of the record's parent location, in E-Links' numbering. Present only for types "
+                              + "whose records carry it (deviation D-2 from the E-Links schema).",
+                format = "int64", requiredMode = Schema.RequiredMode.NOT_REQUIRED, example = "1722")
+        @JsonProperty("parent_id")
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        Long parentId,
+
+        @Schema(description = "Id of the record's jurisdiction, in E-Links' numbering (30 Courts, 34 Tribunals, "
+                              + "84 Magistrates, 86 Coroners). Present only for types whose records carry it "
+                              + "(deviation D-2 from the E-Links schema).",
+                format = "int64", requiredMode = Schema.RequiredMode.NOT_REQUIRED, example = "84")
+        @JsonProperty("jurisdiction_id")
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        Long jurisdictionId,
 
         @Schema(description = "When the record was created (UTC).", format = "date-time",
                 requiredMode = Schema.RequiredMode.REQUIRED, example = "2024-01-15T09:00:00Z")

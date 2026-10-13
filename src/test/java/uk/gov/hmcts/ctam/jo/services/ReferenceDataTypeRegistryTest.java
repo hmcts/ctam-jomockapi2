@@ -7,6 +7,7 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties.TypeProperties;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataType;
+import uk.gov.hmcts.ctam.jo.entity.ReferenceField;
 import uk.gov.hmcts.ctam.jo.exceptions.UnsupportedReferenceDataTypeException;
 
 import java.util.List;
@@ -136,6 +137,33 @@ class ReferenceDataTypeRegistryTest {
                 .isThrownBy(() -> registry(WIDGETS, new TypeProperties(secondType, aliases, "classpath:y.json")))
                 .withMessage("Invalid reference-data configuration: '" + clash + "' is declared by both widgets and "
                              + secondType);
+    }
+
+    @Test
+    void typesDeclareNoReferenceFieldsByDefault() {
+        assertThat(registry.resolve("widgets").getReferenceFields()).isEmpty();
+    }
+
+    @Test
+    void resolvesTheDeclaredReferenceFields() {
+        ReferenceDataTypeRegistry declaring = registry(new TypeProperties(
+                "widgets", List.of(), "classpath:x.json", List.of("jurisdiction_id", "type_id", "parent_id")));
+
+        assertThat(declaring.resolve("widgets").getReferenceFields())
+                .containsExactly(ReferenceField.TYPE_ID, ReferenceField.PARENT_ID, ReferenceField.JURISDICTION_ID);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @CsvSource(delimiter = '|', textBlock = """
+            an unknown field    | colour_id | type_id   | unknown reference field 'colour_id'
+            a repeated field    | type_id   | type_id   | duplicate reference field type_id
+            a field name's case | type_id   | Parent_Id | unknown reference field 'Parent_Id'
+            """)
+    void failsStartupOnAnInvalidReferenceField(String rule, String first, String second, String expected) {
+        assertThatIllegalStateException()
+                .isThrownBy(() -> registry(
+                        new TypeProperties("widgets", List.of(), "classpath:x.json", List.of(first, second))))
+                .withMessage("Invalid reference-data type widgets: " + expected);
     }
 
     @ParameterizedTest

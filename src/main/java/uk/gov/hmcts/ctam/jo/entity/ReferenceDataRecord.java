@@ -25,6 +25,24 @@ public class ReferenceDataRecord {
     @JsonProperty("name")
     String name;
 
+    /**
+     * Null unless the type declares {@link ReferenceField#TYPE_ID}.
+     */
+    @JsonProperty("type_id")
+    Long typeId;
+
+    /**
+     * Null unless the type declares {@link ReferenceField#PARENT_ID}.
+     */
+    @JsonProperty("parent_id")
+    Long parentId;
+
+    /**
+     * Null unless the type declares {@link ReferenceField#JURISDICTION_ID}.
+     */
+    @JsonProperty("jurisdiction_id")
+    Long jurisdictionId;
+
     @JsonProperty("created_at")
     Instant createdAt;
 

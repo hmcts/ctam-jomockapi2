@@ -9,6 +9,7 @@ import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataRecord;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataType;
+import uk.gov.hmcts.ctam.jo.entity.ReferenceField;
 import uk.gov.hmcts.ctam.jo.services.ReferenceDataTypeRegistry;
 
 import java.io.IOException;
@@ -43,7 +44,7 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
         Map<String, SortedMap<Long, ReferenceDataRecord>> byType = new HashMap<>();
         Map<String, List<ReferenceDataRecord>> sorted = new HashMap<>();
         for (ReferenceDataType type : registry.types()) {
-            SortedMap<Long, ReferenceDataRecord> records = load(type.getFixture(), resourceLoader, strictMapper);
+            SortedMap<Long, ReferenceDataRecord> records = load(type, resourceLoader, strictMapper);
             byType.put(type.getName(), records);
             sorted.put(type.getName(), List.copyOf(records.values()));
         }
@@ -69,8 +70,9 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
         return records;
     }
 
-    private static SortedMap<Long, ReferenceDataRecord> load(String fixture, ResourceLoader resourceLoader,
+    private static SortedMap<Long, ReferenceDataRecord> load(ReferenceDataType type, ResourceLoader resourceLoader,
                                                              JsonMapper mapper) {
+        String fixture = type.getFixture();
         Resource resource = resourceLoader.getResource(fixture);
         if (!resource.exists()) {
             throw invalid(fixture, "resource not found");
@@ -91,6 +93,7 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
                 throw invalid(fixture, "null record");
             }
             validate(fixture, record);
+            validateReferenceFields(fixture, type, record);
             if (byId.putIfAbsent(record.getId(), record) != null) {
                 throw invalid(fixture, record.getId(), "duplicate id");
             }
@@ -127,6 +130,25 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
         }
         if (record.getEndDate() != null && record.getEndDate().isBefore(record.getStartDate())) {
             throw invalid(fixture, id, "end_date must not be before start_date");
+        }
+    }
+
+    /**
+     * A field the type declares must hold a positive id in every record; a field it doesn't declare must be absent.
+     */
+    private static void validateReferenceFields(String fixture, ReferenceDataType type, ReferenceDataRecord record) {
+        for (ReferenceField field : ReferenceField.values()) {
+            Long value = field.valueOf(record);
+            if (!type.getReferenceFields().contains(field)) {
+                if (value != null) {
+                    throw invalid(fixture, record.getId(), field.fieldName() + " is not a reference field of "
+                                                           + type.getName());
+                }
+            } else if (value == null) {
+                throw invalid(fixture, record.getId(), field.fieldName() + " is required");
+            } else if (value <= 0) {
+                throw invalid(fixture, record.getId(), field.fieldName() + " must be greater than 0");
+            }
         }
     }
 

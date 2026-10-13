@@ -20,6 +20,9 @@ import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.BEARER_TOKEN;
  */
 public final class ReferenceDataHttp {
 
+    /**
+     * The fields of a record whose type declares no reference fields.
+     */
     public static final List<String> CONTRACT_FIELDS =
             List.of("id", "name", "created_at", "updated_at", "start_date", "end_date");
 

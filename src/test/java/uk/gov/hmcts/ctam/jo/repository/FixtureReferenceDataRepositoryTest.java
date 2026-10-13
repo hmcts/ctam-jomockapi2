@@ -28,6 +28,8 @@ class FixtureReferenceDataRepositoryTest {
 
     private static final String FIXTURES = "classpath:reference-data/";
 
+    private static final List<String> ALL_REFERENCE_FIELDS = List.of("type_id", "parent_id", "jurisdiction_id");
+
     @Test
     void loadsRecordsAndReturnsThemInAscendingIdOrder() {
         ReferenceDataTypeRegistry registry = registry("widgets", "valid-unsorted.json");
@@ -76,6 +78,56 @@ class FixtureReferenceDataRepositoryTest {
     }
 
     @Test
+    void loadsTheReferenceFieldsTheTypeDeclares() {
+        ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(new TypeProperties(
+                "widgets", List.of(), FIXTURES + "valid-reference-fields.json", ALL_REFERENCE_FIELDS));
+
+        assertThat(repository(registry).findAll(registry.resolve("widgets")))
+                .extracting(ReferenceDataRecord::getId, ReferenceDataRecord::getTypeId,
+                            ReferenceDataRecord::getParentId, ReferenceDataRecord::getJurisdictionId)
+                .containsExactly(tuple(10L, 8L, 1722L, 84L), tuple(20L, 2L, 1482L, 30L));
+    }
+
+    @Test
+    void recordsOfATypeWithoutReferenceFieldsCarryNone() {
+        ReferenceDataTypeRegistry registry = registry("widgets", "valid-unsorted.json");
+
+        assertThat(repository(registry).findAll(registry.resolve("widgets"))).allSatisfy(record -> {
+            assertThat(record.getTypeId()).isNull();
+            assertThat(record.getParentId()).isNull();
+            assertThat(record.getJurisdictionId()).isNull();
+        });
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @CsvSource(delimiter = '|', textBlock = """
+            reference-field-missing      | record id 5: parent_id is required
+            reference-field-not-positive | record id 5: jurisdiction_id must be greater than 0
+            """)
+    void failsStartupWhenADeclaredReferenceFieldIsInvalid(String fixture, String expectedProblem) {
+        String path = FIXTURES + "invalid/" + fixture + ".json";
+        ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(
+                new TypeProperties("widgets", List.of(), path, ALL_REFERENCE_FIELDS));
+
+        assertThatIllegalStateException()
+                .isThrownBy(() -> repository(registry))
+                .withMessage("Invalid reference-data fixture " + path + ": " + expectedProblem);
+    }
+
+    @Test
+    void failsStartupWhenARecordCarriesAReferenceFieldItsTypeDoesNotDeclare() {
+        // Valid for a type that declares every reference field; this one declares only type_id.
+        String path = FIXTURES + "valid-reference-fields.json";
+        ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(
+                new TypeProperties("widgets", List.of(), path, List.of("type_id")));
+
+        assertThatIllegalStateException()
+                .isThrownBy(() -> repository(registry))
+                .withMessage("Invalid reference-data fixture " + path
+                             + ": record id 20: parent_id is not a reference field of widgets");
+    }
+
+    @Test
     void anEmptyArrayGivesAnEmptyList() {
         ReferenceDataTypeRegistry registry = registry("widgets", "empty.json");
 
@@ -88,7 +140,7 @@ class FixtureReferenceDataRepositoryTest {
         ReferenceDataRepository repository = repository(registry);
 
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> repository.findAll(new ReferenceDataType("widgets", Set.of(), "x")));
+                .isThrownBy(() -> repository.findAll(new ReferenceDataType("widgets", Set.of(), "x", Set.of())));
     }
 
     @ParameterizedTest(name = "{0}")

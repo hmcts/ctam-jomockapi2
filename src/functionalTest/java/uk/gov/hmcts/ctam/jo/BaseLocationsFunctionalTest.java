@@ -34,7 +34,6 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNAUTHORIZED;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_ATTRIBUTE_NAME;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.APPOINTMENT_TITLES;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.BASE_LOCATIONS;
-import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.CONTRACT_FIELDS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertError;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.json;
 
@@ -51,6 +50,12 @@ class BaseLocationsFunctionalTest {
     private static final String ALIAS = "/api/v1/reference_data/base_location";
 
     private static final String EN_DASH_NAME = "Royal Courts of Justice – Office of the Judge Advocate General";
+
+    /**
+     * 002's fields, with the reference fields after {@code name} (spec FR-005).
+     */
+    private static final List<String> BASE_LOCATION_FIELDS = List.of("id", "name", "type_id", "parent_id",
+            "jurisdiction_id", "created_at", "updated_at", "start_date", "end_date");
 
     @LocalServerPort
     private int port;
@@ -72,7 +77,7 @@ class BaseLocationsFunctionalTest {
         List<Long> ids = new ArrayList<>();
         results.forEach(record -> {
             ids.add(record.get("id").asLong());
-            assertThat(record.propertyNames()).containsExactlyElementsOf(CONTRACT_FIELDS);
+            assertThat(record.propertyNames()).containsExactlyElementsOf(BASE_LOCATION_FIELDS);
         });
         assertThat(ids).isSorted().doesNotHaveDuplicates();
     }
@@ -105,6 +110,36 @@ class BaseLocationsFunctionalTest {
         assertRecord(byId.get(10L), "Aberconwy", null, "2024-06-03T10:30:00Z");
         assertRecord(byId.get(70L), "Aldridge and Brownhills", "2025-03-31", "2025-04-01T08:00:00Z");
         assertRecord(byId.get(14620L), "Yorkshire & Humberside", null, "2024-06-03T10:30:00Z");
+    }
+
+    @Test
+    void ac021ReferenceFieldsCarryTheExtractsElinksIds() {
+        Map<Long, JsonNode> byId = byId(json(http.get(BASE_LOCATIONS)).get("results"));
+
+        assertReferences(byId.get(10L), 8, 1722, 84);
+        assertReferences(byId.get(70L), 8, 1749, 84);
+        assertReferences(byId.get(10290L), 2, 1482, 30);
+        assertReferences(byId.get(14620L), 5, 1031, 34);
+        assertThat(byId.values()).allSatisfy(record -> assertThat(Set.of(30L, 34L, 84L, 86L))
+                .contains(record.get("jurisdiction_id").asLong()));
+    }
+
+    @Test
+    void ac022RepeatedNamesAreToldApartByTheirReferences() {
+        Map<String, Set<List<Long>>> referencesByName = new HashMap<>();
+        Map<String, Integer> countByName = new HashMap<>();
+        for (JsonNode record : json(http.get(BASE_LOCATIONS)).get("results")) {
+            String name = record.get("name").asString();
+            referencesByName.computeIfAbsent(name, key -> new HashSet<>()).add(List.of(
+                    record.get("type_id").asLong(), record.get("parent_id").asLong(),
+                    record.get("jurisdiction_id").asLong()));
+            countByName.merge(name, 1, Integer::sum);
+        }
+
+        countByName.forEach((name, count) ->
+                assertThat(referencesByName.get(name)).as(name).hasSize(count));
+        assertReferences(json(http.get(BASE_LOCATIONS + "/540")), 8, 1791, 84);
+        assertReferences(json(http.get(BASE_LOCATIONS + "/550")), 8, 1475, 84);
     }
 
     @Test
@@ -250,6 +285,13 @@ class BaseLocationsFunctionalTest {
             assertThat(record.get("end_date").asString()).isEqualTo(endDate);
         }
         assertThat(record.get("updated_at").asString()).isEqualTo(updatedAt);
+    }
+
+    private static void assertReferences(JsonNode record, long typeId, long parentId, long jurisdictionId) {
+        assertThat(record).isNotNull();
+        assertThat(record.get("type_id").asLong()).isEqualTo(typeId);
+        assertThat(record.get("parent_id").asLong()).isEqualTo(parentId);
+        assertThat(record.get("jurisdiction_id").asLong()).isEqualTo(jurisdictionId);
     }
 
     private static Map<Long, JsonNode> byId(JsonNode results) {

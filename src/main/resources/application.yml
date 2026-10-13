@@ -27,3 +27,5 @@ jo:
         fixture: classpath:reference-data/appointment_titles.json
       - name: base_locations
         fixture: classpath:reference-data/base_locations.json
+        # Ids of records in types not served yet (constitution Principle IV forward references, 003 DF-1).
+        reference-fields: [type_id, parent_id, jurisdiction_id]

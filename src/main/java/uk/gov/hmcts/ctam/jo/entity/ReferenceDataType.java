@@ -5,7 +5,8 @@ import lombok.Value;
 import java.util.Set;
 
 /**
- * One declared reference-data type: its canonical attribute name, deprecated aliases and fixture location.
+ * One declared reference-data type: its canonical attribute name, deprecated aliases, fixture location and the
+ * reference fields its records carry.
  */
 @Value
 public class ReferenceDataType {
@@ -15,4 +16,6 @@ public class ReferenceDataType {
     Set<String> aliases;
 
     String fixture;
+
+    Set<ReferenceField> referenceFields;
 }
