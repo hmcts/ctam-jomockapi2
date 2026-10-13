@@ -2,6 +2,8 @@ package uk.gov.hmcts.ctam.jo.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
 import lombok.Builder;
 import lombok.Value;
 import lombok.extern.jackson.Jacksonized;
@@ -19,28 +21,35 @@ import java.time.LocalDate;
 @JsonIgnoreProperties(ignoreUnknown = false)
 public class ReferenceDataRecord {
 
+    /**
+     * Boxed so that a fixture record without an id is reported as such, rather than read as 0.
+     */
     @JsonProperty("id")
-    long id;
+    Long id;
 
     @JsonProperty("name")
     String name;
 
     /**
-     * Null unless the type declares {@link ReferenceField#TYPE_ID}.
+     * Null unless the type declares {@link ReferenceField#TYPE_ID}. A fixture leaves an undeclared reference field
+     * out rather than setting it to {@code null}, so an explicit {@code null} fails, as for every reference field.
      */
     @JsonProperty("type_id")
+    @JsonSetter(nulls = Nulls.FAIL)
     Long typeId;
 
     /**
      * Null unless the type declares {@link ReferenceField#PARENT_ID}.
      */
     @JsonProperty("parent_id")
+    @JsonSetter(nulls = Nulls.FAIL)
     Long parentId;
 
     /**
      * Null unless the type declares {@link ReferenceField#JURISDICTION_ID}.
      */
     @JsonProperty("jurisdiction_id")
+    @JsonSetter(nulls = Nulls.FAIL)
     Long jurisdictionId;
 
     @JsonProperty("created_at")

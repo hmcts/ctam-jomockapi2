@@ -5,6 +5,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties;
 import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties.TypeProperties;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataType;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceField;
@@ -152,6 +153,14 @@ class ReferenceDataTypeRegistryTest {
     }
 
     @Test
+    void typesCanRequireUniqueNamesExplicitly() {
+        ReferenceDataTypeRegistry unique = registry(
+                new TypeProperties("widgets", List.of(), "classpath:x.json", List.of(), true));
+
+        assertThat(unique.resolve("widgets").isUniqueNames()).isTrue();
+    }
+
+    @Test
     void typesCanAllowRepeatedNames() {
         ReferenceDataTypeRegistry repeating = registry(
                 new TypeProperties("widgets", List.of(), "classpath:x.json", List.of(), false));
@@ -193,6 +202,14 @@ class ReferenceDataTypeRegistryTest {
                 .isThrownBy(() -> registry(
                         new TypeProperties("widgets", withEmptyEntry, "classpath:x.json", List.of(), null)))
                 .withMessage("Invalid reference-data type widgets: empty entry in aliases");
+    }
+
+    @Test
+    void failsStartupOnAnEmptyTypesEntry() {
+        assertThatIllegalStateException()
+                .isThrownBy(() -> new ReferenceDataTypeRegistry(
+                        new ReferenceDataProperties(Arrays.asList(WIDGETS, null))))
+                .withMessage("Invalid reference-data configuration: empty entry in types");
     }
 
     @ParameterizedTest

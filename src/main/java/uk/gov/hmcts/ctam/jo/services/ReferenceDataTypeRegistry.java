@@ -46,6 +46,9 @@ public class ReferenceDataTypeRegistry {
         List<String> aliases = new ArrayList<>();
 
         for (ReferenceDataProperties.TypeProperties typeProperties : properties.types()) {
+            if (typeProperties == null) {
+                throw new IllegalStateException("Invalid reference-data configuration: empty entry in types");
+            }
             ReferenceDataType type = toType(typeProperties);
             declared.add(type);
             register(lookup, type.getName(), type);
@@ -145,7 +148,7 @@ public class ReferenceDataTypeRegistry {
                         "Invalid reference-data type " + typeName + ": duplicate reference field " + fieldName);
             }
         }
-        return Collections.unmodifiableSet(fields);
+        return fields;
     }
 
     private static void requireValidName(String value, String role) {

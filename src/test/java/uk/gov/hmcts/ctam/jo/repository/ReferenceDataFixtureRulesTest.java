@@ -14,6 +14,7 @@ import uk.gov.hmcts.ctam.jo.entity.ReferenceField;
 import uk.gov.hmcts.ctam.jo.testsupport.JsonTrees;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -70,11 +71,14 @@ class ReferenceDataFixtureRulesTest {
     record Fixture(String file, int records, int distinctNames, List<ReferencePoint> referencePoints) {
 
         /**
-         * The fixture's declared reference fields, in response field order, read from the shipped configuration
-         * so this test can't drift from it.
+         * How the shipped configuration declares the fixture's type, so this test can't drift from it.
          */
-        List<String> referenceFields() {
-            return declaredReferenceFields().getOrDefault(file, List.of());
+        Declaration declaration() {
+            Declaration declaration = declarations().get(file);
+            if (declaration == null) {
+                throw new AssertionError("no type in application.yml uses the fixture " + FIXTURE_PREFIX + file);
+            }
+            return declaration;
         }
 
         @Override
@@ -82,6 +86,14 @@ class ReferenceDataFixtureRulesTest {
             return file;
         }
     }
+
+    /**
+     * A type's declared reference fields, in response field order, and whether its names must be unique.
+     */
+    record Declaration(List<String> referenceFields, boolean uniqueNames) {
+    }
+
+    private static Map<String, Declaration> declarations;
 
     static Stream<Fixture> fixtures() {
         return Stream.of(
@@ -108,16 +120,21 @@ class ReferenceDataFixtureRulesTest {
         }
 
         assertThat(fixtures().map(Fixture::file)).containsExactlyInAnyOrderElementsOf(shipped);
-        assertThat(shipped).containsAll(declaredReferenceFields().keySet());
+        assertThat(declarations().keySet()).containsExactlyInAnyOrderElementsOf(shipped);
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("fixtures")
     void followsTheGenerationRules(Fixture fixture) throws IOException {
         JsonNode records = read(fixture.file());
-        List<String> referenceFields = fixture.referenceFields();
+        Declaration declaration = fixture.declaration();
+        List<String> referenceFields = declaration.referenceFields();
 
         assertThat(records.size()).isEqualTo(fixture.records());
+        if (declaration.uniqueNames()) {
+            assertThat(fixture.distinctNames()).as("distinct names of a type with unique names")
+                    .isEqualTo(fixture.records());
+        }
         Set<String> names = new HashSet<>();
         String previous = null;
         for (int position = 1; position <= records.size(); position++) {
@@ -157,7 +174,7 @@ class ReferenceDataFixtureRulesTest {
     @MethodSource("fixtures")
     void referencePointsMatchTheDataModel(Fixture fixture) throws IOException {
         JsonNode records = read(fixture.file());
-        List<String> referenceFields = fixture.referenceFields();
+        List<String> referenceFields = fixture.declaration().referenceFields();
 
         for (ReferencePoint point : fixture.referencePoints()) {
             JsonNode record = recordWithId(records, point.id());
@@ -196,27 +213,40 @@ class ReferenceDataFixtureRulesTest {
     }
 
     /**
-     * Binds the shipped {@code jo.reference-data} configuration as the application does and maps each fixture
-     * file to its declared reference fields, in {@link ReferenceField} (response) order.
+     * Binds the shipped {@code jo.reference-data} configuration as the application does, once, and maps each
+     * fixture file to its type's declaration. Not a static initialiser, so a bad configuration fails the tests
+     * that use it with a clear message instead of failing class initialisation.
      */
-    private static Map<String, List<String>> declaredReferenceFields() {
+    private static synchronized Map<String, Declaration> declarations() {
+        if (declarations == null) {
+            declarations = bindDeclarations();
+        }
+        return declarations;
+    }
+
+    private static Map<String, Declaration> bindDeclarations() {
+        ReferenceDataProperties properties;
         try {
             // Read from the file system, not the classpath, where test resources come first.
-            ReferenceDataProperties properties = new Binder(ConfigurationPropertySources.from(
+            properties = new Binder(ConfigurationPropertySources.from(
                     new YamlPropertySourceLoader().load("application.yml", new FileSystemResource(MAIN_CONFIGURATION))))
                     .bind("jo.reference-data", ReferenceDataProperties.class)
-                    .orElseThrow(() -> new IllegalStateException("jo.reference-data is not configured"));
-            Map<String, List<String>> byFixture = new HashMap<>();
-            for (TypeProperties type : properties.types()) {
-                String file = type.fixture().substring(FIXTURE_PREFIX.length());
-                if (type.fixture().startsWith(FIXTURE_PREFIX) && byFixture.put(file, inResponseOrder(type)) != null) {
-                    throw new AssertionError("more than one type uses the fixture " + type.fixture());
-                }
-            }
-            return byFixture;
+                    .orElseThrow(() -> new AssertionError("jo.reference-data is not configured"));
         } catch (IOException e) {
-            throw new IllegalStateException("Cannot read application.yml", e);
+            throw new UncheckedIOException("Cannot read " + MAIN_CONFIGURATION, e);
         }
+        Map<String, Declaration> byFixture = new HashMap<>();
+        for (TypeProperties type : properties.types()) {
+            if (!type.fixture().startsWith(FIXTURE_PREFIX)) {
+                throw new AssertionError("type " + type.name() + " has a fixture outside " + FIXTURE_PREFIX + ": "
+                                         + type.fixture());
+            }
+            String file = type.fixture().substring(FIXTURE_PREFIX.length());
+            if (byFixture.put(file, new Declaration(inResponseOrder(type), type.uniqueNames())) != null) {
+                throw new AssertionError("more than one type uses the fixture " + type.fixture());
+            }
+        }
+        return Map.copyOf(byFixture);
     }
 
     private static List<String> inResponseOrder(TypeProperties type) {

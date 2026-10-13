@@ -16,7 +16,7 @@ import java.util.List;
 public record ReferenceDataProperties(List<TypeProperties> types) {
 
     public ReferenceDataProperties {
-        types = types == null ? List.of() : List.copyOf(types);
+        types = copyOf(types);
     }
 
     public record TypeProperties(String name, List<String> aliases, String fixture, List<String> referenceFields,
@@ -27,13 +27,13 @@ public record ReferenceDataProperties(List<TypeProperties> types) {
             referenceFields = copyOf(referenceFields);
             uniqueNames = uniqueNames == null || uniqueNames;
         }
+    }
 
-        /**
-         * An unmodifiable copy that keeps empty entries, so the registry can reject them with its usual
-         * {@link IllegalStateException} rather than {@link List#copyOf} failing during binding.
-         */
-        private static List<String> copyOf(List<String> values) {
-            return values == null ? List.of() : Collections.unmodifiableList(new ArrayList<>(values));
-        }
+    /**
+     * An unmodifiable copy that keeps empty entries, so the registry can reject them with its usual
+     * {@link IllegalStateException} rather than {@link List#copyOf} failing during binding.
+     */
+    private static <T> List<T> copyOf(List<T> values) {
+        return values == null ? List.of() : Collections.unmodifiableList(new ArrayList<>(values));
     }
 }

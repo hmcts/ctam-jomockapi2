@@ -8,7 +8,7 @@
 
 ## Summary
 
-This feature serves BaseLocation through the generic reference-data routes 002 built, as `base_locations` only: the deprecated alias `base_location` is deliberately not served (spec Clarifications; Constitution VII, v1.11.0). It is the first real use of 002's extension design: one entry in `jo.reference-data.types` and one checked-in fixture. The only main-code change is generic: fixture validation stops rejecting repeated names, because the extract has 120 names shared by different real locations and the spec serves one record per source row (spec FR-017; research R10).
+This feature serves BaseLocation through the generic reference-data routes 002 built, as `base_locations` only: the deprecated alias `base_location` is deliberately not served (spec Clarifications; Constitution VII, v1.11.0). It is the first real use of 002's extension design: one entry in `jo.reference-data.types` and one checked-in fixture. The main-code changes are generic: a type can allow repeated names with `unique-names: false`, because the extract has 120 names shared by different real locations and the spec serves one record per source row (spec FR-017; research R10, amended after code review: originally the duplicate-name check was removed for every type), and a type can declare reference fields (FR-018; research R11).
 
 **Amendment (2026-10-13)**: BaseLocation records also carry the extract's `type_id`, `parent_id` and `jurisdiction_id` (spec Clarifications, Session 2026-10-13; FR-005, FR-018; deviation D-2). They are forward references to types not served yet, allowed by Constitution v1.12.0 (Principle IV) and recorded as DF-1. See research R11 and data-model.md § 1a; the tasks are Phase 11 of tasks.md.
 

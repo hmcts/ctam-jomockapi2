@@ -116,6 +116,9 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
     }
 
     private static void validate(String fixture, ReferenceDataRecord record) {
+        if (record.getId() == null) {
+            throw invalid(fixture, "record without an id");
+        }
         long id = record.getId();
         if (id <= 0) {
             throw invalid(fixture, id, "id must be greater than 0");

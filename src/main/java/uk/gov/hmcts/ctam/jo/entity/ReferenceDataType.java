@@ -3,6 +3,7 @@ package uk.gov.hmcts.ctam.jo.entity;
 import lombok.Value;
 
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -24,18 +25,19 @@ public class ReferenceDataType {
     boolean uniqueNames;
 
     /**
-     * Copies the sets, keeping their iteration order; null aliases or reference fields mean none.
+     * Copies the sets, so later changes to the caller's sets don't reach the type: aliases keep their iteration
+     * order, and reference fields are held as an {@link EnumSet}, in declaration order. Null means none.
      */
     public ReferenceDataType(String name, Set<String> aliases, String fixture, Set<ReferenceField> referenceFields,
                              boolean uniqueNames) {
         this.name = name;
-        this.aliases = copyOf(aliases);
+        this.aliases = aliases == null ? Set.of() : Collections.unmodifiableSet(new LinkedHashSet<>(aliases));
         this.fixture = fixture;
-        this.referenceFields = copyOf(referenceFields);
+        EnumSet<ReferenceField> fields = EnumSet.noneOf(ReferenceField.class);
+        if (referenceFields != null) {
+            fields.addAll(referenceFields);
+        }
+        this.referenceFields = Collections.unmodifiableSet(fields);
         this.uniqueNames = uniqueNames;
-    }
-
-    private static <T> Set<T> copyOf(Set<T> values) {
-        return values == null ? Set.of() : Collections.unmodifiableSet(new LinkedHashSet<>(values));
     }
 }

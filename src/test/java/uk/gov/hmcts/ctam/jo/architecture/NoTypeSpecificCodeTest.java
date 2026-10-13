@@ -38,7 +38,8 @@ class NoTypeSpecificCodeTest {
     }
 
     // One fragment per configured type; each type's feature adds its own. Checks code, comments and Javadoc alike,
-    // in any spelling: snake_case, spaced words or camelCase ("base_location", "base location", "BaseLocation").
+    // in any spelling: snake_case, spaced or wrapped words, camelCase or upper case ("base_location",
+    // "base location", "BaseLocation", "XBASE_LOCATION").
     @ParameterizedTest
     @ValueSource(strings = {"appointment", "base_location"})
     void noMainSourceFileNamesASpecificReferenceDataType(String fragment) {
@@ -51,9 +52,16 @@ class NoTypeSpecificCodeTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"base_location", "base_locations", "BASE_LOCATION", "base location", "Base Location",
-        "base-location", "BaseLocation", "baseLocation", "BaseLocationHelper", "myBaseLocation"})
+        "base-location", "BaseLocation", "baseLocation", "BaseLocationHelper", "myBaseLocation", "XBASE_LOCATION",
+        "HMCTSBaseLocation", "base\n     * location"})
     void theGuardRecognisesEverySpelling(String text) {
         assertThat(spellingsOf("base_location").matcher(text).find()).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"appointment", "AppointmentTitle", "DEFAULTAPPOINTMENT_TITLES", "myAppointments"})
+    void theGuardRecognisesASingleWordFragmentInEverySpelling(String text) {
+        assertThat(spellingsOf("appointment").matcher(text).find()).isTrue();
     }
 
     @ParameterizedTest
@@ -63,12 +71,15 @@ class NoTypeSpecificCodeTest {
     }
 
     /**
-     * Matches the fragment's words, case-insensitively, joined by nothing, a space, an underscore or a hyphen, and
-     * starting a word or a camelCase hump (so "database location" doesn't match "base_location").
+     * Matches the fragment's words, case-insensitively, joined by any run of whitespace, underscores, hyphens or
+     * Javadoc asterisks (so a wrapped comment line still matches), and starting anywhere except straight after a
+     * lower-case letter unless the fragment starts upper-case there (a camelCase hump). So "XBASE_LOCATION" and
+     * "myBaseLocation" match, but "database location" doesn't.
      */
     private static Pattern spellingsOf(String fragment) {
-        String words = Arrays.stream(fragment.split("_")).map(Pattern::quote).collect(Collectors.joining("[\\s_-]?"));
-        return Pattern.compile("(?:(?<![A-Za-z])|(?<=[a-z])(?=[A-Z]))(?i:" + words + ")");
+        String words = Arrays.stream(fragment.split("_")).map(Pattern::quote)
+                .collect(Collectors.joining("[\\s_*-]*"));
+        return Pattern.compile("(?:(?<![a-z])|(?=[A-Z]))(?i:" + words + ")");
     }
 
     @Test
