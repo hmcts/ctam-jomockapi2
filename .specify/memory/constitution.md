@@ -1,25 +1,26 @@
 <!--
 Sync Impact Report
-- Version change: 1.10.0 → 1.11.0
-- Rationale: Serving a deprecated reference-data alias that the E-Links contract
-  defines is now optional per type. A type's feature decides which aliases, if any,
-  it serves, and its spec MUST say so. An alias that isn't served is rejected like any
-  unsupported attribute_name (400). Every alias that is served is still resolved
-  centrally. Not serving an alias is not a contract deviation. Motivation: feature
-  003-base-locations-reference-data drops the base_location alias. This is a MINOR
-  bump: it adds a bounded exception to Principle I and expands Principle VII's
-  guidance. Nothing that complied before stops complying (002 still serves
-  appointment_title), so it isn't backward-incompatible.
-- Modified principles: I. Contract-First Development (adds a deprecated-alias
-  exception that points to VII); VII. Generic Reference-Data Handling (aliases are
-  optional per type; the spec states the choice; unserved aliases return 400; served
-  aliases are resolved centrally).
+- Version change: 1.11.0 → 1.12.0
+- Rationale: A reference-data record may now carry an id that refers to a reference-data
+  type the mock does not serve yet (a forward reference), under three conditions: the
+  type's spec records each such reference as a Deferred Item naming the target type; the
+  values are copied unchanged from the reference extract; and the feature that later
+  serves the target type MUST make every such reference resolve, verified by a test.
+  References between served types must still always resolve, and no real personal data
+  is ever used. Motivation: feature 003-base-locations-reference-data serves the
+  base-location type_id, parent_id and jurisdiction_id (E-Links ids from the extract),
+  which refer to location_types, locations and jurisdictions, none of which are served
+  yet. This is a MINOR bump: it adds a bounded exception to Principle IV. Nothing that
+  complied before stops complying.
+- Modified principles: IV. Synthetic Data Only (adds the forward-reference exception and
+  its conditions; rationale expanded).
 - Added sections: none
 - Removed sections: none
-- Downstream impact: `/speckit-specify` specs for reference-data types MUST say which
-  deprecated aliases they serve. `/speckit-analyze` should no longer flag an omitted
-  alias as a Principle I conflict. CLAUDE.md quotes the constitution version and needs
-  updating to v1.11.0. No template changes are needed.
+- Downstream impact: specs for reference-data types that carry forward references MUST
+  list them as Deferred Items; a feature that serves a target type MUST add a test that
+  every reference to it resolves. `/speckit-analyze` should accept a documented forward
+  reference rather than flag it as a Principle IV conflict. CLAUDE.md quotes the
+  constitution version and needs updating to v1.12.0. No template changes are needed.
 - Deferred TODOs: none
 -->
 
@@ -89,9 +90,20 @@ NEVER be used, stored, or referenced. Synthetic data MUST be realistic and inter
 consistent, and relationships between people, appointments, roles, jurisdictions,
 tickets, authorisations, locations, and reference data MUST remain coherent (e.g., an
 appointment MUST reference a person and jurisdiction that actually exist in the dataset).
+One bounded exception applies to reference data: a reference-data record MAY carry an id
+that refers to another reference-data type the mock does not serve yet (a forward
+reference) only if all of the following hold: the type's spec records each such reference
+as a Deferred Item naming the target type; the values are copied unchanged from the
+reference extract, so they resolve once the target type is served with the extract's ids;
+and the feature that later serves the target type MUST make every such reference resolve,
+verified by an automated test, before that feature is complete. References between types
+that are both served MUST always resolve.
 **Rationale**: This is a mock service; using or risking exposure of real personal data
 would defeat its purpose and create unacceptable compliance risk. Coherent synthetic data
-also makes the mock genuinely useful for downstream integration testing.
+also makes the mock genuinely useful for downstream integration testing. Reference-data
+types are added one feature at a time, so a type can carry ids for types that come later;
+the forward-reference exception lets consumers see the real response shape now, while the
+Deferred Item and the closing test keep the gap visible and guarantee it is closed.
 
 ### V. Deterministic Behaviour
 The same request against the same configured dataset MUST return the same result every
@@ -429,4 +441,4 @@ Where the deviation is a deferral rather than a permanent, scope-justified excep
 documentation MUST state a path to eventual compliance (e.g., a named future feature that
 will close it), not merely a reason the gap exists today.
 
-**Version**: 1.11.0 | **Ratified**: 2026-09-08 | **Last Amended**: 2026-10-08
+**Version**: 1.12.0 | **Ratified**: 2026-09-08 | **Last Amended**: 2026-10-13
