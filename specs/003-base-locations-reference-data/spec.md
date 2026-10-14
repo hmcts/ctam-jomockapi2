@@ -4,9 +4,9 @@
 
 **Created**: 2026-10-08
 
-**Status**: Draft
+**Status**: Implemented
 
-**Amended**: 2026-10-13 — BaseLocation records now carry the extract's `type_id`, `parent_id` and `jurisdiction_id` (Clarifications, Session 2026-10-13). The Input below is the original request and is kept as written.
+**Amended**: 2026-10-13 — BaseLocation records now carry the extract's `type_id`, `parent_id` and `jurisdiction_id` (Clarifications, Session 2026-10-13). After code review, repeated names became a per-type opt-out (FR-017) and fixture and configuration validation became stricter (FR-019). The Input below is the original request and is kept as written.
 
 **Input**: User description: "Add the base_locations reference-data type to the existing generic reference-data API (feature 002), served by both routes — `GET /api/v1/reference_data/base_locations` and `GET /api/v1/reference_data/base_locations/{reference_id}` — with the deprecated alias `base_location`, exactly as `appointment_titles` / `appointment_title` work today. Reuse the generic mechanism (a type entry in configuration and a checked-in fixture, no type-specific code). Records use the same fields as appointment titles; the extract's `type_id`, `parent_id` and `jurisdiction_id` columns are out of scope and deferred. Generate the fixture from the public name column of the local extract only: de-duplicate (1,462 rows, 1,276 distinct names), sort in code-point order, ids of 10 × position, dates as in 002; say how the one non-ASCII name is handled. Document known reference points. The latency guards must still pass for a collection ~6.5× larger. Deliver unit, integration, functional and smoke coverage, generated API documentation and Postman artifacts, with acceptance scenarios mirroring 002."
 
@@ -157,7 +157,7 @@ As a maintainer, I want base locations added by declaring the type and supplying
 
 **Acceptance Scenarios**:
 
-1. **AC-017**: **Given** the delivered change, **When** it is reviewed, **Then** it adds no route, handler, authentication or error-handling logic, and its changes to main code are type-agnostic: removing the duplicate-name check from fixture validation (FR-017), and the generic reference fields (FR-018); every other addition is the type entry, its dataset, tests, documentation and example requests.
+1. **AC-017**: **Given** the delivered change, **When** it is reviewed, **Then** it adds no route, handler, authentication or error-handling logic, and its changes to main code are type-agnostic: the per-type `unique-names` opt-out (FR-017), the generic reference fields (FR-018) and stricter fixture and configuration validation (FR-019); every other addition is the type entry, its dataset, tests, documentation and example requests.
 2. **AC-018**: **Given** the delivered change, **When** the automated guard against type-specific code runs, **Then** it passes: no main source file names a specific reference-data type.
 3. **AC-019**: **Given** the running service, **When** its published API documentation is inspected, **Then** the `attribute_name` parameter lists `base_locations` as a supported value alongside the appointment-title values, does not list `base_location`, and still lists `appointment_title` as the only deprecated value, without that documentation having been edited by hand.
 
@@ -173,7 +173,7 @@ As a tester or integrating team, I want ready-made example requests for base loc
 
 **Acceptance Scenarios**:
 
-1. **AC-020**: **Given** a running instance and the example request collection with its environment, **When** the collection is run, **Then** it includes passing requests for the base-location collection, a single record by a reference-point id, an unknown `reference_id` returning `404`, a malformed `reference_id` returning `400`, and the unserved alias `base_location` returning `400`, each with checks for status, response structure and key field values, and no hard-coded environment values.
+1. **AC-020**: **Given** a running instance and the example request collection with its environment, **When** the collection is run, **Then** it includes passing requests for the base-location collection, a single record by a reference-point id, an unknown `reference_id` returning `404`, a malformed `reference_id` returning `400`, a query parameter and a trailing slash, each rejected as for appointment titles, missing and invalid credentials returning `401`, and the unserved alias `base_location` returning `400`, each with checks for status, response structure and key field values, and no hard-coded environment values.
 
 ---
 
@@ -196,7 +196,7 @@ As a tester or integrating team, I want ready-made example requests for base loc
 
 - **FR-001**: The system MUST serve the BaseLocation reference-data type through the existing collection and single-record reference-data routes, under the canonical attribute name `base_locations` only. The deprecated alias `base_location` MUST NOT be served (Constitution Principle VII).
 - **FR-002**: The supported attribute names MUST become exactly `appointment_titles`, `appointment_title` and `base_locations`. This supersedes 002's FR-003 and FR-007, which limited support to AppointmentTitle; every other E-Links attribute name, including `base_location`, MUST remain unsupported (`400`).
-- **FR-003**: BaseLocation MUST be added through the generic reference-data capability alone: a type entry and its dataset. The change MUST NOT add or modify route, authentication or error-handling logic; its changes to validation and the record shape are FR-017's and FR-018's, which are type-agnostic. It MUST NOT introduce code that names a specific reference-data type.
+- **FR-003**: BaseLocation MUST be added through the generic reference-data capability alone: a type entry and its dataset. The change MUST NOT add or modify route, authentication or error-handling logic; its changes to validation and the record shape are FR-017's, FR-018's and FR-019's, which are type-agnostic. It MUST NOT introduce code that names a specific reference-data type.
 - **FR-004**: All behaviour 002 defines for a supported type — authentication first, `reference_id` validation, `404` for unknown ids, `400` for query parameters, the shared error shape, ascending `id` order, read-only access and determinism — MUST apply to BaseLocation without exception.
 
 **Response content**
@@ -224,6 +224,7 @@ As a tester or integrating team, I want ready-made example requests for base loc
 - **FR-016**: Unit, integration, functional and smoke coverage MUST be extended to the new type, and the project's JaCoCo coverage gate (90% lines, 80% branches) MUST pass.
 - **FR-017**: A type's entry MUST be able to allow repeated names with `unique-names: false`; by default (`unique-names` absent or `true`) fixture validation at start-up still requires `name` to be unique within the type, as in 002. `id` MUST be unique in every type, and every other 002 field rule still applies. The mechanism MUST be type-agnostic (no type named in code). BaseLocation declares `unique-names: false`; AppointmentTitle declares nothing and keeps 002's rule. *(Amended 2026-10-13 after code review: originally the uniqueness rule was dropped for every type; making it a per-type opt-out keeps the start-up guard for types whose names really are unique. See research R10.)*
 - **FR-018**: A type's entry MUST be able to declare which of the reference fields `type_id`, `parent_id` and `jurisdiction_id` its records carry; a type declares none by default. At start-up, every record MUST carry each declared field as a positive integer and MUST NOT carry an undeclared one, and an unknown or repeated field name in a type entry MUST stop start-up. Responses MUST write a reference field only when the record carries it. The mechanism MUST be type-agnostic; BaseLocation declares all three fields and AppointmentTitle declares none. The generated API documentation MUST list the three fields as optional properties of `ReferenceDataResponse`.
+- **FR-019**: Start-up validation MUST reject, for every type: a fixture value of the wrong JSON type (an `id` or reference field that is not a JSON integer, including fractions, numeric strings and empty strings; a `name` that is not a string; a timestamp or date that is not an ISO-8601 string, such as an epoch number or a date array); a record without an `id`, reported with its position in the fixture; an explicit `null` for any reference field; and an empty entry in `jo.reference-data.types` or in a type's `aliases` or `reference-fields`, which MUST fail with the same kind of error as every other invalid declaration. The checks MUST be type-agnostic. *(Added 2026-10-13 after code review; research R10, tasks T052–T053.)*
 
 ### Reference Points
 
@@ -268,7 +269,7 @@ Every record has `created_at` 2024-01-15T09:00:00Z and `start_date` 2024-01-01.
 - **SC-004**: 0 of the 19 still-unsupported attribute names return a `200` response.
 - **SC-005**: 0 base-location requests without valid credentials receive any reference data; 100% receive `401`.
 - **SC-006**: 100% of 002's AppointmentTitle acceptance tests pass with their assertions and expected responses unchanged.
-- **SC-007**: Adding the type changes 0 lines of route, authentication or error-handling logic; the main-code changes are FR-017's removal of the duplicate-name check and FR-018's generic reference fields, neither naming a type.
+- **SC-007**: Adding the type changes 0 lines of route, authentication or error-handling logic; the main-code changes are FR-017's per-type `unique-names` opt-out, FR-018's generic reference fields and FR-019's stricter validation, none naming a type.
 - **SC-008**: The base-location collection meets the same latency bounds as the appointment-title collection in the smoke suite, at the default bound on every build and at the strict target when that check is run.
 - **SC-009**: An integrator using the published documentation and example requests retrieves the base-location list and a single base location at the first attempt, without reading source code.
 

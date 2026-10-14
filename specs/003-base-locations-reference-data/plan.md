@@ -37,7 +37,7 @@ This feature serves BaseLocation through the generic reference-data routes 002 b
 **Performance Goals**: 002's targets unchanged: collection p95 under 100 ms on a developer machine (`-Dperf.strict=true`), under 1 s on CI. The base-location collection is about 226 KB of JSON against 32 KB today; the estimate is about 19 ms per call (research R7).
 
 **Constraints**:
-- No type-specific code (FR-003, AC-017/018). The one main-code change, FR-017, names no type.
+- No type-specific code (FR-003, AC-017/018). The main-code changes (FR-017's `unique-names` opt-out, FR-018's reference fields and FR-019's stricter validation) name no type.
 - The extract is used once and never committed (FR-007).
 - Names are carried over exactly, including the en dash (FR-010).
 - Every 002 behaviour applies to the new type unchanged (FR-004).
@@ -125,13 +125,13 @@ src/smokeTest/java/uk/gov/hmcts/ctam/jo/
 └── ReferenceDataSmokeTest.java                    # p95 guard per collection path (R7)
 
 postman/ctam-jomockapi.postman_collection.json     # + Reference Data › Base Locations (9 requests)
-README.md                                          # § Reference data lists both types; fixture rules drop "unique names"
+README.md                                          # § Reference data lists both types; fixture rules: names unique unless `unique-names: false`
 CLAUDE.md                                          # § Current repo state: + 003 line
 specs/002-reference-data-api/contracts/reference-data-api.md  # one-line pointer to the 003 delta
 specs/002-reference-data-api/data-model.md         # one-line pointer: name uniqueness superseded by 003 FR-017
 ```
 
-**Structure Decision**: The existing single Gradle/Spring Boot project, unchanged in layout. All work is configuration, data, tests and documentation, plus one type-agnostic deletion in the repository; the only new test package is the functional suite's own `testsupport`, mirroring the shared `testFixtures` package of the same name.
+**Structure Decision**: The existing single Gradle/Spring Boot project, unchanged in layout. All work is configuration, data, tests and documentation, plus type-agnostic changes to configuration, the registry, the entities and the repository (FR-017–FR-019); the only new test package is the functional suite's own `testsupport`, mirroring the shared `testFixtures` package of the same name.
 
 ## Complexity Tracking
 
@@ -143,7 +143,7 @@ No new deviation from a constitution MUST: the forward references (DF-1) are wit
 
 Re-run after Phase 1 (research.md, data-model.md, contracts/reference-data-api-base-locations.md, quickstart.md).
 
-The design added no dependency, layer or abstraction, and its only production change deletes a validation rule (R10). Four design details strengthen the assessments:
+The design added no dependency, layer or abstraction. Its production changes are type-agnostic: originally only the deletion of a validation rule (R10), later the reference fields (R11), the per-type `unique-names` opt-out and stricter validation (R10 amendment; FR-017, FR-019). Four design details strengthen the assessments:
 - The fixture-rule test (R4) makes the generation rules, and so id stability (FR-011), enforceable without the extract — supports IV, V and VII.
 - The widened guard (R8) turns "no type-specific code" for the new type from a review item into a build failure — supports VII.
 - A per-collection latency guard (R7) holds the larger response to the same bound instead of relaxing it — supports XI and XIII.
@@ -179,5 +179,11 @@ Every row stays **Pass**. Open item: the inherited Sonar deferral.
 - Strict latency (`./gradlew smokeTest -Dperf.strict=true`): collection p95 `appointment_titles` 2 ms, `base_locations` 3 ms (bound 100 ms).
 - Main code: `git diff --numstat main -- src/main` lists `ReferenceDataProperties`, `ReferenceDataResponse`, `ReferenceDataRecord`, `ReferenceDataType`, `FixtureReferenceDataRepository` and `ReferenceDataTypeRegistry`, plus the new `ReferenceField` and `application.yml` (+4). None names a type, and `NoTypeSpecificCodeTest` passes.
 - Fixture: regenerated from the extract; every `id`, `name` and date is unchanged, and the only difference is the three added fields. Golden file `golden/base_locations.json` is now 304,816 bytes. `golden/appointment_titles.json` is unchanged, so AppointmentTitle responses are byte-for-byte the same (AC-014).
-- `TypeProperties` needed `@ConstructorBinding` on its canonical constructor once it gained a second constructor; without it every full-context test failed to bind `jo.reference-data.types`.
+- `TypeProperties` needed `@ConstructorBinding` on its canonical constructor once it gained a second constructor; without it every full-context test failed to bind `jo.reference-data.types`. *(Superseded in Phase 12: the second constructor and the annotation were removed.)*
 - Postman: newman ran 19 requests with 68 assertions (+2: jurisdiction ids on the collection, references of record 70), 0 failures.
+
+**Code-review follow-ups (2026-10-13 to 2026-10-14, Phase 12)**:
+- Six `/code-review` rounds; fixes in T051–T057. `./gradlew check -PskipOwasp` green. Tests per suite: `test` 243 (+43 since the amendment: registry, repository, entity, fixture-rule and guard cases), `integrationTest` 33, `functionalTest` 134, `smokeTest` 4. JaCoCo: lines 464/464 (100%), branches 215/216 (99.5%); the one missed branch is MapStruct's generated null check on the boxed `id`, which validation makes unreachable.
+- Main code: `git diff --numstat main -- src/main` lists `ReferenceDataProperties`, `ReferenceDataResponse`, `ReferenceDataRecord`, `ReferenceDataType`, `ReferenceField` (new), `FixtureReferenceDataRepository`, `ReferenceDataTypeRegistry` and `application.yml` (+6), plus the fixture. None names a type, and the widened `NoTypeSpecificCodeTest` passes. The AC-017/SC-007 result recorded under T028 above (deletions only) describes the original design.
+- Postman: newman ran 23 requests with 82 assertions, 0 failures (nine in Reference Data › Base Locations).
+- The jurisdiction allow-list in `ReferenceDataFixtureRulesTest` (30, 34, 84, 86) is required by AC-021, not a type-specific special case.
