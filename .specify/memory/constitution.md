@@ -1,26 +1,24 @@
 <!--
 Sync Impact Report
-- Version change: 1.11.0 → 1.12.0
-- Rationale: A reference-data record may now carry an id that refers to a reference-data
-  type the mock does not serve yet (a forward reference), under three conditions: the
-  type's spec records each such reference as a Deferred Item naming the target type; the
-  values are copied unchanged from the reference extract; and the feature that later
-  serves the target type MUST make every such reference resolve, verified by a test.
-  References between served types must still always resolve, and no real personal data
-  is ever used. Motivation: feature 003-base-locations-reference-data serves the
-  base-location type_id, parent_id and jurisdiction_id (E-Links ids from the extract),
-  which refer to location_types, locations and jurisdictions, none of which are served
-  yet. This is a MINOR bump: it adds a bounded exception to Principle IV. Nothing that
-  complied before stops complying.
-- Modified principles: IV. Synthetic Data Only (adds the forward-reference exception and
-  its conditions; rationale expanded).
+- Version change: 1.12.0 → 1.13.0
+- Rationale: Constitution amendments must now be explicit, deliberate and human-reviewed.
+  Before the file is edited, a proposed amendment (the need behind it, the principles
+  affected, the exact wording, the version bump and the downstream impact) MUST be
+  approved by a human maintainer. Only the approved change may be applied, in a commit of
+  its own, and it MUST be human-reviewed before anything relies on it. No automated
+  contributor, AI coding assistants included, may amend the constitution silently or on
+  its own initiative. This applies to every amendment, PATCH-level ones included.
+  Motivation: PR review feedback asking that constitution changes never be silent.
+  This is a MINOR bump: it materially expands the governance guidance. Nothing that
+  complied before stops complying, and no principle is removed or redefined.
+- Modified principles: none
+- Modified sections: Governance (Amendment procedure gains a "Human approval and review"
+  paragraph).
 - Added sections: none
 - Removed sections: none
-- Downstream impact: specs for reference-data types that carry forward references MUST
-  list them as Deferred Items; a feature that serves a target type MUST add a test that
-  every reference to it resolves. `/speckit-analyze` should accept a documented forward
-  reference rather than flag it as a Principle IV conflict. CLAUDE.md quotes the
-  constitution version and needs updating to v1.12.0. No template changes are needed.
+- Downstream impact: CLAUDE.md already tells Claude Code to ask before amending, and
+  quotes the constitution version, which needs updating to v1.13.0. No template, spec,
+  plan, task or code changes are needed.
 - Deferred TODOs: none
 -->
 
@@ -426,6 +424,22 @@ update the Sync Impact Report at the top of the file, bump the version per the v
 policy below, and update the Last Amended date. Amendments that remove or redefine a
 principle MUST state the rationale for the change.
 
+**Human approval and review**: No amendment may be made silently or on an automated
+contributor's own initiative, including AI coding assistants. Before the file is edited,
+the proposed amendment MUST be put to a human maintainer for explicit approval. The
+proposal MUST cover:
+- the conflict or need that prompts it;
+- the principles affected;
+- the exact proposed wording;
+- the version bump and why;
+- the downstream impact on specs, plans, tasks and code.
+
+Only the approved change may be applied. It MUST be committed on its own, with no
+unrelated changes bundled in, and it MUST be human-reviewed (for example in a pull
+request) before it is relied on. Work that depends on an amendment MUST NOT proceed until
+that review is complete. This applies to every amendment, PATCH-level wording fixes
+included.
+
 **Versioning policy**: This constitution follows semantic versioning:
 - MAJOR: backward-incompatible governance changes, or removal/redefinition of a principle.
 - MINOR: a new principle or section added, or materially expanded guidance.
@@ -441,4 +455,4 @@ Where the deviation is a deferral rather than a permanent, scope-justified excep
 documentation MUST state a path to eventual compliance (e.g., a named future feature that
 will close it), not merely a reason the gap exists today.
 
-**Version**: 1.12.0 | **Ratified**: 2026-09-08 | **Last Amended**: 2026-10-13
+**Version**: 1.13.0 | **Ratified**: 2026-09-08 | **Last Amended**: 2026-10-16
