@@ -23,7 +23,13 @@ A mock implementation of the **E-Links API** (Ministry of Justice / judiciary.uk
 
 The constitution is currently at **v1.12.0** (last amended 2026-10-13).
 
-If a change would conflict with the constitution, that's a blocker — resolve it by updating the constitution deliberately (via `/speckit-constitution`), not by working around it silently.
+If a change would conflict with the constitution, that's a blocker. Never work around it silently, and never amend the constitution on your own initiative. Instead:
+
+1. **Stop and ask first.** Explain the conflict, which principle(s) it touches, the amendment you propose (the wording, the version bump and why), and what else it would affect (specs, plans, tasks, code). Wait for explicit human approval before editing `.specify/memory/constitution.md` or running `/speckit-constitution`.
+2. **Apply only the approved change.** Once approved, make exactly that amendment via `/speckit-constitution`, with no other changes bundled in, and keep it in its own commit so the diff is easy to review.
+3. **Get it reviewed.** Show the resulting diff and the version/date changes, and treat the amendment as provisional until a human has reviewed it (for example in the PR). Don't build dependent work on it until then.
+
+This applies even when an amendment looks minor or obvious (a PATCH-level wording fix, for example). Constitution changes are always explicit, deliberate and human-reviewed.
 
 ## Development workflow
 
