@@ -2,13 +2,17 @@ package uk.gov.hmcts.ctam.jo.architecture;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,13 +37,49 @@ class NoTypeSpecificCodeTest {
         assertThat(sources).as("main sources found under %s", MAIN_SOURCES.toAbsolutePath()).isNotEmpty();
     }
 
-    @Test
-    void noMainSourceFileNamesTheAppointmentTitleType() {
-        // Checks code, comments and Javadoc alike.
+    // One fragment per configured type; each type's feature adds its own. Checks code, comments and Javadoc alike,
+    // in any spelling: snake_case, spaced or wrapped words, camelCase or upper case ("base_location",
+    // "base location", "BaseLocation", "XBASE_LOCATION").
+    @ParameterizedTest
+    @ValueSource(strings = {"appointment", "base_location"})
+    void noMainSourceFileNamesASpecificReferenceDataType(String fragment) {
+        Pattern spellings = spellingsOf(fragment);
         assertThat(sources)
-                .filteredOn(path -> read(path).toLowerCase(Locale.ROOT).contains("appointment"))
-                .as("main sources mentioning a specific reference-data type")
+                .filteredOn(path -> spellings.matcher(read(path)).find())
+                .as("main sources mentioning %s", fragment)
                 .isEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"base_location", "base_locations", "BASE_LOCATION", "base location", "Base Location",
+        "base-location", "BaseLocation", "baseLocation", "BaseLocationHelper", "myBaseLocation", "XBASE_LOCATION",
+        "HMCTSBaseLocation", "base\n     * location"})
+    void theGuardRecognisesEverySpelling(String text) {
+        assertThat(spellingsOf("base_location").matcher(text).find()).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"appointment", "AppointmentTitle", "DEFAULTAPPOINTMENT_TITLES", "myAppointments"})
+    void theGuardRecognisesASingleWordFragmentInEverySpelling(String text) {
+        assertThat(spellingsOf("appointment").matcher(text).find()).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"database location", "databaseLocation", "base", "location", "baseline location"})
+    void theGuardIgnoresOtherWords(String text) {
+        assertThat(spellingsOf("base_location").matcher(text).find()).isFalse();
+    }
+
+    /**
+     * Matches the fragment's words, case-insensitively, joined by any run of whitespace, underscores, hyphens or
+     * Javadoc asterisks (so a wrapped comment line still matches), and starting anywhere except straight after a
+     * lower-case letter unless the fragment starts upper-case there (a camelCase hump). So "XBASE_LOCATION" and
+     * "myBaseLocation" match, but "database location" doesn't.
+     */
+    private static Pattern spellingsOf(String fragment) {
+        String words = Arrays.stream(fragment.split("_")).map(Pattern::quote)
+                .collect(Collectors.joining("[\\s_*-]*"));
+        return Pattern.compile("(?:(?<![a-z])|(?=[A-Z]))(?i:" + words + ")");
     }
 
     @Test

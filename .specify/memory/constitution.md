@@ -1,25 +1,24 @@
 <!--
 Sync Impact Report
-- Version change: 1.10.0 → 1.11.0
-- Rationale: Serving a deprecated reference-data alias that the E-Links contract
-  defines is now optional per type. A type's feature decides which aliases, if any,
-  it serves, and its spec MUST say so. An alias that isn't served is rejected like any
-  unsupported attribute_name (400). Every alias that is served is still resolved
-  centrally. Not serving an alias is not a contract deviation. Motivation: feature
-  003-base-locations-reference-data drops the base_location alias. This is a MINOR
-  bump: it adds a bounded exception to Principle I and expands Principle VII's
-  guidance. Nothing that complied before stops complying (002 still serves
-  appointment_title), so it isn't backward-incompatible.
-- Modified principles: I. Contract-First Development (adds a deprecated-alias
-  exception that points to VII); VII. Generic Reference-Data Handling (aliases are
-  optional per type; the spec states the choice; unserved aliases return 400; served
-  aliases are resolved centrally).
+- Version change: 1.12.0 → 1.13.0
+- Rationale: Constitution amendments must now be explicit, deliberate and human-reviewed.
+  Before the file is edited, a proposed amendment (the need behind it, the principles
+  affected, the exact wording, the version bump and the downstream impact) MUST be
+  approved by a human maintainer. Only the approved change may be applied, in a commit of
+  its own, and it MUST be human-reviewed before anything relies on it. No automated
+  contributor, AI coding assistants included, may amend the constitution silently or on
+  its own initiative. This applies to every amendment, PATCH-level ones included.
+  Motivation: PR review feedback asking that constitution changes never be silent.
+  This is a MINOR bump: it materially expands the governance guidance. Nothing that
+  complied before stops complying, and no principle is removed or redefined.
+- Modified principles: none
+- Modified sections: Governance (Amendment procedure gains a "Human approval and review"
+  paragraph).
 - Added sections: none
 - Removed sections: none
-- Downstream impact: `/speckit-specify` specs for reference-data types MUST say which
-  deprecated aliases they serve. `/speckit-analyze` should no longer flag an omitted
-  alias as a Principle I conflict. CLAUDE.md quotes the constitution version and needs
-  updating to v1.11.0. No template changes are needed.
+- Downstream impact: CLAUDE.md already tells Claude Code to ask before amending, and
+  quotes the constitution version, which needs updating to v1.13.0. No template, spec,
+  plan, task or code changes are needed.
 - Deferred TODOs: none
 -->
 
@@ -89,9 +88,20 @@ NEVER be used, stored, or referenced. Synthetic data MUST be realistic and inter
 consistent, and relationships between people, appointments, roles, jurisdictions,
 tickets, authorisations, locations, and reference data MUST remain coherent (e.g., an
 appointment MUST reference a person and jurisdiction that actually exist in the dataset).
+One bounded exception applies to reference data: a reference-data record MAY carry an id
+that refers to another reference-data type the mock does not serve yet (a forward
+reference) only if all of the following hold: the type's spec records each such reference
+as a Deferred Item naming the target type; the values are copied unchanged from the
+reference extract, so they resolve once the target type is served with the extract's ids;
+and the feature that later serves the target type MUST make every such reference resolve,
+verified by an automated test, before that feature is complete. References between types
+that are both served MUST always resolve.
 **Rationale**: This is a mock service; using or risking exposure of real personal data
 would defeat its purpose and create unacceptable compliance risk. Coherent synthetic data
-also makes the mock genuinely useful for downstream integration testing.
+also makes the mock genuinely useful for downstream integration testing. Reference-data
+types are added one feature at a time, so a type can carry ids for types that come later;
+the forward-reference exception lets consumers see the real response shape now, while the
+Deferred Item and the closing test keep the gap visible and guarantee it is closed.
 
 ### V. Deterministic Behaviour
 The same request against the same configured dataset MUST return the same result every
@@ -414,6 +424,22 @@ update the Sync Impact Report at the top of the file, bump the version per the v
 policy below, and update the Last Amended date. Amendments that remove or redefine a
 principle MUST state the rationale for the change.
 
+**Human approval and review**: No amendment may be made silently or on an automated
+contributor's own initiative, including AI coding assistants. Before the file is edited,
+the proposed amendment MUST be put to a human maintainer for explicit approval. The
+proposal MUST cover:
+- the conflict or need that prompts it;
+- the principles affected;
+- the exact proposed wording;
+- the version bump and why;
+- the downstream impact on specs, plans, tasks and code.
+
+Only the approved change may be applied. It MUST be committed on its own, with no
+unrelated changes bundled in, and it MUST be human-reviewed (for example in a pull
+request) before it is relied on. Work that depends on an amendment MUST NOT proceed until
+that review is complete. This applies to every amendment, PATCH-level wording fixes
+included.
+
 **Versioning policy**: This constitution follows semantic versioning:
 - MAJOR: backward-incompatible governance changes, or removal/redefinition of a principle.
 - MINOR: a new principle or section added, or materially expanded guidance.
@@ -429,4 +455,4 @@ Where the deviation is a deferral rather than a permanent, scope-justified excep
 documentation MUST state a path to eventual compliance (e.g., a named future feature that
 will close it), not merely a reason the gap exists today.
 
-**Version**: 1.11.0 | **Ratified**: 2026-09-08 | **Last Amended**: 2026-10-08
+**Version**: 1.13.0 | **Ratified**: 2026-09-08 | **Last Amended**: 2026-10-16

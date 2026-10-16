@@ -21,9 +21,15 @@ A mock implementation of the **E-Links API** (Ministry of Justice / judiciary.uk
 - Every endpoint MUST have Postman artifacts in `postman/` (collection + environment, with test scripts and no hard-coded environment values), updated in the same feature (Principle XVII)
 - Gradle dependency locking is on: after changing dependencies, regenerate `gradle.lockfile` with `./gradlew dependencies --write-locks`
 
-The constitution is currently at **v1.11.0** (last amended 2026-10-08).
+The constitution is currently at **v1.13.0** (last amended 2026-10-16).
 
-If a change would conflict with the constitution, that's a blocker — resolve it by updating the constitution deliberately (via `/speckit-constitution`), not by working around it silently.
+If a change would conflict with the constitution, that's a blocker. Never work around it silently, and never amend the constitution on your own initiative. Instead:
+
+1. **Stop and ask first.** Explain the conflict, which principle(s) it touches, the amendment you propose (the wording, the version bump and why), and what else it would affect (specs, plans, tasks, code). Wait for explicit human approval before editing `.specify/memory/constitution.md` or running `/speckit-constitution`.
+2. **Apply only the approved change.** Once approved, make exactly that amendment via `/speckit-constitution`, with no other changes bundled in, and keep it in its own commit so the diff is easy to review.
+3. **Get it reviewed.** Show the resulting diff and the version/date changes, and treat the amendment as provisional until a human has reviewed it (for example in the PR). Don't build dependent work on it until then.
+
+This applies even when an amendment looks minor or obvious (a PATCH-level wording fix, for example). Constitution changes are always explicit, deliberate and human-reviewed.
 
 ## Development workflow
 
@@ -48,8 +54,9 @@ Always run `/speckit-analyze` before `/speckit-implement` — it catches coverag
   - correlation IDs (`CorrelationIdFilter`, `X-Correlation-Id`), structured logstash JSON logging, and `LogSanitiser` for caller values
   - one `ErrorResponse` shape from `ErrorResponseFactory`, used by `GlobalExceptionHandler`, the filters and `JsonErrorController` (`/error`)
   - Lombok/MapStruct, `-Werror`, Checkstyle (HMCTS plugin), OWASP dependency-check, JaCoCo, Sonar config, `dependencyUpdates`, and CI/CodeQL workflows in `.github/workflows/`
+- **`003-base-locations-reference-data` — implemented** (branch `003-base-locations-reference-data`). Adds `base_locations` through configuration and a fixture only: 1,462 synthetic records, one per source row (1,276 distinct names, since different locations share names). No deprecated alias is served, so `base_location` returns `400` (constitution v1.11.0, Principle VII). Records also carry the extract's E-Links `type_id`, `parent_id` and `jurisdiction_id` (amendment 2026-10-13, FR-018): forward references to `location_types`, `locations` and `jurisdictions`, allowed by constitution v1.12.0 (Principle IV) and recorded as DF-1, so the features adding those types must test that every reference resolves. Two generic changes: a type can allow repeated names with `unique-names: false` (FR-017; default stays unique, `base_locations` opts out), and a type can declare `reference-fields` (any of `type_id`, `parent_id`, `jurisdiction_id`; modelled by the `ReferenceField` enum), validated at start-up and written in responses only when present, so `appointment_titles` responses are unchanged. Adds `ReferenceDataFixtureRulesTest` (generation rules for every shipped fixture), widens `NoTypeSpecificCodeTest` to `base_location`, and moves the functional HTTP helpers into `src/functionalTest/.../testsupport/ReferenceDataHttp`.
 - **Test suites** (Gradle JVM Test Suite plugin), all run by `check`: `test` (unit and `@WebMvcTest`, `src/test`), `integrationTest` (full context and OpenAPI contract tests), `functionalTest` (every acceptance scenario over real HTTP), `smokeTest` (latency guards over live HTTP calls, each call also asserting `200`). The full-context suites use `@ActiveProfiles("test")` with token `test-token`.
-- `NoTypeSpecificCodeTest` fails the build if any main source file (comments included) names a specific reference-data type, or if anything other than `ReferenceDataTypeRegistry` reads aliases.
+- `NoTypeSpecificCodeTest` fails the build if any main source file (comments included) names a specific reference-data type in any spelling (snake_case, spaced words or camelCase), or if anything other than `ReferenceDataTypeRegistry` reads aliases.
 
 ## Commands
 
@@ -73,4 +80,4 @@ With the app running: Swagger UI at `http://localhost:8080/swagger-ui/index.html
 
 ## Reference data
 
-Reference extracts (the E-Links Swagger PDF and reference-data files) are local-only reference material. They are gitignored and never committed, and the build doesn't depend on them. Only public title names were taken from them, once, to generate the checked-in synthetic fixture (see `specs/002-reference-data-api/data-model.md` § Fixture generation rules).
+Reference extracts (the E-Links Swagger PDF and reference-data files) are local-only reference material. They are gitignored and never committed, and the build doesn't depend on them. Only public names (appointment titles and base-location names) and the base locations' `type_id`, `parent_id` and `jurisdiction_id` reference codes were taken from them, once each, to generate the checked-in synthetic fixtures (see `specs/002-reference-data-api/data-model.md` § Fixture generation rules and `specs/003-base-locations-reference-data/data-model.md` § 3).

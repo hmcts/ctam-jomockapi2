@@ -5,24 +5,19 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
+import uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
@@ -34,9 +29,10 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.RESOURCE_NOT_FOU
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNAUTHORIZED;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_ATTRIBUTE_NAME;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.APPOINTMENT_TITLES;
-import static uk.gov.hmcts.ctam.jo.testsupport.ErrorResponseAssertions.assertErrorBody;
-import static uk.gov.hmcts.ctam.jo.testsupport.JsonTrees.parse;
-import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.BEARER_TOKEN;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.CONTRACT_FIELDS;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertError;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.golden;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.json;
 
 /**
  * The spec's acceptance scenarios, end to end over real HTTP. One nested class per user story.
@@ -45,55 +41,17 @@ import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.BEARER_TOKEN;
 @ActiveProfiles("test")
 class ReferenceDataFunctionalTest {
 
-    private static final List<String> CONTRACT_FIELDS =
-            List.of("id", "name", "created_at", "updated_at", "start_date", "end_date");
-
-    private final TestRestTemplate restTemplate = new TestRestTemplate();
-
     @LocalServerPort
     private int port;
 
-    ResponseEntity<String> get(String path) {
-        return send(HttpMethod.GET, path);
-    }
-
-    ResponseEntity<String> send(HttpMethod method, String path) {
-        return send(method, path, BEARER_TOKEN);
-    }
-
-    /**
-     * Sends the path exactly as given (URI.create, so {@code %} is not re-encoded); a null authorization is omitted.
-     */
-    ResponseEntity<String> send(HttpMethod method, String path, String authorization) {
-        HttpHeaders headers = new HttpHeaders();
-        if (authorization != null) {
-            headers.set(HttpHeaders.AUTHORIZATION, authorization);
-        }
-        return restTemplate.exchange(URI.create("http://localhost:" + port + path), method,
-                                     new HttpEntity<>(headers), String.class);
-    }
-
-    /**
-     * Asserts the shared error shape, the exact message, and that traceId matches the response header.
-     */
-    JsonNode assertError(ResponseEntity<String> response, int status, String message) {
-        assertThat(response.getStatusCode().value()).isEqualTo(status);
-        assertThat(response.getHeaders().getContentType()).hasToString("application/json");
-        JsonNode body = assertErrorBody(response.getBody(), message);
-        assertThat(body.get("traceId").asString()).isEqualTo(response.getHeaders().getFirst("X-Correlation-Id"));
-        return body;
-    }
-
-    JsonNode json(ResponseEntity<String> response) {
-        return parse(response.getBody());
-    }
+    private final ReferenceDataHttp http = new ReferenceDataHttp(() -> port);
 
     @Nested
     class CollectionTests {
 
         @Test
         void ac001ReturnsAll194TitlesInAscendingIdOrder() {
-            ResponseEntity<String> response = get(APPOINTMENT_TITLES);
+            ResponseEntity<String> response = http.get(APPOINTMENT_TITLES);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getHeaders().getContentType()).hasToString("application/json");
@@ -113,20 +71,20 @@ class ReferenceDataFunctionalTest {
         @ParameterizedTest
         @ValueSource(strings = {"/api/v5/reference_data/appointment_titles", "/reference_data/appointment_titles"})
         void ac012OtherBasePathsReturn404(String path) {
-            assertThat(get(path).getStatusCode().value()).isEqualTo(404);
+            assertThat(http.get(path).getStatusCode().value()).isEqualTo(404);
         }
 
         @Test
         void ac015RepeatedCallsAreIdenticalAndMatchTheGoldenFile() throws IOException {
-            String golden = golden();
+            String golden = golden("appointment_titles.json");
             for (int i = 0; i < 100; i++) {
-                assertThat(get(APPOINTMENT_TITLES).getBody()).isEqualTo(golden);
+                assertThat(http.get(APPOINTMENT_TITLES).getBody()).isEqualTo(golden);
             }
         }
 
         @Test
         void everyRecordHasExactlyTheSixContractFields() {
-            json(get(APPOINTMENT_TITLES)).get("results").forEach(record ->
+            json(http.get(APPOINTMENT_TITLES)).get("results").forEach(record ->
                     assertThat(record.propertyNames()).containsExactlyElementsOf(CONTRACT_FIELDS));
         }
 
@@ -145,13 +103,6 @@ class ReferenceDataFunctionalTest {
                 assertThat(record.get("end_date").asString()).isEqualTo(endDate);
             }
         }
-
-        private String golden() throws IOException {
-            try (InputStream in = Objects.requireNonNull(
-                    getClass().getResourceAsStream("/golden/appointment_titles.json"), "golden file missing")) {
-                return new String(in.readAllBytes(), StandardCharsets.UTF_8);
-            }
-        }
     }
 
     @Nested
@@ -159,7 +110,7 @@ class ReferenceDataFunctionalTest {
 
         @Test
         void ac004ReturnsTheSingleRecordEqualToTheCollectionElement() {
-            ResponseEntity<String> response = get(APPOINTMENT_TITLES + "/70");
+            ResponseEntity<String> response = http.get(APPOINTMENT_TITLES + "/70");
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getHeaders().getContentType()).hasToString("application/json");
@@ -170,7 +121,7 @@ class ReferenceDataFunctionalTest {
             assertThat(record.get("end_date").asString()).isEqualTo("2025-03-31");
 
             JsonNode fromCollection = null;
-            for (JsonNode candidate : json(get(APPOINTMENT_TITLES)).get("results")) {
+            for (JsonNode candidate : json(http.get(APPOINTMENT_TITLES)).get("results")) {
                 if (candidate.get("id").asLong() == 70) {
                     fromCollection = candidate;
                 }
@@ -181,18 +132,18 @@ class ReferenceDataFunctionalTest {
         @ParameterizedTest
         @ValueSource(strings = {"abc", "12x", "1.5", "-1"})
         void ac008MalformedIdsReturn400(String id) {
-            assertError(get(APPOINTMENT_TITLES + "/" + id), 400, MALFORMED_REFERENCE_ID);
+            assertError(http.get(APPOINTMENT_TITLES + "/" + id), 400, MALFORMED_REFERENCE_ID);
         }
 
         @ParameterizedTest
         @ValueSource(strings = {"15", "999999", "007", "99999999999999999999"})
         void ac009AndEc003UnknownIdsReturn404(String id) {
-            assertError(get(APPOINTMENT_TITLES + "/" + id), 404, RECORD_NOT_FOUND);
+            assertError(http.get(APPOINTMENT_TITLES + "/" + id), 404, RECORD_NOT_FOUND);
         }
 
         @Test
         void ec003LeadingZerosAreAccepted() {
-            ResponseEntity<String> response = get(APPOINTMENT_TITLES + "/010");
+            ResponseEntity<String> response = http.get(APPOINTMENT_TITLES + "/010");
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(json(response).get("id").asLong()).isEqualTo(10);
@@ -201,14 +152,14 @@ class ReferenceDataFunctionalTest {
         @ParameterizedTest
         @ValueSource(strings = {APPOINTMENT_TITLES + "?page=2", APPOINTMENT_TITLES + "/70?name=Judge"})
         void ac020QueryParametersReturn400(String path) {
-            assertError(get(path), 400, QUERY_PARAMETERS_NOT_SUPPORTED);
+            assertError(http.get(path), 400, QUERY_PARAMETERS_NOT_SUPPORTED);
         }
 
         @ParameterizedTest
         @ValueSource(strings = {APPOINTMENT_TITLES + "/", APPOINTMENT_TITLES + "/70/", APPOINTMENT_TITLES + "/1/extra",
             APPOINTMENT_TITLES + "/?page=2", APPOINTMENT_TITLES + "/1/extra?x=1"})
         void ec002Ec004Ec005UnmatchedRoutesReturn404BeforeQueryChecks(String path) {
-            assertError(get(path), 404, RESOURCE_NOT_FOUND);
+            assertError(http.get(path), 404, RESOURCE_NOT_FOUND);
         }
 
         @ParameterizedTest
@@ -220,7 +171,7 @@ class ReferenceDataFunctionalTest {
             "POST, /api/v1/reference_data/appointment_title"
         })
         void ec007OtherMethodsReturn405(String method, String path) {
-            JsonNode body = assertError(send(HttpMethod.valueOf(method), path), 405, METHOD_NOT_ALLOWED);
+            JsonNode body = assertError(http.send(HttpMethod.valueOf(method), path), 405, METHOD_NOT_ALLOWED);
 
             assertThat(body.has("results")).isFalse();
             assertThat(body.has("id")).isFalse();
@@ -238,7 +189,7 @@ class ReferenceDataFunctionalTest {
             "POST, " + APPOINTMENT_TITLES
         })
         void ac010AndEc009MissingTokenIsRejectedBeforeAnyOtherCheck(String method, String path) {
-            assertUnauthorized(send(HttpMethod.valueOf(method), path, null));
+            assertUnauthorized(http.send(HttpMethod.valueOf(method), path, null));
         }
 
         // "Bearer test-token " (trailing space) is not listed: RFC 9110 §5.5 excludes trailing whitespace from a
@@ -248,13 +199,13 @@ class ReferenceDataFunctionalTest {
         @ValueSource(strings = {"Basic dGVzdA==", "Bearer", "Bearer ", "Bearer wrong", "Bearer  test-token",
             "Bearer test-token x"})
         void ac011InvalidCredentialsAreRejectedOnBothRoutes(String authorization) {
-            assertUnauthorized(send(HttpMethod.GET, APPOINTMENT_TITLES, authorization));
-            assertUnauthorized(send(HttpMethod.GET, APPOINTMENT_TITLES + "/70", authorization));
+            assertUnauthorized(http.send(HttpMethod.GET, APPOINTMENT_TITLES, authorization));
+            assertUnauthorized(http.send(HttpMethod.GET, APPOINTMENT_TITLES + "/70", authorization));
         }
 
         @Test
         void ac018HealthcheckNeedsNoToken() {
-            ResponseEntity<String> response = send(HttpMethod.GET, "/api/v1/healthcheck", null);
+            ResponseEntity<String> response = http.send(HttpMethod.GET, "/api/v1/healthcheck", null);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getBody()).isEqualTo("{\"status\":\"ok\"}");
@@ -268,7 +219,7 @@ class ReferenceDataFunctionalTest {
             "/api;x=1/v1/reference_data/appointment_titles"
         })
         void encodedOrNormalisedPathsCannotBypassAuthentication(String path) {
-            ResponseEntity<String> response = send(HttpMethod.GET, path, null);
+            ResponseEntity<String> response = http.send(HttpMethod.GET, path, null);
 
             // Tomcat may reject a form outright with 400; the only failure is reference data without a token.
             assertThat(response.getStatusCode().value()).isIn(400, 401);
@@ -280,7 +231,7 @@ class ReferenceDataFunctionalTest {
 
         @Test
         void anEncodedHealthcheckPathIsStillTheHealthcheck() {
-            ResponseEntity<String> response = send(HttpMethod.GET, "/api/v1/%68ealthcheck", null);
+            ResponseEntity<String> response = http.send(HttpMethod.GET, "/api/v1/%68ealthcheck", null);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getBody()).isEqualTo("{\"status\":\"ok\"}");
@@ -305,8 +256,8 @@ class ReferenceDataFunctionalTest {
         @ParameterizedTest(name = "suffix \"{0}\"")
         @ValueSource(strings = {"", "/10", "/70", "/15", "/abc", "?page=2"})
         void ac002Ac003Ac005Ac006TheAliasBehavesExactlyLikeTheCanonicalName(String suffix) {
-            ResponseEntity<String> canonical = get(APPOINTMENT_TITLES + suffix);
-            ResponseEntity<String> alias = get(ALIAS + suffix);
+            ResponseEntity<String> canonical = http.get(APPOINTMENT_TITLES + suffix);
+            ResponseEntity<String> alias = http.get(ALIAS + suffix);
 
             assertThat(alias.getStatusCode()).isEqualTo(canonical.getStatusCode());
             assertThat(alias.getHeaders().getContentType()).isEqualTo(canonical.getHeaders().getContentType());
@@ -320,8 +271,8 @@ class ReferenceDataFunctionalTest {
         @ParameterizedTest(name = "suffix \"{0}\"")
         @ValueSource(strings = {"", "/70", "/15"})
         void ac016TheAliasIsTransparentToTheCaller(String suffix) {
-            ResponseEntity<String> canonical = get(APPOINTMENT_TITLES + suffix);
-            ResponseEntity<String> alias = get(ALIAS + suffix);
+            ResponseEntity<String> canonical = http.get(APPOINTMENT_TITLES + suffix);
+            ResponseEntity<String> alias = http.get(ALIAS + suffix);
 
             assertThat(alias.getHeaders().headerNames()).isEqualTo(canonical.getHeaders().headerNames());
             if (alias.getStatusCode().is2xxSuccessful()) {
@@ -343,20 +294,24 @@ class ReferenceDataFunctionalTest {
     @Nested
     class UnsupportedTypeTests {
 
+        // Also covers 003 AC-009/AC-010 (via base_location), AC-015 and EC-006
+        // (specs/003-base-locations-reference-data).
         @ParameterizedTest
         @ValueSource(strings = {
-            // The other 20 E-Links attribute names: ten canonical types and their ten deprecated aliases.
-            "base_locations", "contract_types", "genders", "judiciary_roles", "jurisdictions", "location_types",
+            // The other 19 E-Links attribute names: nine canonical types, their nine deprecated aliases, and
+            // base_location, which 003 doesn't serve.
+            "contract_types", "genders", "judiciary_roles", "jurisdictions", "location_types",
             "locations", "ticket_categories", "ticket_category_types", "tickets",
             "base_location", "contract_type", "gender", "judiciary_role", "jurisdiction", "location_type",
             "location", "ticket_category", "ticket_category_type", "ticket",
             // Unknown names and case variants (EC-001).
-            "foo", "Appointment_Titles", "APPOINTMENT_TITLES", "appointment_titles_"
+            "foo", "Appointment_Titles", "APPOINTMENT_TITLES", "appointment_titles_",
+            "Base_Locations", "BASE_LOCATIONS", "base-locations"
         })
         void ac007Ac014UnsupportedNamesAreRejectedOnBothRoutes(String name) {
             String collection = "/api/v1/reference_data/" + name;
             for (String path : new String[] {collection, collection + "/10"}) {
-                JsonNode body = assertError(get(path), 400, UNSUPPORTED_ATTRIBUTE_NAME);
+                JsonNode body = assertError(http.get(path), 400, UNSUPPORTED_ATTRIBUTE_NAME);
                 assertThat(body.has("results")).as(path).isFalse();
                 assertThat(body.has("id")).as(path).isFalse();
             }
@@ -364,7 +319,7 @@ class ReferenceDataFunctionalTest {
 
         @Test
         void theTypeIsCheckedBeforeTheId() {
-            assertError(get("/api/v1/reference_data/foo/abc"), 400, UNSUPPORTED_ATTRIBUTE_NAME);
+            assertError(http.get("/api/v1/reference_data/foo/abc"), 400, UNSUPPORTED_ATTRIBUTE_NAME);
         }
     }
 }

@@ -2,7 +2,6 @@ package uk.gov.hmcts.ctam.jo.services;
 
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
-import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties.TypeProperties;
 import uk.gov.hmcts.ctam.jo.domain.ReferenceDataApiResponse;
 import uk.gov.hmcts.ctam.jo.domain.ReferenceDataResponse;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataType;
@@ -26,12 +25,13 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.RECORD_NOT_FOUND;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.record;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.registry;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.type;
 
 class ReferenceDataServiceTest {
 
     private final ReferenceDataTypeRegistry registry = registry(
-            new TypeProperties("widgets", List.of("widget"), "classpath:widgets.json"),
-            new TypeProperties("gadgets", List.of(), "classpath:gadgets.json"));
+            type("widgets", List.of("widget"), "classpath:widgets.json"),
+            type("gadgets", List.of(), "classpath:gadgets.json"));
 
     private final ReferenceDataRepository repository = mock(ReferenceDataRepository.class);
 

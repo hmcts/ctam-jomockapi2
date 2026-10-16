@@ -45,6 +45,8 @@ This is one reference-data record as stored in a fixture file. The fixture JSON 
 | `startDate` | `LocalDate` | `start_date` (`yyyy-MM-dd`) | Required |
 | `endDate` | `LocalDate` (nullable) | `end_date` (`yyyy-MM-dd` or `null`) | Optional. If set, not before `startDate` (FR-022) |
 
+003 FR-017 lets a type opt out of the rule that `name` is unique within the type (`unique-names: false`); types keep it by default: see [003's data model](../003-base-locations-reference-data/data-model.md).
+
 **Fixture file format**: a top-level JSON array of record objects. The records don't have to be in order, because the repository sorts them by `id`.
 
 **Load-time validation** (`repository/FixtureReferenceDataRepository`, at startup):
@@ -74,6 +76,8 @@ This matches the E-Links `ReferenceDataResponse`, plus `name`. It is returned as
 | `end_date` | `LocalDate endDate` | string, `date` | **yes**, and the field is always present | `ReferenceDataRecord.endDate` |
 
 Field order in the JSON is `id`, `name`, `created_at`, `updated_at`, `start_date`, `end_date`, fixed with `@JsonPropertyOrder` so output is deterministic. No other fields are allowed (FR-013).
+
+003 FR-018 adds optional reference fields (`type_id`, `parent_id`, `jurisdiction_id`) after `name`, written only for types that declare them; AppointmentTitle declares none, so its records keep exactly the fields above. See [003's data model § 1a](../003-base-locations-reference-data/data-model.md).
 
 ### ReferenceDataApiResponse
 

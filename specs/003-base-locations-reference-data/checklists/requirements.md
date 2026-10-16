@@ -46,3 +46,7 @@
   19 still-unsupported names, including `base_location`, which 003 doesn't serve (AC-009, AC-015).
 - Reference-point values (positions 1, 7, 1,029, 1,462) were computed from the local extract
   using the FR-009 rules and should be re-confirmed when the fixture is generated.
+- Amendment (2026-10-13): the extra columns are no longer deferred. FR-005, FR-006, FR-009
+  and the new FR-018 serve `type_id`, `parent_id` and `jurisdiction_id`, with deviation D-2
+  and DF-1 rewritten as forward references (Constitution v1.12.0, Principle IV). New
+  acceptance scenarios AC-021 and AC-022 cover them; every item above still holds.

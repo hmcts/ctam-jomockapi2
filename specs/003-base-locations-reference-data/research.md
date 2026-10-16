@@ -135,7 +135,7 @@ Determinism (AC-004) is checked against a captured golden response, `src/functio
 ## R9. Documentation and example requests
 
 **Decision**:
-- **Postman**: add a "Base Locations" sub-folder under the existing "Reference Data" folder, with five requests: collection, single record `70`, unknown id `15` (`404`), malformed id `abc` (`400`) and the unserved alias `base_location` (`400`, unsupported attribute name). Each has tests for status, structure and key values (count 1,462; 1,276 distinct names; first, ended and last reference points; the error messages). The existing "unsupported (contract-valid)" request keeps `genders`, which is still unsupported. No new environment variables are needed.
+- **Postman**: add a "Base Locations" sub-folder under the existing "Reference Data" folder, with nine requests: collection, single record `70`, unknown id `15` (`404`), malformed id `abc` (`400`), query parameter and trailing slash (both rejected) and missing and invalid tokens (`401`), the last four added after code review, and the unserved alias `base_location` (`400`, unsupported attribute name). Each has tests for status, structure and key values (count 1,462; 1,276 distinct names; first, ended and last reference points; the error messages). The existing "unsupported (contract-valid)" request keeps `genders`, which is still unsupported. No new environment variables are needed.
 - **OpenAPI**: nothing to edit by hand; the enum and description are generated from the registry (002 R10). The contract test in R5 asserts the new values.
 - **README**: § Reference data lists both types and counts; the "Adding a reference-data type" fixture rules drop "unique names" (R10), and the steps are otherwise unchanged (FR-014).
 - **CLAUDE.md**: § Current repo state gains a `003-base-locations-reference-data` line.
@@ -147,6 +147,8 @@ Determinism (AC-004) is checked against a captured golden response, `src/functio
 
 ## R10. Allowing repeated names
 
+**Amended 2026-10-13 (code review)**: the decision below was replaced by the first alternative it rejected. Each type entry now has an optional `unique-names` (default `true`); `FixtureReferenceDataRepository` keeps 002's duplicate-name check and applies it only when the type requires unique names, and `base_locations` declares `unique-names: false`. Reviewers raised the global removal three times: it silently dropped the start-up guard for types whose names really are unique (AppointmentTitle), leaving only the fixture-rules test's distinct-name count, which covers shipped fixtures only. `FixtureReferenceDataRepositoryTest` tests both settings with `valid-repeated-names.json`. The original decision is kept below as the record of what was first built.
+
 **Decision**: Delete the duplicate-name check in `FixtureReferenceDataRepository.load` (the `names` set and its `if`), so a fixture may hold several records with the same `name`. Keep every other rule, including unique ids. In `FixtureReferenceDataRepositoryTest`, drop the `name-duplicate` row from `failsStartupOnAnInvalidRecord`, move its fixture from `src/test/resources/reference-data/invalid/name-duplicate.json` to `src/test/resources/reference-data/valid-repeated-names.json`, and add a test that it loads, with both records found by id and returned by `findAll` in id order. Add one sentence to 002's data-model § 2 (`name` row) pointing to 003 FR-017, and change README's fixture rules from "unique trimmed names" to "trimmed names".
 
 **Rationale**: The spec serves one record per source row (Clarifications, FR-008), and 120 names in the extract belong to more than one location, so the current rule would refuse to start. Nothing else in the code relies on unique names: lookups are by id, ordering is by id, and the registry's uniqueness rules are about type names and aliases, not record names. Deleting the check is type-agnostic, so it satisfies FR-003, FR-017 and the guard (AC-018); it leaves the `-Werror` build and Checkstyle clean as long as the now-unused `HashSet`/`Set` imports go too.
@@ -154,10 +156,31 @@ Determinism (AC-004) is checked against a captured golden response, `src/functio
 **Alternatives considered**:
 - *A per-type flag such as `allow-duplicate-names`.* Adds configuration and a branch for a rule nobody needs: no consumer of the contract relies on names being unique, and the real data has repeats.
 - *Keeping the check and making names unique (for example by appending the parent).* Rewrites real names, which FR-008 and FR-010 forbid.
-- *One record per distinct name (1,276).* Rejected in Clarifications: it loses 186 real locations and makes the ids unusable when parent references arrive (DF-1).
+- *One record per distinct name (1,276).* Rejected in Clarifications: it loses 186 real locations, and it would merge records whose references differ (R11).
+
+---
+
+## R11. Serving the reference fields (amendment, 2026-10-13)
+
+**Decision**: Serve the extract's `type_id`, `parent_id` and `jurisdiction_id` on BaseLocation records through a generic, per-type declaration (spec FR-018; data-model § 1a):
+- **Model**: a `ReferenceField` enum (`TYPE_ID`, `PARENT_ID`, `JURISDICTION_ID`) in `entity/`, each with its JSON name and an accessor; three nullable `Long` properties on `ReferenceDataRecord` and on `ReferenceDataResponse`, after `name`. MapStruct maps them by name.
+- **Configuration**: `reference-fields` on a type entry (`TypeProperties.referenceFields`, default empty). `TypeProperties` gains a three-argument constructor for types without reference fields, so existing call sites stay unchanged; the canonical constructor is marked `@ConstructorBinding` because Spring Boot can't choose between two constructors on its own.
+- **Validation**: the registry rejects unknown or repeated field names; the repository requires declared fields (positive) and forbids undeclared ones, so an AppointmentTitle fixture can't silently gain a reference.
+- **Serialisation**: `@JsonInclude(NON_NULL)` on the three properties only. `end_date` keeps `ALWAYS`, so a null end date is still written.
+- **Values**: E-Links ids copied unchanged from the extract (Clarifications, Session 2026-10-13). Repeated names are ordered by the extract's `id` (data-model § 3 rule 5), which keeps every existing `id`, `name` and date unchanged: the regenerated fixture differs from the previous one only by the three added fields.
+- **Coherence**: the target types aren't served yet. Constitution v1.12.0 (Principle IV) allows these forward references because DF-1 records them and names the tests that must close them.
+
+**Rationale**: The real data carries the three fields, and CTAM reads them; a mock without them hides integration bugs (Principle VI). Declaring them per type keeps the code type-agnostic (FR-003, AC-018) and leaves AppointmentTitle's responses byte-for-byte unchanged, which the golden-file test proves (AC-014).
+
+**Alternatives considered**:
+- *A separate DTO per type.* Duplicates the controller, service and mapper paths for each type, against Principle VII.
+- *Always writing the three fields, null for AppointmentTitle.* Changes 002's response shape for a type whose real data doesn't have them.
+- *A free-form `Map<String, Object>` of extra fields.* Forbidden by Principle VIII where the schema is known.
+- *Mapping `jurisdiction_id` to CTAM's own numbering (1–4).* Differs from what the real API returns (Clarifications).
+- *Serving `location_types`, `locations` and `jurisdictions` in the same feature so every reference resolves now.* Much larger scope (2,000 locations with their own references); left to their own features, which DF-1 obliges to close the references.
 
 ---
 
 ## Resolved: no outstanding `NEEDS CLARIFICATION` items
 
-The spec's Clarifications (2026-10-08) settled names (exact; one record per source row, 1,462 records and 1,276 distinct names), placeholder names (kept), the en dash (kept) and the alias (not served). Technical Context has no unknowns; every decision above uses existing dependencies.
+The spec's Clarifications (2026-10-08) settled names (exact; one record per source row, 1,462 records and 1,276 distinct names), placeholder names (kept), the en dash (kept) and the alias (not served). The 2026-10-13 session settled the reference fields (served, with E-Links ids, as forward references). Technical Context has no unknowns; every decision above uses existing dependencies.

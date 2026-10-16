@@ -5,10 +5,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties;
 import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties.TypeProperties;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataType;
+import uk.gov.hmcts.ctam.jo.entity.ReferenceField;
 import uk.gov.hmcts.ctam.jo.exceptions.UnsupportedReferenceDataTypeException;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,14 +20,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_ATTRIBUTE_NAME;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.emptyRegistry;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.registry;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.type;
 
 class ReferenceDataTypeRegistryTest {
 
     private static final TypeProperties WIDGETS =
-            new TypeProperties("widgets", List.of("widget"), "classpath:reference-data/widgets.json");
+            type("widgets", List.of("widget"), "classpath:reference-data/widgets.json");
 
     private static final TypeProperties GADGETS =
-            new TypeProperties("gadgets", List.of("gadget", "old_gadgets"), "classpath:reference-data/gadgets.json");
+            type("gadgets", List.of("gadget", "old_gadgets"), "classpath:reference-data/gadgets.json");
 
     private final ReferenceDataTypeRegistry registry = registry(WIDGETS, GADGETS);
 
@@ -88,34 +92,34 @@ class ReferenceDataTypeRegistryTest {
     @ValueSource(strings = {"Widgets", "1widgets", "_widgets", "wid-gets", "wid gets", ""})
     void failsStartupOnAnInvalidName(String name) {
         assertThatIllegalStateException()
-                .isThrownBy(() -> registry(new TypeProperties(name, List.of(), "classpath:x.json")))
+                .isThrownBy(() -> registry(type(name, List.of(), "classpath:x.json")))
                 .withMessageContaining("must match");
     }
 
     @Test
     void failsStartupOnANullName() {
         assertThatIllegalStateException()
-                .isThrownBy(() -> registry(new TypeProperties(null, List.of(), "classpath:x.json")));
+                .isThrownBy(() -> registry(type(null, List.of(), "classpath:x.json")));
     }
 
     @Test
     void failsStartupOnAnInvalidAlias() {
         assertThatIllegalStateException()
-                .isThrownBy(() -> registry(new TypeProperties("widgets", List.of("Widget"), "classpath:x.json")))
+                .isThrownBy(() -> registry(type("widgets", List.of("Widget"), "classpath:x.json")))
                 .withMessageContaining("alias of widgets");
     }
 
     @Test
     void failsStartupWhenATypeListsItsOwnNameAsAnAlias() {
         assertThatIllegalStateException()
-                .isThrownBy(() -> registry(new TypeProperties("widgets", List.of("widgets"), "classpath:x.json")))
+                .isThrownBy(() -> registry(type("widgets", List.of("widgets"), "classpath:x.json")))
                 .withMessageContaining("own name");
     }
 
     @Test
     void failsStartupOnADuplicateAliasWithinAType() {
         assertThatIllegalStateException()
-                .isThrownBy(() -> registry(new TypeProperties("widgets", List.of("w", "w"), "classpath:x.json")))
+                .isThrownBy(() -> registry(type("widgets", List.of("w", "w"), "classpath:x.json")))
                 .withMessageContaining("duplicate alias");
     }
 
@@ -133,9 +137,79 @@ class ReferenceDataTypeRegistryTest {
         List<String> aliases = secondTypeAlias.isEmpty() ? List.of() : List.of(secondTypeAlias);
 
         assertThatIllegalStateException()
-                .isThrownBy(() -> registry(WIDGETS, new TypeProperties(secondType, aliases, "classpath:y.json")))
+                .isThrownBy(() -> registry(WIDGETS, type(secondType, aliases, "classpath:y.json")))
                 .withMessage("Invalid reference-data configuration: '" + clash + "' is declared by both widgets and "
                              + secondType);
+    }
+
+    @Test
+    void typesDeclareNoReferenceFieldsByDefault() {
+        assertThat(registry.resolve("widgets").getReferenceFields()).isEmpty();
+    }
+
+    @Test
+    void typesRequireUniqueNamesByDefault() {
+        assertThat(registry.resolve("widgets").isUniqueNames()).isTrue();
+    }
+
+    @Test
+    void typesCanRequireUniqueNamesExplicitly() {
+        ReferenceDataTypeRegistry unique = registry(
+                new TypeProperties("widgets", List.of(), "classpath:x.json", List.of(), true));
+
+        assertThat(unique.resolve("widgets").isUniqueNames()).isTrue();
+    }
+
+    @Test
+    void typesCanAllowRepeatedNames() {
+        ReferenceDataTypeRegistry repeating = registry(
+                new TypeProperties("widgets", List.of(), "classpath:x.json", List.of(), false));
+
+        assertThat(repeating.resolve("widgets").isUniqueNames()).isFalse();
+    }
+
+    @Test
+    void resolvesTheDeclaredReferenceFields() {
+        ReferenceDataTypeRegistry declaring = registry(new TypeProperties(
+                "widgets", List.of(), "classpath:x.json", List.of("jurisdiction_id", "type_id", "parent_id"), null));
+
+        assertThat(declaring.resolve("widgets").getReferenceFields())
+                .containsExactly(ReferenceField.TYPE_ID, ReferenceField.PARENT_ID, ReferenceField.JURISDICTION_ID);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @CsvSource(delimiter = '|', textBlock = """
+            an unknown field    | colour_id | type_id   | unknown reference field 'colour_id'
+            a repeated field    | type_id   | type_id   | duplicate reference field type_id
+            a field name's case | type_id   | Parent_Id | unknown reference field 'Parent_Id'
+            """)
+    void failsStartupOnAnInvalidReferenceField(String rule, String first, String second, String expected) {
+        assertThatIllegalStateException()
+                .isThrownBy(() -> registry(
+                        new TypeProperties("widgets", List.of(), "classpath:x.json", List.of(first, second), null)))
+                .withMessage("Invalid reference-data type widgets: " + expected);
+    }
+
+    @Test
+    void failsStartupOnAnEmptyListEntry() {
+        List<String> withEmptyEntry = Arrays.asList("type_id", null);
+
+        assertThatIllegalStateException()
+                .isThrownBy(() -> registry(
+                        new TypeProperties("widgets", List.of(), "classpath:x.json", withEmptyEntry, null)))
+                .withMessage("Invalid reference-data type widgets: empty entry in reference-fields");
+        assertThatIllegalStateException()
+                .isThrownBy(() -> registry(
+                        new TypeProperties("widgets", withEmptyEntry, "classpath:x.json", List.of(), null)))
+                .withMessage("Invalid reference-data type widgets: empty entry in aliases");
+    }
+
+    @Test
+    void failsStartupOnAnEmptyTypesEntry() {
+        assertThatIllegalStateException()
+                .isThrownBy(() -> new ReferenceDataTypeRegistry(
+                        new ReferenceDataProperties(Arrays.asList(WIDGETS, null))))
+                .withMessage("Invalid reference-data configuration: empty entry in types");
     }
 
     @ParameterizedTest
@@ -143,7 +217,7 @@ class ReferenceDataTypeRegistryTest {
     @ValueSource(strings = {"", "  "})
     void failsStartupWithoutAFixture(String fixture) {
         assertThatIllegalStateException()
-                .isThrownBy(() -> registry(new TypeProperties("widgets", List.of(), fixture)))
+                .isThrownBy(() -> registry(type("widgets", List.of(), fixture)))
                 .withMessageContaining("fixture is required");
     }
 }

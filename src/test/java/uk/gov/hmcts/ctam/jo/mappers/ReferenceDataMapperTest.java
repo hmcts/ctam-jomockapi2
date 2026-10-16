@@ -12,6 +12,8 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.END_DATE;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.START_DATE;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.UPDATED_AT;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.record;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.recordBuilder;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.referencingResponse;
 
 class ReferenceDataMapperTest {
 
@@ -22,7 +24,16 @@ class ReferenceDataMapperTest {
         ReferenceDataResponse response = mapper.toResponse(record(70, "Ended", END_DATE));
 
         assertThat(response).isEqualTo(
-                new ReferenceDataResponse(70, "Ended", CREATED_AT, UPDATED_AT, START_DATE, END_DATE));
+                new ReferenceDataResponse(70, "Ended", null, null, null, CREATED_AT, UPDATED_AT, START_DATE,
+                                          END_DATE));
+    }
+
+    @Test
+    void mapsTheReferenceFields() {
+        ReferenceDataResponse response = mapper.toResponse(
+                recordBuilder(10, "Referencing").typeId(8L).parentId(1722L).jurisdictionId(84L).build());
+
+        assertThat(response).isEqualTo(referencingResponse(10, "Referencing", 8, 1722, 84));
     }
 
     @Test

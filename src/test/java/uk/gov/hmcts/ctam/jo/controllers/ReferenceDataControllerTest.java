@@ -19,6 +19,7 @@ import uk.gov.hmcts.ctam.jo.services.ReferenceDataService;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
@@ -30,6 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_ATTRIBUTE_NAME;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.endedResponse;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.referencingResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.response;
 import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.BEARER_TOKEN;
 import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.TOKEN;
@@ -67,6 +69,34 @@ class ReferenceDataControllerTest {
                 .andExpect(jsonPath("$.results[1].end_date").value("2025-03-31"));
 
         verify(service).getAll("widgets");
+    }
+
+    @Test
+    void referenceFieldsAreWrittenAfterNameOnlyWhenTheRecordCarriesThem() throws Exception {
+        given(service.getById("widgets", "10")).willReturn(referencingResponse(10, "Alpha", 8, 1722, 84));
+
+        String body = mockMvc.perform(get("/api/v1/reference_data/widgets/10").header("Authorization", BEARER_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.*", hasSize(9)))
+                .andExpect(jsonPath("$.type_id").value(8))
+                .andExpect(jsonPath("$.parent_id").value(1722))
+                .andExpect(jsonPath("$.jurisdiction_id").value(84))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(body).startsWith(
+                "{\"id\":10,\"name\":\"Alpha\",\"type_id\":8,\"parent_id\":1722,\"jurisdiction_id\":84,"
+                + "\"created_at\":");
+    }
+
+    @Test
+    void recordsWithoutReferenceFieldsLeaveThemOut() throws Exception {
+        given(service.getById("widgets", "10")).willReturn(response(10, "Alpha"));
+
+        mockMvc.perform(get("/api/v1/reference_data/widgets/10").header("Authorization", BEARER_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.type_id").doesNotExist())
+                .andExpect(jsonPath("$.parent_id").doesNotExist())
+                .andExpect(jsonPath("$.jurisdiction_id").doesNotExist());
     }
 
     @Test

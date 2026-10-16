@@ -37,8 +37,8 @@ breakdown.
 Implemented and covered by automated tests:
 
 - `GET /api/v1/healthcheck` (see `specs/001-healthcheck-api/`)
-- the Reference Data API for appointment titles (see [Reference data](#reference-data) and
-  `specs/002-reference-data-api/`)
+- the Reference Data API for appointment titles and base locations (see [Reference data](#reference-data),
+  `specs/002-reference-data-api/` and `specs/003-base-locations-reference-data/`)
 
 ### Quality gates
 
@@ -93,9 +93,26 @@ Two routes serve every configured reference-data type through the same code:
 | `GET /api/v1/reference_data/{attribute_name}` | `{"results": [...]}`: every record, in ascending `id` order |
 | `GET /api/v1/reference_data/{attribute_name}/{reference_id}` | One record, as a single object |
 
-The only type configured is `appointment_titles` (194 synthetic records), with the deprecated alias
-`appointment_title`, which behaves identically. Any other attribute name returns `400`, an unknown id
-returns `404`, and any query parameter returns `400`. Every error uses one shape:
+Two types are configured:
+
+| Type | Records | Deprecated alias served |
+|------|---------|-------------------------|
+| `appointment_titles` | 194 | `appointment_title`, which behaves identically |
+| `base_locations` | 1,462, one per source row (1,276 distinct names) | none: `base_location` returns `400` |
+
+Base-location records also carry `type_id`, `parent_id` and `jurisdiction_id`, after `name`:
+the E-Links ids of each location's type, parent location and jurisdiction (30 Courts, 34 Tribunals,
+84 Magistrates, 86 Coroners), copied from the source data. They refer to `location_types`,
+`locations` and `jurisdictions`, which aren't served yet; the features that add those types must
+make every reference resolve (constitution, Principle IV). Appointment-title records don't have
+these fields.
+
+Each type's feature decides which of the E-Links deprecated aliases it serves (constitution,
+Principle VII). Names are carried over exactly from the source, including non-ASCII characters
+such as the en dash in "Royal Courts of Justice – Office of the Judge Advocate General", and
+different real locations can share a name, so a name may appear on more than one record. Any
+other attribute name returns `400`, an unknown id returns `404`, and any query parameter returns
+`400`. Every error uses one shape:
 `{"error": ..., "timestamp": ..., "traceId": ...}`.
 
 ```bash
@@ -123,10 +140,12 @@ and in `traceId`; otherwise a UUID is generated.
 No Java changes are needed. Add two things:
 
 1. **A fixture**: `src/main/resources/reference-data/<attribute_name>.json`, a JSON array of records
-   with the fields `id`, `name`, `created_at`, `updated_at`, `start_date` and `end_date`. The rules
-   (unique positive ids, unique trimmed names, whole-second UTC timestamps, dates in order) are in
-   [data-model.md §2](specs/002-reference-data-api/data-model.md). The application refuses to start
-   if a fixture breaks one.
+   with the fields `id`, `name`, `created_at`, `updated_at`, `start_date` and `end_date`, plus any
+   reference fields the type declares (see below), after `name`. The rules
+   (unique positive ids, unique trimmed names unless the type allows repeats, whole-second UTC timestamps,
+   dates in order) are in [data-model.md §2](specs/002-reference-data-api/data-model.md), as amended
+   by [003 FR-017](specs/003-base-locations-reference-data/spec.md). The application refuses to
+   start if a fixture breaks one.
 2. **A configuration entry** under `jo.reference-data.types` in `application.yml`:
 
    ```yaml
@@ -136,9 +155,25 @@ No Java changes are needed. Add two things:
          - name: <attribute_name>            # lower-case letters and underscores
            aliases: [<deprecated_name>]      # optional
            fixture: classpath:reference-data/<attribute_name>.json
+           reference-fields: [type_id, parent_id, jurisdiction_id]   # optional: any of the three
+           unique-names: false               # optional: allow repeated names (default true)
    ```
+
+   `reference-fields` lists the ids of other types' records that the type's records carry. Every
+   record must then have each declared field as a positive integer, and no record may have an
+   undeclared one. Responses include a reference field only when the record has it. Names must be
+   unique within the type unless it declares `unique-names: false`; ids must always be unique.
 
 The new type is then served by both routes, with the same authentication, validation and errors,
 and appears in the OpenAPI `attribute_name` enum. `ReferenceDataExtensionIntegrationTest` shows
-this working for a type declared only in test properties. The design is in
+this working for a type declared only in test properties.
+
+Tests to update for a new type:
+
+- `NoTypeSpecificCodeTest`: add the type's forbidden fragment.
+- `ReferenceDataFixtureRulesTest`: add the fixture with its record count, distinct-name count,
+  whether it has reference fields, and reference points.
+- `ReferenceDataOpenApiContractTest`: update the `attribute_name` enum and description.
+- `ReferenceDataFunctionalTest`: remove the names the type serves from the unsupported list.
+- Add a functional test class, a smoke-test path and a Postman sub-folder for the type. The design is in
 [`specs/002-reference-data-api/`](specs/002-reference-data-api/).

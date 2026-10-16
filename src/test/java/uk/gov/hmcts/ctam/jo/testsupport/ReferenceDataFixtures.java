@@ -53,11 +53,28 @@ public final class ReferenceDataFixtures {
     }
 
     public static ReferenceDataResponse response(long id, String name) {
-        return new ReferenceDataResponse(id, name, CREATED_AT, UPDATED_AT, START_DATE, null);
+        return new ReferenceDataResponse(id, name, null, null, null, CREATED_AT, UPDATED_AT, START_DATE, null);
     }
 
     public static ReferenceDataResponse endedResponse(long id, String name) {
-        return new ReferenceDataResponse(id, name, CREATED_AT, ENDED_UPDATED_AT, START_DATE, END_DATE);
+        return new ReferenceDataResponse(id, name, null, null, null, CREATED_AT, ENDED_UPDATED_AT, START_DATE,
+                                         END_DATE);
+    }
+
+    /**
+     * A current record that carries all three reference fields.
+     */
+    public static ReferenceDataResponse referencingResponse(long id, String name, long typeId, long parentId,
+                                                            long jurisdictionId) {
+        return new ReferenceDataResponse(id, name, typeId, parentId, jurisdictionId, CREATED_AT, UPDATED_AT,
+                                         START_DATE, null);
+    }
+
+    /**
+     * A declared type whose records carry no reference fields.
+     */
+    public static TypeProperties type(String name, List<String> aliases, String fixture) {
+        return new TypeProperties(name, aliases, fixture, List.of(), null);
     }
 
     public static ReferenceDataTypeRegistry registry(TypeProperties... types) {

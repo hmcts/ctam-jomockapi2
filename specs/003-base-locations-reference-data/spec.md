@@ -4,7 +4,9 @@
 
 **Created**: 2026-10-08
 
-**Status**: Draft
+**Status**: Implemented
+
+**Amended**: 2026-10-13 — BaseLocation records now carry the extract's `type_id`, `parent_id` and `jurisdiction_id` (Clarifications, Session 2026-10-13). After code review, repeated names became a per-type opt-out (FR-017) and fixture and configuration validation became stricter (FR-019). The Input below is the original request and is kept as written.
 
 **Input**: User description: "Add the base_locations reference-data type to the existing generic reference-data API (feature 002), served by both routes — `GET /api/v1/reference_data/base_locations` and `GET /api/v1/reference_data/base_locations/{reference_id}` — with the deprecated alias `base_location`, exactly as `appointment_titles` / `appointment_title` work today. Reuse the generic mechanism (a type entry in configuration and a checked-in fixture, no type-specific code). Records use the same fields as appointment titles; the extract's `type_id`, `parent_id` and `jurisdiction_id` columns are out of scope and deferred. Generate the fixture from the public name column of the local extract only: de-duplicate (1,462 rows, 1,276 distinct names), sort in code-point order, ids of 10 × position, dates as in 002; say how the one non-ASCII name is handled. Document known reference points. The latency guards must still pass for a collection ~6.5× larger. Deliver unit, integration, functional and smoke coverage, generated API documentation and Postman artifacts, with acceptance scenarios mirroring 002."
 
@@ -12,7 +14,7 @@
 
 Feature `002-reference-data-api` built one generic reference-data capability and served a single type through it, AppointmentTitle (`appointment_titles`, alias `appointment_title`). Its User Story 6 (AC-019, SC-007) promised that a later feature could add another type by supplying a type definition and its data, without new route, validation, authentication or error-handling logic.
 
-This feature is the first to use that promise. It adds BaseLocation, the second of the eleven E-Links reference-data types. Everything 002 specified for AppointmentTitle — routes, authentication, validation, error shape, ordering, determinism and edge cases EC-001 to EC-013 — applies to BaseLocation unchanged, and is not restated here except where this feature tests it. Two differences are deliberate: the mock doesn't serve BaseLocation's deprecated alias `base_location` (Clarifications; Constitution Principle VII, v1.11.0), and the generic fixture validation stops requiring names to be unique, because distinct base locations can share a name (Clarifications; FR-017).
+This feature is the first to use that promise. It adds BaseLocation, the second of the eleven E-Links reference-data types. Everything 002 specified for AppointmentTitle — routes, authentication, validation, error shape, ordering, determinism and edge cases EC-001 to EC-013 — applies to BaseLocation unchanged, and is not restated here except where this feature tests it. Three differences are deliberate: the mock doesn't serve BaseLocation's deprecated alias `base_location` (Clarifications; Constitution Principle VII, v1.11.0), a type can now opt out of the unique-name rule, and BaseLocation does, because distinct base locations can share a name (Clarifications; FR-017), and BaseLocation records carry three reference fields, `type_id`, `parent_id` and `jurisdiction_id`, through a generic per-type declaration (Clarifications, Session 2026-10-13; FR-005, FR-018; deviation D-2).
 
 ## Clarifications
 
@@ -22,11 +24,18 @@ This feature is the first to use that promise. It adds BaseLocation, the second 
 - Q: Should the seven placeholder-style names in the extract ("Unknown" and "Unknown Sub Committee S2/S3/S4/S5/S9/S94") be served as base locations, or left out of the dataset? → A: Kept, like any other name. They are real values of the E-Links data. With one record per source row they occupy positions 1,313–1,320 (ids 13130–13200); "Unknown" appears twice.
 - Q: Should the one name containing an en dash ("Royal Courts of Justice – Office of the Judge Advocate General") keep the en dash exactly, or should it be replaced with a plain hyphen? → A: Keep the en dash (U+2013) exactly; it is served as UTF-8 and is the only non-ASCII name (position 1,029, id 10290).
 - Q: Should the mock serve the deprecated alias `base_location`? → A: No. Only the canonical name `base_locations` is served; `base_location` is rejected with `400` like any unsupported attribute name. Constitution v1.11.0 (Principles I and VII) makes serving a deprecated alias optional per type and requires the spec to state the choice, so this is not a contract deviation. AppointmentTitle's alias `appointment_title` is unaffected.
-- Q: How many base-location records should the mock serve when the same name belongs to more than one real location? → A: One record per source row: 1,462 records, 1,276 distinct names, with repeated names allowed. The generic fixture validation stops rejecting duplicate names (FR-017); ids stay unique.
+- Q: How many base-location records should the mock serve when the same name belongs to more than one real location? → A: One record per source row: 1,462 records, 1,276 distinct names, with repeated names allowed. The generic fixture validation stops rejecting duplicate names (FR-017); ids stay unique. *(Superseded in part after code review: repeated names are allowed only for a type that declares `unique-names: false`, as BaseLocation does; see the Session 2026-10-13 clarification on repeated names and FR-017.)*
+
+### Session 2026-10-13
+
+- Q: The real E-Links base-location data carries `type_id`, `parent_id` and `jurisdiction_id`. Should the mock serve them, rather than defer them? → A: Yes. Every BaseLocation record carries all three (FR-005), so consumers see the shape of the real data. This replaces the original deferral of the columns; DF-1 now records the references as forward references instead.
+- Q: The three ids point at `location_types`, `locations` and `jurisdictions`, which the mock doesn't serve yet; Constitution Principle IV required every reference to resolve. How is that handled? → A: The constitution was amended to v1.12.0: a reference-data record may carry a forward reference to a type not served yet, if the spec records it as a Deferred Item, the values are copied unchanged from the extract, and the feature that serves the target type makes every such reference resolve, verified by a test (DF-1).
+- Q: Should repeated names be allowed for every type, or only for types that need them? → A: Only for types that declare `unique-names: false` (FR-017, amended after code review). Types keep 002's unique-name rule by default, so an accidental duplicate in, say, AppointmentTitle's fixture still stops start-up.
+- Q: Which id values should the records carry: E-Links' ids or CTAM's own jurisdiction enum (1 Courts, 2 Tribunals, 3 Magistrates, 4 Coroners)? → A: E-Links' ids, copied unchanged from the extract (FR-006): `jurisdiction_id` is one of 30 Courts, 34 Tribunals, 84 Magistrates and 86 Coroners, as the E-Links jurisdictions extract numbers them. That is what the real API returns, so CTAM's own mapping is exercised as it is in production.
 
 ## Behavioural Reference
 
-The supplied E-Links Swagger (`swagger-ui-elinks-api-v5.pdf`, "Reference Data" section) lists `base_locations` as a canonical `attribute_name` value and `base_location` as its deprecated alias. It defines one generic `ReferenceDataResponse` shape for every type, with no type-specific fields.
+The supplied E-Links Swagger (`swagger-ui-elinks-api-v5.pdf`, "Reference Data" section) lists `base_locations` as a canonical `attribute_name` value and `base_location` as its deprecated alias. It defines one generic `ReferenceDataResponse` shape for every type, with no type-specific fields. The reference extract shows that the real base-location data also carries `type_id`, `parent_id` and `jurisdiction_id`.
 
 | Aspect | E-Links reference behaviour | This mock |
 |--------|-----------------------------|-----------|
@@ -35,20 +44,21 @@ The supplied E-Links Swagger (`swagger-ui-elinks-api-v5.pdf`, "Reference Data" s
 | Collection 200 body | `{ "results": [ ReferenceDataResponse, ... ] }` | Same |
 | Single-record 200 body | One `ReferenceDataResponse` object | Same |
 | `ReferenceDataResponse` fields | `id`, `updated_at`, `created_at`, `start_date`, `end_date` | Same, plus `name` (deviation D-1 from 002, extended to this type) |
-| Type-specific fields | None documented | None (see Deferred Items) |
+| Type-specific fields | None documented in the Swagger; the extract shows `type_id`, `parent_id`, `jurisdiction_id` | `type_id`, `parent_id`, `jurisdiction_id` on every BaseLocation record, after `name` (deviation D-2; forward references, DF-1) |
 | 401 | "Unauthorized. Invalid or missing token." | Same |
 
 ### Contract Deviations
 
 | # | Deviation | Reason | Type |
 |---|-----------|--------|------|
-| D-1 (from 002) | BaseLocation records include `name`, which the Swagger `ReferenceDataResponse` schema does not list | As for AppointmentTitle: the reference extract shows the real data carries a name, and a list of base locations without names has no practical use. This feature applies the existing, agreed deviation to the new type; it introduces no new deviation. | Permanent, scope-justified (unchanged from 002) |
+| D-1 (from 002) | BaseLocation records include `name`, which the Swagger `ReferenceDataResponse` schema does not list | As for AppointmentTitle: the reference extract shows the real data carries a name, and a list of base locations without names has no practical use. This feature applies the existing, agreed deviation to the new type. | Permanent, scope-justified (unchanged from 002) |
+| D-2 | BaseLocation records include `type_id`, `parent_id` and `jurisdiction_id`, which the Swagger `ReferenceDataResponse` schema does not list | The reference extract shows the real base-location data carries them, and CTAM reads them. The fields are optional in the generated schema and appear only on records of a type that declares them (FR-018), so AppointmentTitle responses are unchanged. | Permanent, scope-justified |
 
 ### Deferred Items
 
 | # | Item | Why deferred | Path to compliance |
 |---|------|--------------|--------------------|
-| DF-1 | The extract's `type_id`, `parent_id` and `jurisdiction_id` columns are not served | They refer to location types (`type_id`, 8 distinct values), locations (`parent_id` → the `locations` type, not other base locations: no `parent_id` in the extract matches a base-location id) and jurisdictions (`jurisdiction_id`: the extract uses E-Links ids 84, 30, 34 and 86, while CTAM maps jurisdictions to its own enum 1 Courts, 2 Tribunals, 3 Magistrates, 4 Coroners). The mock serves none of these types yet, so these values would point at records that don't exist, breaking data coherence (Constitution Principle IV). The Swagger schema also documents no such fields. | A later feature that adds `location_types`, `locations` and `jurisdictions` decides whether BaseLocation records gain these references, which jurisdiction ids to serve (E-Links' or CTAM's), and generates them so every reference resolves to a served record. Repeated names (EC-001) are the locations these references will tell apart. The People/appointments feature must also note that CTAM denormalises the base-location name into `jo_appointments.base_location` except for Tribunals. |
+| DF-1 | BaseLocation's `type_id`, `parent_id` and `jurisdiction_id` are forward references (Constitution Principle IV, v1.12.0): they point at types the mock doesn't serve yet | `type_id` refers to `location_types` (8 distinct values: 2, 5, 8, 9, 11, 12, 13, 16), `parent_id` to `locations` (408 distinct values; never another base location) and `jurisdiction_id` to `jurisdictions` (30, 34, 84, 86). In the local extracts every value exists in the matching type's extract, so the references will resolve once those types are served with the extract's ids. | The features that serve `location_types`, `locations` and `jurisdictions` MUST serve them with the extract's ids and MUST add a test that every BaseLocation reference to that type resolves to a served record; each such feature is incomplete until its test passes. The People/appointments feature must also note that CTAM denormalises the base-location name into `jo_appointments.base_location` except for Tribunals. |
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -68,6 +78,8 @@ As a developer or automated test suite integrating against the E-Links mock, I w
 2. **AC-002**: **Given** the default dataset, **When** the collection is retrieved, **Then** the first, an ended and the last record equal the reference points in the Reference Points table (values for `id`, `name`, `end_date` and `updated_at`).
 3. **AC-003**: **Given** the default dataset, **When** the collection is retrieved, **Then** the record whose name contains a non-ASCII character is returned with that character exactly as in the source name (see FR-010), in valid UTF-8 JSON.
 4. **AC-004**: **Given** the same configured dataset, **When** the collection route is called repeatedly, including across a service restart, **Then** every response is equal in content and record order.
+5. **AC-021**: **Given** the default dataset, **When** the collection or a single record is retrieved, **Then** every BaseLocation record carries `type_id`, `parent_id` and `jurisdiction_id` after `name`, each a positive integer copied from the extract, `jurisdiction_id` is one of 30, 34, 84 and 86, and the reference points carry the values in the Reference Points table.
+6. **AC-022**: **Given** the default dataset, **When** the collection is retrieved, **Then** no two records with the same `name` have the same (`type_id`, `parent_id`, `jurisdiction_id`): every repeated name is told apart by its references (e.g. `Bedfordshire LJA`, ids 540 and 550, have parents 1791 and 1475).
 
 ---
 
@@ -145,7 +157,7 @@ As a maintainer, I want base locations added by declaring the type and supplying
 
 **Acceptance Scenarios**:
 
-1. **AC-017**: **Given** the delivered change, **When** it is reviewed, **Then** it adds no route, handler, authentication, error-handling or mapping logic, and its only change to main code is removing the generic duplicate-name check from fixture validation (FR-017); every other addition is the type entry, its dataset, tests, documentation and example requests.
+1. **AC-017**: **Given** the delivered change, **When** it is reviewed, **Then** it adds no route, handler, authentication or error-handling logic, and its changes to main code are type-agnostic: the per-type `unique-names` opt-out (FR-017), the generic reference fields (FR-018) and stricter fixture and configuration validation (FR-019); every other addition is the type entry, its dataset, tests, documentation and example requests.
 2. **AC-018**: **Given** the delivered change, **When** the automated guard against type-specific code runs, **Then** it passes: no main source file names a specific reference-data type.
 3. **AC-019**: **Given** the running service, **When** its published API documentation is inspected, **Then** the `attribute_name` parameter lists `base_locations` as a supported value alongside the appointment-title values, does not list `base_location`, and still lists `appointment_title` as the only deprecated value, without that documentation having been edited by hand.
 
@@ -161,13 +173,13 @@ As a tester or integrating team, I want ready-made example requests for base loc
 
 **Acceptance Scenarios**:
 
-1. **AC-020**: **Given** a running instance and the example request collection with its environment, **When** the collection is run, **Then** it includes passing requests for the base-location collection, a single record by a reference-point id, an unknown `reference_id` returning `404`, a malformed `reference_id` returning `400`, and the unserved alias `base_location` returning `400`, each with checks for status, response structure and key field values, and no hard-coded environment values.
+1. **AC-020**: **Given** a running instance and the example request collection with its environment, **When** the collection is run, **Then** it includes passing requests for the base-location collection, a single record by a reference-point id, an unknown `reference_id` returning `404`, a malformed `reference_id` returning `400`, a query parameter and a trailing slash, each rejected as for appointment titles, missing and invalid credentials returning `401`, and the unserved alias `base_location` returning `400`, each with checks for status, response structure and key field values, and no hard-coded environment values.
 
 ---
 
 ### Edge Cases
 
-- **EC-001 — Repeated names in the extract**: The extract holds 1,462 rows but only 1,276 distinct names. Every repeated name belongs to different real locations (each row has its own source id and parent; e.g. `Bedfordshire LJA` appears under two parents, and `National` appears 40 times), so every row yields its own record and the same `name` can appear on several records with different `id`s. Consumers cannot tell such records apart by name until the parent reference is served (DF-1). Names are compared exactly: two pairs that differ only by internal spacing or capitalisation (`Cheshire  LJA` / `Cheshire LJA`, `City of Westminster Sub Committee` / `City of Westminster Sub committee`) are distinct names, never merged or rewritten.
+- **EC-001 — Repeated names in the extract**: The extract holds 1,462 rows but only 1,276 distinct names. Every repeated name belongs to different real locations (each row has its own source id and parent; e.g. `Bedfordshire LJA` appears under two parents, and `National` appears 40 times), so every row yields its own record and the same `name` can appear on several records with different `id`s. Such records are told apart by their references: no two records with the same name have the same `type_id`, `parent_id` and `jurisdiction_id` (AC-022). Names are compared exactly: two pairs that differ only by internal spacing or capitalisation (`Cheshire  LJA` / `Cheshire LJA`, `City of Westminster Sub Committee` / `City of Westminster Sub committee`) are distinct names, never merged or rewritten.
 - **EC-002 — Non-ASCII name**: One distinct name contains an en dash (U+2013): "Royal Courts of Justice – Office of the Judge Advocate General". It is kept exactly as in the extract, not replaced with a hyphen or otherwise normalised (FR-010; confirmed in Clarifications), and is ordered by code point like every other name, which places it at position 1,029.
 - **EC-003 — Placeholder-like names**: The extract includes seven placeholder-style names in eight rows: "Unknown" (twice) and "Unknown Sub Committee S2", "S3", "S4", "S5", "S9" and "S94". They are real values of the E-Links data and are served like any other name, not filtered out, at positions 1,313 to 1,320 (ids 13130 to 13200).
 - **EC-004 — Identifier gaps**: Ids are multiples of 10, so a well-formed id between two of them (e.g. `15`) or beyond the last one (e.g. `14630`) returns `404`.
@@ -184,19 +196,19 @@ As a tester or integrating team, I want ready-made example requests for base loc
 
 - **FR-001**: The system MUST serve the BaseLocation reference-data type through the existing collection and single-record reference-data routes, under the canonical attribute name `base_locations` only. The deprecated alias `base_location` MUST NOT be served (Constitution Principle VII).
 - **FR-002**: The supported attribute names MUST become exactly `appointment_titles`, `appointment_title` and `base_locations`. This supersedes 002's FR-003 and FR-007, which limited support to AppointmentTitle; every other E-Links attribute name, including `base_location`, MUST remain unsupported (`400`).
-- **FR-003**: BaseLocation MUST be added through the generic reference-data capability alone: a type entry and its dataset. The change MUST NOT add or modify route, authentication, error-handling or mapping logic; its only change to validation logic is FR-017's, which is type-agnostic. It MUST NOT introduce code that names a specific reference-data type.
+- **FR-003**: BaseLocation MUST be added through the generic reference-data capability alone: a type entry and its dataset. The change MUST NOT add or modify route, authentication or error-handling logic; its changes to validation and the record shape are FR-017's, FR-018's and FR-019's, which are type-agnostic. It MUST NOT introduce code that names a specific reference-data type.
 - **FR-004**: All behaviour 002 defines for a supported type — authentication first, `reference_id` validation, `404` for unknown ids, `400` for query parameters, the shared error shape, ascending `id` order, read-only access and determinism — MUST apply to BaseLocation without exception.
 
 **Response content**
 
-- **FR-005**: Each BaseLocation record MUST contain exactly the fields of an AppointmentTitle record: `id`, `name`, `created_at`, `updated_at`, `start_date` and `end_date`, in the same formats (002 FR-011). Records MUST NOT contain any other field; in particular `type_id`, `parent_id` and `jurisdiction_id` MUST NOT appear (DF-1).
+- **FR-005**: Each BaseLocation record MUST contain exactly these fields, in this order: `id`, `name`, `type_id`, `parent_id`, `jurisdiction_id`, `created_at`, `updated_at`, `start_date` and `end_date`. The fields AppointmentTitle records share are in 002's formats (002 FR-011); `type_id`, `parent_id` and `jurisdiction_id` are positive integers, never null (deviation D-2; forward references, DF-1). AppointmentTitle records MUST stay exactly as 002 defines them, without the three fields.
 
 **Data**
 
-- **FR-006**: The BaseLocation dataset MUST be synthetic, deterministic and supplied as a fixed, checked-in fixture. Only the public `name` values may be taken from the supplied BaseLocation reference extract; every other value MUST be synthetic, and no other column of the extract may be carried over.
+- **FR-006**: The BaseLocation dataset MUST be synthetic, deterministic and supplied as a fixed, checked-in fixture. Only the public `name` values and the `type_id`, `parent_id` and `jurisdiction_id` reference codes may be taken from the supplied BaseLocation reference extract, each copied unchanged; every other value (`id`, dates and timestamps) MUST be synthetic, and no other column of the extract may be carried over.
 - **FR-007**: The extract MUST be used once, to generate the fixture. It MUST NOT be committed, and building, testing or running the service MUST NOT depend on it.
 - **FR-008**: The default dataset MUST contain exactly one record for each of the 1,462 rows in the extract, no more and no fewer, so it has 1,276 distinct names and a name MAY appear on several records (EC-001). Names MUST be free of leading or trailing whitespace and carried over verbatim: names differing only by internal spacing or capitalisation MUST NOT be merged or rewritten.
-- **FR-009**: Records MUST be generated following 002's fixture generation rules: names sorted in code-point order and numbered from position 1 to 1,462 (rows with the same name are adjacent; their relative order doesn't affect the output, because they differ only by position); `id` = 10 × position (10 to 14,620); records whose position is a multiple of 7 (208 records) have `end_date` 2025-03-31 and `updated_at` 2025-04-01T08:00:00Z; all other records (1,254) have no end date and `updated_at` 2024-06-03T10:30:00Z; every record has `created_at` 2024-01-15T09:00:00Z and `start_date` 2024-01-01.
+- **FR-009**: Records MUST be generated following 002's fixture generation rules: names sorted in code-point order and numbered from position 1 to 1,462 (rows with the same name are adjacent, in ascending order of the extract's own `id`, so each keeps the same references at every regeneration); `id` = 10 × position (10 to 14,620); records whose position is a multiple of 7 (208 records) have `end_date` 2025-03-31 and `updated_at` 2025-04-01T08:00:00Z; all other records (1,254) have no end date and `updated_at` 2024-06-03T10:30:00Z; every record has `created_at` 2024-01-15T09:00:00Z and `start_date` 2024-01-01.
 - **FR-010**: Names MUST be carried over character-for-character, with no transliteration or normalisation of non-ASCII characters. The fixture and every response MUST encode them as UTF-8.
 - **FR-011**: BaseLocation ids MUST be stable across releases of the default dataset, so that later features (for example, People API appointments) and consumer test suites can refer to them.
 
@@ -210,18 +222,22 @@ As a tester or integrating team, I want ready-made example requests for base loc
 
 - **FR-015**: The base-location collection route MUST meet the same latency guards as the appointment-title collection route, under both the default bound and the strict target.
 - **FR-016**: Unit, integration, functional and smoke coverage MUST be extended to the new type, and the project's JaCoCo coverage gate (90% lines, 80% branches) MUST pass.
-- **FR-017**: Fixture validation at start-up MUST NOT require `name` to be unique within a type; `id` MUST still be unique, and every other 002 field rule still applies. The change MUST be type-agnostic (no type named in code) and applies to every configured type. AppointmentTitle's fixture is unaffected, because its names happen to be unique.
+- **FR-017**: A type's entry MUST be able to allow repeated names with `unique-names: false`; by default (`unique-names` absent or `true`) fixture validation at start-up still requires `name` to be unique within the type, as in 002. `id` MUST be unique in every type, and every other 002 field rule still applies. The mechanism MUST be type-agnostic (no type named in code). BaseLocation declares `unique-names: false`; AppointmentTitle declares nothing and keeps 002's rule. *(Amended 2026-10-13 after code review: originally the uniqueness rule was dropped for every type; making it a per-type opt-out keeps the start-up guard for types whose names really are unique. See research R10.)*
+- **FR-018**: A type's entry MUST be able to declare which of the reference fields `type_id`, `parent_id` and `jurisdiction_id` its records carry; a type declares none by default. At start-up, every record MUST carry each declared field as a positive integer and MUST NOT carry an undeclared one, and an unknown or repeated field name in a type entry MUST stop start-up. Responses MUST write a reference field only when the record carries it. The mechanism MUST be type-agnostic; BaseLocation declares all three fields and AppointmentTitle declares none. The generated API documentation MUST list the three fields as optional properties of `ReferenceDataResponse`.
+- **FR-019**: Start-up validation MUST reject, for every type: a fixture value of the wrong JSON type (an `id` or reference field that is not a JSON integer, including fractions, numeric strings and empty strings; a `name` that is not a string; a timestamp or date that is not an ISO-8601 string, such as an epoch number or a date array); a record without an `id`, reported with its position in the fixture; an explicit `null` for any reference field; and an empty entry in `jo.reference-data.types` or in a type's `aliases` or `reference-fields`, which MUST fail with the same kind of error as every other invalid declaration. The checks MUST be type-agnostic. *(Added 2026-10-13 after code review; research R10, tasks T052–T053.)*
 
 ### Reference Points
 
-These records of the default dataset are fixed by FR-009 and are used by tests and example requests:
+These records of the default dataset are fixed by FR-006 and FR-009 and are used by tests and example requests:
 
-| Position | `id` | `name` | `end_date` | `updated_at` |
-|----------|------|--------|------------|--------------|
-| 1 (first) | 10 | Aberconwy | null | 2024-06-03T10:30:00Z |
-| 7 (first ended) | 70 | Aldridge and Brownhills | 2025-03-31 | 2025-04-01T08:00:00Z |
-| 1,029 (non-ASCII) | 10290 | Royal Courts of Justice – Office of the Judge Advocate General | null | 2024-06-03T10:30:00Z |
-| 1,462 (last) | 14620 | Yorkshire & Humberside | null | 2024-06-03T10:30:00Z |
+| Position | `id` | `name` | `type_id` | `parent_id` | `jurisdiction_id` | `end_date` | `updated_at` |
+|----------|------|--------|-----------|-------------|-------------------|------------|--------------|
+| 1 (first) | 10 | Aberconwy | 8 | 1722 | 84 | null | 2024-06-03T10:30:00Z |
+| 7 (first ended) | 70 | Aldridge and Brownhills | 8 | 1749 | 84 | 2025-03-31 | 2025-04-01T08:00:00Z |
+| 54 (repeated name) | 540 | Bedfordshire LJA | 8 | 1791 | 84 | null | 2024-06-03T10:30:00Z |
+| 55 (repeated name) | 550 | Bedfordshire LJA | 8 | 1475 | 84 | null | 2024-06-03T10:30:00Z |
+| 1,029 (non-ASCII) | 10290 | Royal Courts of Justice – Office of the Judge Advocate General | 2 | 1482 | 30 | 2025-03-31 | 2025-04-01T08:00:00Z |
+| 1,462 (last) | 14620 | Yorkshire & Humberside | 5 | 1031 | 34 | null | 2024-06-03T10:30:00Z |
 
 Every record has `created_at` 2024-01-15T09:00:00Z and `start_date` 2024-01-01.
 
@@ -241,29 +257,29 @@ Every record has `created_at` 2024-01-15T09:00:00Z and `start_date` 2024-01-01.
 ### Key Entities
 
 - **Reference-data type**: As defined in 002. This feature adds a second instance, BaseLocation, with canonical name `base_locations` and no served alias.
-- **BaseLocation record**: One judicial base location (a court, tribunal venue, bench or committee area). Attributes: `id` (unique, stable integer), `name` (public location name, not necessarily unique, deviation D-1), `created_at`, `updated_at` (UTC timestamps), `start_date` and optional `end_date`. Its identifiers are independent of AppointmentTitle identifiers. Relationships to location types, parent locations and jurisdictions are deferred (DF-1).
+- **BaseLocation record**: One judicial base location (a court, tribunal venue, bench or committee area). Attributes: `id` (unique, stable integer), `name` (public location name, not necessarily unique, deviation D-1), `type_id`, `parent_id` and `jurisdiction_id` (E-Links ids of its location type, parent location and jurisdiction; deviation D-2, forward references DF-1), `created_at`, `updated_at` (UTC timestamps), `start_date` and optional `end_date`. Its identifiers are independent of AppointmentTitle identifiers.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% of the 20 acceptance scenarios (AC-001 to AC-020) pass as automated tests or, for AC-017 and AC-020, as review and collection-run checks.
-- **SC-002**: The default base-location collection contains exactly 1,462 records with 1,276 distinct names, and the four reference points match the Reference Points table.
+- **SC-001**: 100% of the 22 acceptance scenarios (AC-001 to AC-022) pass as automated tests or, for AC-017 and AC-020, as review and collection-run checks.
+- **SC-002**: The default base-location collection contains exactly 1,462 records with 1,276 distinct names, and the six reference points match the Reference Points table, including their `type_id`, `parent_id` and `jurisdiction_id`.
 - **SC-003**: 0 requests via the unserved alias `base_location` return reference data; 100% with valid credentials return `400`.
 - **SC-004**: 0 of the 19 still-unsupported attribute names return a `200` response.
 - **SC-005**: 0 base-location requests without valid credentials receive any reference data; 100% receive `401`.
 - **SC-006**: 100% of 002's AppointmentTitle acceptance tests pass with their assertions and expected responses unchanged.
-- **SC-007**: Adding the type changes 0 lines of route, authentication, error-handling or mapping logic; the only main-code change is FR-017's removal of the duplicate-name check.
+- **SC-007**: Adding the type changes 0 lines of route, authentication or error-handling logic; the main-code changes are FR-017's per-type `unique-names` opt-out, FR-018's generic reference fields and FR-019's stricter validation, none naming a type.
 - **SC-008**: The base-location collection meets the same latency bounds as the appointment-title collection in the smoke suite, at the default bound on every build and at the strict target when that check is run.
 - **SC-009**: An integrator using the published documentation and example requests retrieves the base-location list and a single base location at the first attempt, without reading source code.
 
 ## Assumptions
 
-- **Source names are public**: Base-location names are public names of courts, tribunal venues, benches and committee areas, not personal data. A scan of the 1,276 distinct names for honorifics, judicial titles and possessive forms found no personal names; the only possessives are place names (King's Lynn, Mayor's and City of London Court). Reusing them, as 002 reused public title names, is consistent with Principle IV; every other value is synthetic.
+- **Source names are public**: Base-location names are public names of courts, tribunal venues, benches and committee areas, not personal data. A scan of the 1,276 distinct names for honorifics, judicial titles and possessive forms found no personal names; the only possessives are place names (King's Lynn, Mayor's and City of London Court). Reusing them, as 002 reused public title names, is consistent with Principle IV. The `type_id`, `parent_id` and `jurisdiction_id` values are numeric reference codes, not personal data. Every other value is synthetic.
 - **Same generation rules as 002**: The dates, timestamps and ended-record rule are 002's, applied unchanged, so both default datasets follow one documented pattern. The 208 ended records give the dataset both null and non-null end dates, and the multiples of 10 give it id gaps, as 002's FR-023 requires of a dataset.
 - **Code-point order**: Sorting uses the same code-point order as 002. All names but one are ASCII; the en dash (U+2013) sorts after every ASCII character, which fixes the non-ASCII name at position 1,029.
 - **No pagination**: The contract defines none for reference data, so the whole collection is returned in one response, as for appointment titles.
 - **Latency targets are 002's**: The default p95 bound (1 second) and strict target (100 ms) from 002's smoke suite apply unchanged. Meeting them with the larger collection is a requirement on this feature, not a reason to relax the bounds.
-- **No new contract deviation**: Deviation D-1 (`name`) already covers every reference-data type served through the shared record shape; this feature extends it to BaseLocation and records no new deviation.
+- **One new contract deviation**: Deviation D-1 (`name`) already covers every reference-data type served through the shared record shape, and this feature extends it to BaseLocation. Deviation D-2 (the three reference fields) is new and applies only to types that declare the fields.
 - **Fixture location and source**: The extract used for generation is the local, gitignored `joh-elinks-api/ReferenceData/REF_BaseLocation.csv`. Because the fixture is checked in and then becomes the source of truth, later changes to the extract do not change the served data.
 - **Dependencies**: Relies on everything 002 delivered: the generic routes, central type registry with alias resolution, fixture validation at start-up, bearer-token authentication, correlation IDs, shared error shape, generated API documentation, example request collection, and the automated guard against type-specific code.

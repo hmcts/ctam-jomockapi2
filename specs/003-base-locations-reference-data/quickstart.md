@@ -16,14 +16,14 @@ This guide checks the feature end to end. Building, running and token setup are 
 - `ReferenceDataFixtureRulesTest` passes for both fixtures (FR-009, research R4).
 - The smoke suite reports a p95 guard per collection path.
 
-## 2. Confirm the change is configuration, data and one generic deletion
+## 2. Confirm the change is configuration, data and type-agnostic code
 
 ```bash
-git diff main -- src/main/java             # expected: FixtureReferenceDataRepository.java only (AC-017, SC-007)
+git diff --stat main -- src/main/java      # expected: the duplicate-name deletion and the generic reference fields only (AC-017, SC-007)
 git diff --stat main -- src/main/resources
 ```
 
-**Expected**: under `src/main/java`, only `FixtureReferenceDataRepository.java`, with nothing but deletions: the duplicate-name check, its `Set` and the two unused imports (FR-017, research R10); under `src/main/resources`, only `application.yml` (one type entry) and the new `reference-data/base_locations.json`.
+**Expected**: under `src/main/java`, only generic changes: the per-type `unique-names` and `reference-fields` declarations and their validation (FR-017, FR-018; research R10, R11), with no type named; under `src/main/resources`, only `application.yml` (one type entry) and the new `reference-data/base_locations.json`.
 
 ## 3. Manual checks with curl
 
@@ -52,6 +52,9 @@ AUTH='Authorization: Bearer local-dev-token'
 | 14 | `curl -si -H "$AUTH" $BASE/genders` | `400`, unsupported attribute | AC-015 |
 | 15 | `curl -si -H "$AUTH" "$BASE/base_locations?name=Aberconwy"` | `400`, query parameter message | AC-016 |
 | 16 | `curl -s -H "$AUTH" $BASE/appointment_titles \| jq '.results \| length'` | `194` (unchanged) | AC-014 |
+| 17 | `curl -s -H "$AUTH" $BASE/base_locations/70 \| jq -c '[.type_id, .parent_id, .jurisdiction_id]'` | `[8,1749,84]` | AC-021 |
+| 18 | `curl -s -H "$AUTH" $BASE/base_locations \| jq -c '[.results[].jurisdiction_id] \| unique'` | `[30,34,84,86]` | AC-021 |
+| 19 | `curl -s -H "$AUTH" $BASE/appointment_titles/70 \| jq -c 'keys_unsorted'` | `["id","name","created_at","updated_at","start_date","end_date"]`: no reference fields | AC-014, FR-018 |
 
 ## 4. OpenAPI
 
