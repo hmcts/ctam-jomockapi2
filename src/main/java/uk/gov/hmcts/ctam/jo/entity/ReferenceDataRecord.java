@@ -52,6 +52,14 @@ public class ReferenceDataRecord {
     @JsonSetter(nulls = Nulls.FAIL)
     Long jurisdictionId;
 
+    /**
+     * Null unless the type declares {@link BooleanField#SALARIED}. An explicit {@code null} fails, as for every
+     * boolean field.
+     */
+    @JsonProperty("salaried")
+    @JsonSetter(nulls = Nulls.FAIL)
+    Boolean salaried;
+
     @JsonProperty("created_at")
     Instant createdAt;
 

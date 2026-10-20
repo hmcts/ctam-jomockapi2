@@ -41,7 +41,7 @@ OpenAPI: `operationId: getReferenceData`, summary "Get reference data", tag `Ref
 |------|------|----------|----------------|
 | `attribute_name` | string | yes | `appointment_titles`, or `appointment_title` (deprecated alias). The OpenAPI `enum` is filled from the configured types. |
 
-Extended by 003: see [the base-locations contract delta](../../003-base-locations-reference-data/contracts/reference-data-api-base-locations.md).
+Extended by 003: see [the base-locations contract delta](../../003-base-locations-reference-data/contracts/reference-data-api-base-locations.md). Extended by 004: see [the contract-types contract delta](../../004-contract-types-reference-data/contracts/reference-data-api-contract-types.md).
 
 **Header parameters**
 
@@ -150,7 +150,7 @@ OpenAPI: `operationId: getReferenceDataById`, summary "Get reference data by id"
 | `start_date` | string | date | yes | no | Date from which the record is valid |
 | `end_date` | string | date | yes (always present) | yes | Date the record stopped being valid. `null` if it is still current. |
 
-Extended by 003: optional `type_id`, `parent_id` and `jurisdiction_id`, written only for types that declare them (AppointmentTitle declares none); see [the base-locations contract delta § 1a](../../003-base-locations-reference-data/contracts/reference-data-api-base-locations.md).
+Extended by 003: optional `type_id`, `parent_id` and `jurisdiction_id`, written only for types that declare them (AppointmentTitle declares none); see [the base-locations contract delta § 1a](../../003-base-locations-reference-data/contracts/reference-data-api-base-locations.md). Extended by 004: optional boolean `salaried`, written only for types that declare it; see [the contract-types contract delta § 1a](../../004-contract-types-reference-data/contracts/reference-data-api-contract-types.md).
 
 No other properties are allowed.
 

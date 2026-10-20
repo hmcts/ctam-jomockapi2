@@ -11,6 +11,8 @@ import tools.jackson.databind.cfg.CoercionAction;
 import tools.jackson.databind.cfg.CoercionInputShape;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.type.LogicalType;
+import uk.gov.hmcts.ctam.jo.entity.BooleanField;
+import uk.gov.hmcts.ctam.jo.entity.DeclaredField;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataRecord;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataType;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceField;
@@ -27,6 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.Predicate;
 
 /**
  * Loads every declared type's JSON fixture once, at startup, and validates it (data-model.md §2). Any invalid
@@ -47,7 +50,8 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
     public FixtureReferenceDataRepository(ReferenceDataTypeRegistry registry, ResourceLoader resourceLoader,
                                           JsonMapper jsonMapper) {
         // Each field must hold its own JSON type: ids are integers (no rounding of fractions, no parsing of strings),
-        // names are strings. Timestamps and dates are checked separately (requireDateStrings).
+        // names are strings, booleans are JSON booleans (no 0/1 or "true"). Timestamps and dates are checked separately
+        // (requireDateStrings).
         JsonMapper strictMapper = jsonMapper.rebuild()
                 .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .withCoercionConfig(LogicalType.Integer, config -> config
@@ -58,6 +62,11 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
                         .setCoercion(CoercionInputShape.Integer, CoercionAction.Fail)
                         .setCoercion(CoercionInputShape.Float, CoercionAction.Fail)
                         .setCoercion(CoercionInputShape.Boolean, CoercionAction.Fail))
+                .withCoercionConfig(LogicalType.Boolean, config -> config
+                        .setCoercion(CoercionInputShape.Integer, CoercionAction.Fail)
+                        .setCoercion(CoercionInputShape.Float, CoercionAction.Fail)
+                        .setCoercion(CoercionInputShape.String, CoercionAction.Fail)
+                        .setCoercion(CoercionInputShape.EmptyString, CoercionAction.Fail))
                 .build();
         Map<String, SortedMap<Long, ReferenceDataRecord>> byType = new HashMap<>();
         Map<String, List<ReferenceDataRecord>> sorted = new HashMap<>();
@@ -122,6 +131,7 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
             }
             validate(fixture, record);
             validateReferenceFields(fixture, type, record);
+            validateBooleanFields(fixture, type, record);
             if (byId.putIfAbsent(record.getId(), record) != null) {
                 throw invalid(fixture, record.getId(), "duplicate id");
             }
@@ -187,17 +197,38 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
      * A field the type declares must hold a positive id in every record; a field it doesn't declare must be absent.
      */
     private static void validateReferenceFields(String fixture, ReferenceDataType type, ReferenceDataRecord record) {
-        for (ReferenceField field : ReferenceField.values()) {
-            Long value = field.readFrom(record);
-            if (!type.getReferenceFields().contains(field)) {
+        validateDeclaredFields(fixture, type, record, "reference field", ReferenceField.values(),
+                               type.getReferenceFields(), value -> value > 0, "must be greater than 0");
+    }
+
+    /**
+     * A boolean field the type declares must be present in every record; one it doesn't declare must be absent. The
+     * value's JSON type is checked while reading.
+     */
+    private static void validateBooleanFields(String fixture, ReferenceDataType type, ReferenceDataRecord record) {
+        validateDeclaredFields(fixture, type, record, "boolean field", BooleanField.values(),
+                               type.getBooleanFields(), value -> true, null);
+    }
+
+    /**
+     * The rule every kind of declared field shares: required in each record of a type that declares it, absent from
+     * every other type's records. {@code valid} is any further rule on a present value, reported as {@code rule}.
+     */
+    private static <T> void validateDeclaredFields(String fixture, ReferenceDataType type, ReferenceDataRecord record,
+                                                   String kind, DeclaredField<T>[] fields,
+                                                   Set<? extends DeclaredField<T>> declared, Predicate<T> valid,
+                                                   String rule) {
+        for (DeclaredField<T> field : fields) {
+            T value = field.readFrom(record);
+            if (!declared.contains(field)) {
                 if (value != null) {
-                    throw invalid(fixture, record.getId(), field.fieldName() + " is not a reference field of "
+                    throw invalid(fixture, record.getId(), field.fieldName() + " is not a " + kind + " of "
                                                            + type.getName());
                 }
             } else if (value == null) {
                 throw invalid(fixture, record.getId(), field.fieldName() + " is required");
-            } else if (value <= 0) {
-                throw invalid(fixture, record.getId(), field.fieldName() + " must be greater than 0");
+            } else if (!valid.test(value)) {
+                throw invalid(fixture, record.getId(), field.fieldName() + " " + rule);
             }
         }
     }

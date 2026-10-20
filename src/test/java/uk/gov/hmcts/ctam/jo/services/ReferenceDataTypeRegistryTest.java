@@ -7,6 +7,7 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties;
 import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties.TypeProperties;
+import uk.gov.hmcts.ctam.jo.entity.BooleanField;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataType;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceField;
 import uk.gov.hmcts.ctam.jo.exceptions.UnsupportedReferenceDataTypeException;
@@ -155,7 +156,7 @@ class ReferenceDataTypeRegistryTest {
     @Test
     void typesCanRequireUniqueNamesExplicitly() {
         ReferenceDataTypeRegistry unique = registry(
-                new TypeProperties("widgets", List.of(), "classpath:x.json", List.of(), true));
+                new TypeProperties("widgets", List.of(), "classpath:x.json", List.of(), List.of(), true));
 
         assertThat(unique.resolve("widgets").isUniqueNames()).isTrue();
     }
@@ -163,15 +164,15 @@ class ReferenceDataTypeRegistryTest {
     @Test
     void typesCanAllowRepeatedNames() {
         ReferenceDataTypeRegistry repeating = registry(
-                new TypeProperties("widgets", List.of(), "classpath:x.json", List.of(), false));
+                new TypeProperties("widgets", List.of(), "classpath:x.json", List.of(), List.of(), false));
 
         assertThat(repeating.resolve("widgets").isUniqueNames()).isFalse();
     }
 
     @Test
     void resolvesTheDeclaredReferenceFields() {
-        ReferenceDataTypeRegistry declaring = registry(new TypeProperties(
-                "widgets", List.of(), "classpath:x.json", List.of("jurisdiction_id", "type_id", "parent_id"), null));
+        ReferenceDataTypeRegistry declaring = registry(new TypeProperties("widgets", List.of(), "classpath:x.json",
+                List.of("jurisdiction_id", "type_id", "parent_id"), List.of(), null));
 
         assertThat(declaring.resolve("widgets").getReferenceFields())
                 .containsExactly(ReferenceField.TYPE_ID, ReferenceField.PARENT_ID, ReferenceField.JURISDICTION_ID);
@@ -186,7 +187,8 @@ class ReferenceDataTypeRegistryTest {
     void failsStartupOnAnInvalidReferenceField(String rule, String first, String second, String expected) {
         assertThatIllegalStateException()
                 .isThrownBy(() -> registry(
-                        new TypeProperties("widgets", List.of(), "classpath:x.json", List.of(first, second), null)))
+                        new TypeProperties("widgets", List.of(), "classpath:x.json", List.of(first, second), List.of(),
+                                           null)))
                 .withMessage("Invalid reference-data type widgets: " + expected);
     }
 
@@ -196,12 +198,45 @@ class ReferenceDataTypeRegistryTest {
 
         assertThatIllegalStateException()
                 .isThrownBy(() -> registry(
-                        new TypeProperties("widgets", List.of(), "classpath:x.json", withEmptyEntry, null)))
+                        new TypeProperties("widgets", List.of(), "classpath:x.json", withEmptyEntry, List.of(), null)))
                 .withMessage("Invalid reference-data type widgets: empty entry in reference-fields");
         assertThatIllegalStateException()
                 .isThrownBy(() -> registry(
-                        new TypeProperties("widgets", withEmptyEntry, "classpath:x.json", List.of(), null)))
+                        new TypeProperties("widgets", withEmptyEntry, "classpath:x.json", List.of(), List.of(), null)))
                 .withMessage("Invalid reference-data type widgets: empty entry in aliases");
+        assertThatIllegalStateException()
+                .isThrownBy(() -> registry(
+                        new TypeProperties("widgets", List.of(), "classpath:x.json", List.of(), withEmptyEntry, null)))
+                .withMessage("Invalid reference-data type widgets: empty entry in boolean-fields");
+    }
+
+    @Test
+    void resolvesTheDeclaredBooleanFields() {
+        ReferenceDataTypeRegistry declaring = registry(new TypeProperties(
+                "widgets", List.of(), "classpath:x.json", List.of(), List.of("salaried"), null));
+
+        assertThat(declaring.resolve("widgets").getBooleanFields()).containsExactly(BooleanField.SALARIED);
+        assertThat(declaring.resolve("widgets").getReferenceFields()).isEmpty();
+    }
+
+    @Test
+    void typesDeclareNoBooleanFieldsByDefault() {
+        assertThat(registry.resolve("widgets").getBooleanFields()).isEmpty();
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @CsvSource(delimiter = '|', textBlock = """
+            an unknown field    | salaried | paid     | unknown boolean field 'paid'
+            a repeated field    | salaried | salaried | duplicate boolean field salaried
+            a field name's case | salaried | Salaried | unknown boolean field 'Salaried'
+            a reference field   | salaried | type_id  | unknown boolean field 'type_id'
+            """)
+    void failsStartupOnAnInvalidBooleanField(String rule, String first, String second, String expected) {
+        assertThatIllegalStateException()
+                .isThrownBy(() -> registry(
+                        new TypeProperties("widgets", List.of(), "classpath:x.json", List.of(), List.of(first, second),
+                                           null)))
+                .withMessage("Invalid reference-data type widgets: " + expected);
     }
 
     @Test

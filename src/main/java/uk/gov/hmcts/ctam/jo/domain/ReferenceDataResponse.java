@@ -11,12 +11,12 @@ import java.time.LocalDate;
 /**
  * One reference-data record as returned by the API: the E-Links {@code ReferenceDataResponse} plus
  * {@code name} (deviation D-1) and, for types that declare them, the reference fields {@code type_id},
- * {@code parent_id} and {@code jurisdiction_id} (deviation D-2). A reference field is left out of the JSON when
- * the record doesn't carry it.
+ * {@code parent_id} and {@code jurisdiction_id} (deviation D-2) and the boolean field {@code salaried} (deviation
+ * D-3). A reference or boolean field is left out of the JSON when the record doesn't carry it.
  */
 @Schema(description = "One reference-data record.")
-@JsonPropertyOrder({"id", "name", "type_id", "parent_id", "jurisdiction_id", "created_at", "updated_at",
-    "start_date", "end_date"})
+@JsonPropertyOrder({"id", "name", "type_id", "parent_id", "jurisdiction_id", "salaried", "created_at",
+    "updated_at", "start_date", "end_date"})
 public record ReferenceDataResponse(
         @Schema(description = "Stable reference-data identifier.", format = "int64",
                 requiredMode = Schema.RequiredMode.REQUIRED, example = "10")
@@ -48,6 +48,13 @@ public record ReferenceDataResponse(
         @JsonProperty("jurisdiction_id")
         @JsonInclude(JsonInclude.Include.NON_NULL)
         Long jurisdictionId,
+
+        @Schema(description = "Whether the record is salaried, including salaried part-time working. Present only for "
+                              + "types whose records carry it (deviation D-3 from the E-Links schema).",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED, example = "true")
+        @JsonProperty("salaried")
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        Boolean salaried,
 
         @Schema(description = "When the record was created (UTC).", format = "date-time",
                 requiredMode = Schema.RequiredMode.REQUIRED, example = "2024-01-15T09:00:00Z")
