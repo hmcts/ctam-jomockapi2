@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -206,18 +207,16 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
      * value's JSON type is checked while reading.
      */
     private static void validateBooleanFields(String fixture, ReferenceDataType type, ReferenceDataRecord record) {
-        validateDeclaredFields(fixture, type, record, "boolean field", BooleanField.values(),
-                               type.getBooleanFields(), value -> true, null);
+        validateDeclaredFields(fixture, type, record, "boolean field", BooleanField.values(), type.getBooleanFields());
     }
 
     /**
      * The rule every kind of declared field shares: required in each record of a type that declares it, absent from
-     * every other type's records. {@code valid} is any further rule on a present value, reported as {@code rule}.
+     * every other type's records.
      */
     private static <T> void validateDeclaredFields(String fixture, ReferenceDataType type, ReferenceDataRecord record,
                                                    String kind, DeclaredField<T>[] fields,
-                                                   Set<? extends DeclaredField<T>> declared, Predicate<T> valid,
-                                                   String rule) {
+                                                   Set<? extends DeclaredField<T>> declared) {
         for (DeclaredField<T> field : fields) {
             T value = field.readFrom(record);
             if (!declared.contains(field)) {
@@ -227,7 +226,25 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
                 }
             } else if (value == null) {
                 throw invalid(fixture, record.getId(), field.fieldName() + " is required");
-            } else if (!valid.test(value)) {
+            }
+        }
+    }
+
+    /**
+     * The shared rule, then a further rule on every present value: a value that fails {@code valid} is reported as
+     * {@code <field> <rule>}, so the rule must be given.
+     */
+    private static <T> void validateDeclaredFields(String fixture, ReferenceDataType type, ReferenceDataRecord record,
+                                                   String kind, DeclaredField<T>[] fields,
+                                                   Set<? extends DeclaredField<T>> declared, Predicate<T> valid,
+                                                   String rule) {
+        Objects.requireNonNull(valid, "valid");
+        Objects.requireNonNull(rule, "rule");
+        validateDeclaredFields(fixture, type, record, kind, fields, declared);
+        for (DeclaredField<T> field : fields) {
+            // Only declared fields can still hold a value here.
+            T value = field.readFrom(record);
+            if (value != null && !valid.test(value)) {
                 throw invalid(fixture, record.getId(), field.fieldName() + " " + rule);
             }
         }
