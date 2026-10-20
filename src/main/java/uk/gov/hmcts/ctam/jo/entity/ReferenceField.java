@@ -1,14 +1,12 @@
 package uk.gov.hmcts.ctam.jo.entity;
 
-import java.util.Arrays;
-import java.util.Optional;
 import java.util.function.Function;
 
 /**
  * An optional field holding the id of a record in another reference-data type. A type declares the fields its
  * records carry ({@code reference-fields}); records of every other type never carry them.
  */
-public enum ReferenceField {
+public enum ReferenceField implements DeclaredField<Long> {
 
     TYPE_ID("type_id", ReferenceDataRecord::getTypeId),
     PARENT_ID("parent_id", ReferenceDataRecord::getParentId),
@@ -23,21 +21,13 @@ public enum ReferenceField {
         this.accessor = accessor;
     }
 
-    /**
-     * The field's name in fixtures, configuration and responses.
-     */
+    @Override
     public String fieldName() {
         return fieldName;
     }
 
-    /**
-     * The record's value for this field, or null if the record doesn't carry it.
-     */
+    @Override
     public Long readFrom(ReferenceDataRecord record) {
         return accessor.apply(record);
-    }
-
-    public static Optional<ReferenceField> fromFieldName(String fieldName) {
-        return Arrays.stream(values()).filter(field -> field.fieldName.equals(fieldName)).findFirst();
     }
 }

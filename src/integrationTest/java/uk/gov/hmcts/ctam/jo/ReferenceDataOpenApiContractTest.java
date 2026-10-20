@@ -68,9 +68,9 @@ class ReferenceDataOpenApiContractTest {
         assertThat(parameter.path("in").asString()).isEqualTo("path");
         assertThat(parameter.path("required").asBoolean()).isTrue();
         assertThat(texts(parameter.path("schema").path("enum")))
-                .containsExactly("appointment_titles", "base_locations", "appointment_title");
+                .containsExactly("appointment_titles", "base_locations", "contract_types", "appointment_title");
         assertThat(parameter.path("description").asString())
-                .isEqualTo("Can be one of: appointment_titles, base_locations. "
+                .isEqualTo("Can be one of: appointment_titles, base_locations, contract_types. "
                          + "Also supports deprecated values: appointment_title");
     }
 
@@ -98,7 +98,7 @@ class ReferenceDataOpenApiContractTest {
         JsonNode properties = schema("ReferenceDataResponse").path("properties");
 
         assertThat(properties.propertyNames()).containsExactly("id", "name", "type_id", "parent_id",
-                "jurisdiction_id", "created_at", "updated_at", "start_date", "end_date");
+                "jurisdiction_id", "salaried", "created_at", "updated_at", "start_date", "end_date");
         assertThat(texts(schema("ReferenceDataResponse").path("required"))).containsExactlyInAnyOrder(
                 "id", "name", "created_at", "updated_at", "start_date", "end_date");
         for (String reference : List.of("type_id", "parent_id", "jurisdiction_id")) {
@@ -107,6 +107,10 @@ class ReferenceDataOpenApiContractTest {
             assertThat(properties.path(reference).path("description").asString()).as(reference)
                     .contains("deviation D-2");
         }
+        // 004 FR-011: salaried is an optional boolean, never null when present.
+        assertThat(typesOf(properties.path("salaried"))).containsExactly("boolean");
+        assertThat(isNullable(properties.path("salaried"))).as("salaried not nullable").isFalse();
+        assertThat(properties.path("salaried").path("description").asString()).contains("deviation D-3");
         assertThat(properties.path("id").path("format").asString()).isEqualTo("int64");
         assertThat(properties.path("created_at").path("format").asString()).isEqualTo("date-time");
         assertThat(properties.path("updated_at").path("format").asString()).isEqualTo("date-time");
@@ -144,7 +148,7 @@ class ReferenceDataOpenApiContractTest {
         assertThat(referenceId.path("schema").path("type").asString()).isEqualTo("string");
         assertThat(referenceId.path("schema").path("pattern").asString()).isEqualTo("^[0-9]+$");
         assertThat(texts(parameter(operation, "attribute_name").path("schema").path("enum")))
-                .containsExactly("appointment_titles", "base_locations", "appointment_title");
+                .containsExactly("appointment_titles", "base_locations", "contract_types", "appointment_title");
 
         JsonNode responses = operation.path("responses");
         assertThat(responses.propertyNames()).containsExactlyInAnyOrder("200", "400", "401", "404", "406", "500");
@@ -208,6 +212,14 @@ class ReferenceDataOpenApiContractTest {
      */
     private static boolean isNullable(JsonNode property) {
         return property.path("nullable").asBoolean(false) || texts(property.path("type")).contains("null");
+    }
+
+    /**
+     * A property's JSON types, whether the document writes {@code type} as one string or as an array.
+     */
+    private static List<String> typesOf(JsonNode property) {
+        JsonNode type = property.path("type");
+        return type.isArray() ? texts(type) : List.of(type.asString());
     }
 
     private static List<String> texts(JsonNode node) {

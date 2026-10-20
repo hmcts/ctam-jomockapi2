@@ -3,6 +3,7 @@ package uk.gov.hmcts.ctam.jo.repository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.core.io.DefaultResourceLoader;
 import tools.jackson.databind.json.JsonMapper;
 import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties.TypeProperties;
@@ -30,6 +31,8 @@ class FixtureReferenceDataRepositoryTest {
     private static final String FIXTURES = "classpath:reference-data/";
 
     private static final List<String> ALL_REFERENCE_FIELDS = List.of("type_id", "parent_id", "jurisdiction_id");
+
+    private static final List<String> BOOLEAN_FIELDS = List.of("salaried");
 
     @Test
     void loadsRecordsAndReturnsThemInAscendingIdOrder() {
@@ -68,7 +71,7 @@ class FixtureReferenceDataRepositoryTest {
     void loadsRecordsThatShareANameWhenTheTypeAllowsIt() {
         // Different real locations can share a name, so such a type allows repeats; ids still may not repeat.
         ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(new TypeProperties(
-                "widgets", List.of(), FIXTURES + "valid-repeated-names.json", List.of(), false));
+                "widgets", List.of(), FIXTURES + "valid-repeated-names.json", List.of(), List.of(), false));
         ReferenceDataRepository repository = repository(registry);
         ReferenceDataType widgets = registry.resolve("widgets");
 
@@ -82,7 +85,8 @@ class FixtureReferenceDataRepositoryTest {
     @Test
     void loadsTheReferenceFieldsTheTypeDeclares() {
         ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(new TypeProperties(
-                "widgets", List.of(), FIXTURES + "valid-reference-fields.json", ALL_REFERENCE_FIELDS, null));
+                "widgets", List.of(), FIXTURES + "valid-reference-fields.json", ALL_REFERENCE_FIELDS, List.of(),
+                null));
 
         assertThat(repository(registry).findAll(registry.resolve("widgets")))
                 .extracting(ReferenceDataRecord::getId, ReferenceDataRecord::getTypeId,
@@ -109,7 +113,7 @@ class FixtureReferenceDataRepositoryTest {
     void failsStartupWhenADeclaredReferenceFieldIsInvalid(String fixture, String expectedProblem) {
         String path = FIXTURES + "invalid/" + fixture + ".json";
         ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(
-                new TypeProperties("widgets", List.of(), path, ALL_REFERENCE_FIELDS, null));
+                new TypeProperties("widgets", List.of(), path, ALL_REFERENCE_FIELDS, List.of(), null));
 
         assertThatIllegalStateException()
                 .isThrownBy(() -> repository(registry))
@@ -121,12 +125,66 @@ class FixtureReferenceDataRepositoryTest {
         // Valid for a type that declares every reference field; this one declares only type_id.
         String path = FIXTURES + "valid-reference-fields.json";
         ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(
-                new TypeProperties("widgets", List.of(), path, List.of("type_id"), null));
+                new TypeProperties("widgets", List.of(), path, List.of("type_id"), List.of(), null));
 
         assertThatIllegalStateException()
                 .isThrownBy(() -> repository(registry))
                 .withMessage("Invalid reference-data fixture " + path
                              + ": record id 20: parent_id is not a reference field of widgets");
+    }
+
+    @Test
+    void loadsTheBooleanFieldsTheTypeDeclares() {
+        ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(new TypeProperties(
+                "widgets", List.of(), FIXTURES + "valid-boolean-fields.json", List.of(), BOOLEAN_FIELDS, null));
+
+        assertThat(repository(registry).findAll(registry.resolve("widgets")))
+                .extracting(ReferenceDataRecord::getId, ReferenceDataRecord::getSalaried)
+                .containsExactly(tuple(10L, false), tuple(20L, true));
+    }
+
+    @Test
+    void recordsOfATypeWithoutBooleanFieldsCarryNone() {
+        ReferenceDataTypeRegistry registry = registry("widgets", "valid-unsorted.json");
+
+        assertThat(repository(registry).findAll(registry.resolve("widgets")))
+                .allSatisfy(record -> assertThat(record.getSalaried()).isNull());
+    }
+
+    @Test
+    void failsStartupWhenADeclaredBooleanFieldIsMissing() {
+        String path = FIXTURES + "invalid/boolean-field-missing.json";
+        ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(
+                new TypeProperties("widgets", List.of(), path, List.of(), BOOLEAN_FIELDS, null));
+
+        assertThatIllegalStateException()
+                .isThrownBy(() -> repository(registry))
+                .withMessage("Invalid reference-data fixture " + path + ": record id 5: salaried is required");
+    }
+
+    // Only JSON true and false are booleans: no null, 0/1, "true" or "" (004 FR-018).
+    @ParameterizedTest
+    @ValueSource(strings = {"boolean-field-explicit-null", "boolean-field-number", "boolean-field-string",
+        "boolean-field-empty-string"})
+    void failsStartupWhenADeclaredBooleanFieldIsNotAJsonBoolean(String fixture) {
+        String path = FIXTURES + "invalid/" + fixture + ".json";
+        ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(
+                new TypeProperties("widgets", List.of(), path, List.of(), BOOLEAN_FIELDS, null));
+
+        assertThatIllegalStateException()
+                .isThrownBy(() -> repository(registry))
+                .withMessageStartingWith("Invalid reference-data fixture " + path + ": ")
+                .withMessageContaining("salaried");
+    }
+
+    @Test
+    void failsStartupWhenARecordCarriesABooleanFieldItsTypeDoesNotDeclare() {
+        String path = FIXTURES + "valid-boolean-fields.json";
+
+        assertThatIllegalStateException()
+                .isThrownBy(() -> repository(registry("widgets", "valid-boolean-fields.json")))
+                .withMessage("Invalid reference-data fixture " + path
+                             + ": record id 20: salaried is not a boolean field of widgets");
     }
 
     @Test
@@ -142,7 +200,8 @@ class FixtureReferenceDataRepositoryTest {
         ReferenceDataRepository repository = repository(registry);
 
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> repository.findAll(new ReferenceDataType("widgets", Set.of(), "x", Set.of(), true)));
+                .isThrownBy(() -> repository.findAll(
+                        new ReferenceDataType("widgets", Set.of(), "x", Set.of(), Set.of(), true)));
     }
 
     @ParameterizedTest(name = "{0}")

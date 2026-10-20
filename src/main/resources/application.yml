@@ -31,3 +31,7 @@ jo:
         reference-fields: [type_id, parent_id, jurisdiction_id]
         # Different locations share names; one record per location (003 FR-017).
         unique-names: false
+      - name: contract_types
+        fixture: classpath:reference-data/contract_types.json
+        # The extract's salaried flag (004 D-3).
+        boolean-fields: [salaried]

@@ -1,0 +1,128 @@
+[
+  {
+    "id": 10,
+    "name": "Fee-paid",
+    "salaried": false,
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 20,
+    "name": "SPTW-10%",
+    "salaried": true,
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 30,
+    "name": "SPTW-20%",
+    "salaried": true,
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 40,
+    "name": "SPTW-30%",
+    "salaried": true,
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 50,
+    "name": "SPTW-40%",
+    "salaried": true,
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 60,
+    "name": "SPTW-50%",
+    "salaried": true,
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 70,
+    "name": "SPTW-60%",
+    "salaried": true,
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2025-04-01T08:00:00Z",
+    "start_date": "2024-01-01",
+    "end_date": "2025-03-31"
+  },
+  {
+    "id": 80,
+    "name": "SPTW-70%",
+    "salaried": true,
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 90,
+    "name": "SPTW-75%",
+    "salaried": true,
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 100,
+    "name": "SPTW-80%",
+    "salaried": true,
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 110,
+    "name": "SPTW-90%",
+    "salaried": true,
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 120,
+    "name": "Salaried",
+    "salaried": true,
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 130,
+    "name": "Unknown",
+    "salaried": false,
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 140,
+    "name": "Voluntary",
+    "salaried": false,
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2025-04-01T08:00:00Z",
+    "start_date": "2024-01-01",
+    "end_date": "2025-03-31"
+  }
+]

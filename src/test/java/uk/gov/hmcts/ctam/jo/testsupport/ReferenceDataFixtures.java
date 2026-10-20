@@ -53,11 +53,11 @@ public final class ReferenceDataFixtures {
     }
 
     public static ReferenceDataResponse response(long id, String name) {
-        return new ReferenceDataResponse(id, name, null, null, null, CREATED_AT, UPDATED_AT, START_DATE, null);
+        return new ReferenceDataResponse(id, name, null, null, null, null, CREATED_AT, UPDATED_AT, START_DATE, null);
     }
 
     public static ReferenceDataResponse endedResponse(long id, String name) {
-        return new ReferenceDataResponse(id, name, null, null, null, CREATED_AT, ENDED_UPDATED_AT, START_DATE,
+        return new ReferenceDataResponse(id, name, null, null, null, null, CREATED_AT, ENDED_UPDATED_AT, START_DATE,
                                          END_DATE);
     }
 
@@ -66,15 +66,32 @@ public final class ReferenceDataFixtures {
      */
     public static ReferenceDataResponse referencingResponse(long id, String name, long typeId, long parentId,
                                                             long jurisdictionId) {
-        return new ReferenceDataResponse(id, name, typeId, parentId, jurisdictionId, CREATED_AT, UPDATED_AT,
+        return new ReferenceDataResponse(id, name, typeId, parentId, jurisdictionId, null, CREATED_AT, UPDATED_AT,
                                          START_DATE, null);
+    }
+
+    /**
+     * A current record that carries the boolean field {@code salaried} and no reference fields.
+     */
+    public static ReferenceDataResponse salariedResponse(long id, String name, boolean salaried) {
+        return new ReferenceDataResponse(id, name, null, null, null, salaried, CREATED_AT, UPDATED_AT, START_DATE,
+                                         null);
+    }
+
+    /**
+     * A current record that carries all three reference fields and the boolean field {@code salaried}.
+     */
+    public static ReferenceDataResponse fullResponse(long id, String name, long typeId, long parentId,
+                                                     long jurisdictionId, boolean salaried) {
+        return new ReferenceDataResponse(id, name, typeId, parentId, jurisdictionId, salaried, CREATED_AT,
+                                         UPDATED_AT, START_DATE, null);
     }
 
     /**
      * A declared type whose records carry no reference fields.
      */
     public static TypeProperties type(String name, List<String> aliases, String fixture) {
-        return new TypeProperties(name, aliases, fixture, List.of(), null);
+        return new TypeProperties(name, aliases, fixture, List.of(), List.of(), null);
     }
 
     public static ReferenceDataTypeRegistry registry(TypeProperties... types) {

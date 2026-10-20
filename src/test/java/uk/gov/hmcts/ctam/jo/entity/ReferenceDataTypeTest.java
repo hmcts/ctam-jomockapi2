@@ -13,17 +13,26 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 class ReferenceDataTypeTest {
 
     @Test
-    void nullAliasesAndReferenceFieldsMeanNone() {
-        ReferenceDataType type = new ReferenceDataType("widgets", null, "classpath:x.json", null, true);
+    void nullAliasesAndFieldsMeanNone() {
+        ReferenceDataType type = new ReferenceDataType("widgets", null, "classpath:x.json", null, null, true);
 
         assertThat(type.getAliases()).isEmpty();
         assertThat(type.getReferenceFields()).isEmpty();
+        assertThat(type.getBooleanFields()).isEmpty();
+    }
+
+    @Test
+    void keepsTheBooleanFields() {
+        ReferenceDataType type = new ReferenceDataType("widgets", null, "classpath:x.json", null,
+                                                       EnumSet.of(BooleanField.SALARIED), true);
+
+        assertThat(type.getBooleanFields()).containsExactly(BooleanField.SALARIED);
     }
 
     @Test
     void keepsTheCallersOrder() {
         ReferenceDataType type = new ReferenceDataType("widgets", new LinkedHashSet<>(List.of("widget", "old_widget")),
-                "classpath:x.json", EnumSet.of(ReferenceField.JURISDICTION_ID, ReferenceField.TYPE_ID), false);
+                "classpath:x.json", EnumSet.of(ReferenceField.JURISDICTION_ID, ReferenceField.TYPE_ID), null, false);
 
         assertThat(type.getAliases()).containsExactly("widget", "old_widget");
         assertThat(type.getReferenceFields()).containsExactly(ReferenceField.TYPE_ID, ReferenceField.JURISDICTION_ID);
@@ -34,14 +43,20 @@ class ReferenceDataTypeTest {
     void isNotChangedByLaterChangesToTheCallersSets() {
         Set<String> aliases = new LinkedHashSet<>(List.of("widget"));
         Set<ReferenceField> fields = EnumSet.of(ReferenceField.TYPE_ID);
-        ReferenceDataType type = new ReferenceDataType("widgets", aliases, "classpath:x.json", fields, true);
+        Set<BooleanField> booleanFields = EnumSet.noneOf(BooleanField.class);
+        final ReferenceDataType type = new ReferenceDataType("widgets", aliases, "classpath:x.json", fields,
+                                                             booleanFields, true);
 
         aliases.add("gadget");
         fields.add(ReferenceField.PARENT_ID);
+        booleanFields.add(BooleanField.SALARIED);
 
         assertThat(type.getAliases()).containsExactly("widget");
         assertThat(type.getReferenceFields()).containsExactly(ReferenceField.TYPE_ID);
+        assertThat(type.getBooleanFields()).isEmpty();
         assertThatExceptionOfType(UnsupportedOperationException.class)
                 .isThrownBy(() -> type.getAliases().add("gadget"));
+        assertThatExceptionOfType(UnsupportedOperationException.class)
+                .isThrownBy(() -> type.getBooleanFields().add(BooleanField.SALARIED));
     }
 }

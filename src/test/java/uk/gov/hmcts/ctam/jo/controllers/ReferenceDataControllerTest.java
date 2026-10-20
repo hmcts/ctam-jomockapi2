@@ -31,8 +31,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_ATTRIBUTE_NAME;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.endedResponse;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.fullResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.referencingResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.response;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.salariedResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.BEARER_TOKEN;
 import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.TOKEN;
 
@@ -96,7 +98,32 @@ class ReferenceDataControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.type_id").doesNotExist())
                 .andExpect(jsonPath("$.parent_id").doesNotExist())
-                .andExpect(jsonPath("$.jurisdiction_id").doesNotExist());
+                .andExpect(jsonPath("$.jurisdiction_id").doesNotExist())
+                .andExpect(jsonPath("$.salaried").doesNotExist());
+    }
+
+    @Test
+    void booleanFieldsAreWrittenAfterTheReferenceFieldsOnlyWhenTheRecordCarriesThem() throws Exception {
+        given(service.getById("widgets", "10")).willReturn(salariedResponse(10, "Alpha", false));
+        given(service.getById("widgets", "20")).willReturn(fullResponse(20, "Bravo", 8, 1722, 84, true));
+
+        String withoutReferences = mockMvc.perform(
+                        get("/api/v1/reference_data/widgets/10").header("Authorization", BEARER_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.*", hasSize(7)))
+                .andExpect(jsonPath("$.salaried").value(false))
+                .andReturn().getResponse().getContentAsString();
+        String withReferences = mockMvc.perform(
+                        get("/api/v1/reference_data/widgets/20").header("Authorization", BEARER_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.*", hasSize(10)))
+                .andReturn().getResponse().getContentAsString();
+
+        // false is written, not left out.
+        assertThat(withoutReferences).startsWith("{\"id\":10,\"name\":\"Alpha\",\"salaried\":false,\"created_at\":");
+        assertThat(withReferences).startsWith(
+                "{\"id\":20,\"name\":\"Bravo\",\"type_id\":8,\"parent_id\":1722,\"jurisdiction_id\":84,"
+                + "\"salaried\":true,\"created_at\":");
     }
 
     @Test

@@ -41,7 +41,7 @@ class NoTypeSpecificCodeTest {
     // in any spelling: snake_case, spaced or wrapped words, camelCase or upper case ("base_location",
     // "base location", "BaseLocation", "XBASE_LOCATION").
     @ParameterizedTest
-    @ValueSource(strings = {"appointment", "base_location"})
+    @ValueSource(strings = {"appointment", "base_location", "contract_type"})
     void noMainSourceFileNamesASpecificReferenceDataType(String fragment) {
         Pattern spellings = spellingsOf(fragment);
         assertThat(sources)
@@ -59,6 +59,13 @@ class NoTypeSpecificCodeTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {"contract_type", "contract_types", "CONTRACT_TYPE", "contract type", "Contract Type",
+        "contract-type", "ContractType", "contractType", "myContractType", "XCONTRACT_TYPE", "contract\n     * type"})
+    void theGuardRecognisesEveryContractTypeSpelling(String text) {
+        assertThat(spellingsOf("contract_type").matcher(text).find()).isTrue();
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {"appointment", "AppointmentTitle", "DEFAULTAPPOINTMENT_TITLES", "myAppointments"})
     void theGuardRecognisesASingleWordFragmentInEverySpelling(String text) {
         assertThat(spellingsOf("appointment").matcher(text).find()).isTrue();
@@ -68,6 +75,13 @@ class NoTypeSpecificCodeTest {
     @ValueSource(strings = {"database location", "databaseLocation", "base", "location", "baseline location"})
     void theGuardIgnoresOtherWords(String text) {
         assertThat(spellingsOf("base_location").matcher(text).find()).isFalse();
+    }
+
+    // Field names such as salaried, and words that merely start with "contract", are not type names.
+    @ParameterizedTest
+    @ValueSource(strings = {"contract", "type", "contractual type", "salaried", "BooleanField"})
+    void theGuardIgnoresOtherWordsNearContractType(String text) {
+        assertThat(spellingsOf("contract_type").matcher(text).find()).isFalse();
     }
 
     /**

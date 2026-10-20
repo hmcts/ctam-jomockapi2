@@ -10,6 +10,8 @@ public final class ContractPaths {
 
     public static final String BASE_LOCATIONS = "/api/v1/reference_data/base_locations";
 
+    public static final String CONTRACT_TYPES = "/api/v1/reference_data/contract_types";
+
     private ContractPaths() {
     }
 }

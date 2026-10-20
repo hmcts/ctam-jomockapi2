@@ -93,12 +93,13 @@ Two routes serve every configured reference-data type through the same code:
 | `GET /api/v1/reference_data/{attribute_name}` | `{"results": [...]}`: every record, in ascending `id` order |
 | `GET /api/v1/reference_data/{attribute_name}/{reference_id}` | One record, as a single object |
 
-Two types are configured:
+Three types are configured:
 
 | Type | Records | Deprecated alias served |
 |------|---------|-------------------------|
 | `appointment_titles` | 194 | `appointment_title`, which behaves identically |
 | `base_locations` | 1,462, one per source row (1,276 distinct names) | none: `base_location` returns `400` |
+| `contract_types` | 14 | none: `contract_type` returns `400` |
 
 Base-location records also carry `type_id`, `parent_id` and `jurisdiction_id`, after `name`:
 the E-Links ids of each location's type, parent location and jurisdiction (30 Courts, 34 Tribunals,
@@ -106,6 +107,10 @@ the E-Links ids of each location's type, parent location and jurisdiction (30 Co
 `locations` and `jurisdictions`, which aren't served yet; the features that add those types must
 make every reference resolve (constitution, Principle IV). Appointment-title records don't have
 these fields.
+
+Contract-type records also carry `salaried`, after `name`: a JSON boolean, `true` for "Salaried"
+and the ten salaried part-time working ("SPTW-…%") types, `false` for "Fee-paid", "Unknown" and
+"Voluntary". Only contract-type records have it.
 
 Each type's feature decides which of the E-Links deprecated aliases it serves (constitution,
 Principle VII). Names are carried over exactly from the source, including non-ASCII characters
@@ -137,11 +142,11 @@ and in `traceId`; otherwise a UUID is generated.
 
 ### Adding a reference-data type
 
-No Java changes are needed. Add two things:
+No Java changes are needed, as long as the type's fields are among those below. Add two things:
 
 1. **A fixture**: `src/main/resources/reference-data/<attribute_name>.json`, a JSON array of records
    with the fields `id`, `name`, `created_at`, `updated_at`, `start_date` and `end_date`, plus any
-   reference fields the type declares (see below), after `name`. The rules
+   reference fields and then any boolean fields the type declares (see below), after `name`. The rules
    (unique positive ids, unique trimmed names unless the type allows repeats, whole-second UTC timestamps,
    dates in order) are in [data-model.md §2](specs/002-reference-data-api/data-model.md), as amended
    by [003 FR-017](specs/003-base-locations-reference-data/spec.md). The application refuses to
@@ -156,6 +161,7 @@ No Java changes are needed. Add two things:
            aliases: [<deprecated_name>]      # optional
            fixture: classpath:reference-data/<attribute_name>.json
            reference-fields: [type_id, parent_id, jurisdiction_id]   # optional: any of the three
+           boolean-fields: [salaried]        # optional
            unique-names: false               # optional: allow repeated names (default true)
    ```
 
@@ -163,6 +169,14 @@ No Java changes are needed. Add two things:
    record must then have each declared field as a positive integer, and no record may have an
    undeclared one. Responses include a reference field only when the record has it. Names must be
    unique within the type unless it declares `unique-names: false`; ids must always be unique.
+
+   `boolean-fields` works the same way for yes/no fields: every record must have each declared
+   field as a JSON `true` or `false` (not `null`, `0`/`1` or a string), and no record may have an
+   undeclared one.
+
+   `reference-fields` and `boolean-fields` choose from fixed sets (the `ReferenceField` and
+   `BooleanField` enums). A type that needs a field outside them needs a small, type-agnostic code
+   change (a new enum constant and a record and response property), as 003 and 004 made.
 
 The new type is then served by both routes, with the same authentication, validation and errors,
 and appears in the OpenAPI `attribute_name` enum. `ReferenceDataExtensionIntegrationTest` shows
@@ -172,7 +186,7 @@ Tests to update for a new type:
 
 - `NoTypeSpecificCodeTest`: add the type's forbidden fragment.
 - `ReferenceDataFixtureRulesTest`: add the fixture with its record count, distinct-name count,
-  whether it has reference fields, and reference points.
+  whether it has reference or boolean fields, and reference points.
 - `ReferenceDataOpenApiContractTest`: update the `attribute_name` enum and description.
 - `ReferenceDataFunctionalTest`: remove the names the type serves from the unsupported list.
 - Add a functional test class, a smoke-test path and a Postman sub-folder for the type. The design is in

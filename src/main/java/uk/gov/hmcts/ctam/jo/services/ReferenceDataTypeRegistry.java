@@ -2,6 +2,8 @@ package uk.gov.hmcts.ctam.jo.services;
 
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties;
+import uk.gov.hmcts.ctam.jo.entity.BooleanField;
+import uk.gov.hmcts.ctam.jo.entity.DeclaredField;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataType;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceField;
 import uk.gov.hmcts.ctam.jo.exceptions.UnsupportedReferenceDataTypeException;
@@ -21,8 +23,8 @@ import java.util.regex.Pattern;
  * The ONLY place reference-data names and deprecated aliases are resolved (spec FR-005).
  *
  * <p>Built once from configuration. Any invalid declaration (bad name, duplicate name or alias, missing
- * fixture, empty list entry, unknown or repeated reference field) throws {@link IllegalStateException}, so the
- * application does not start.
+ * fixture, empty list entry, unknown or repeated reference or boolean field) throws {@link IllegalStateException},
+ * so the application does not start.
  */
 @Component
 public class ReferenceDataTypeRegistry {
@@ -114,6 +116,7 @@ public class ReferenceDataTypeRegistry {
         requireValidName(name, "type name");
         requireNoEmptyEntry(name, "aliases", properties.aliases());
         requireNoEmptyEntry(name, "reference-fields", properties.referenceFields());
+        requireNoEmptyEntry(name, "boolean-fields", properties.booleanFields());
         LinkedHashSet<String> aliases = new LinkedHashSet<>();
         for (String alias : properties.aliases()) {
             requireValidName(alias, "alias of " + name);
@@ -129,7 +132,11 @@ public class ReferenceDataTypeRegistry {
             throw new IllegalStateException("Invalid reference-data type " + name + ": fixture is required");
         }
         return new ReferenceDataType(name, aliases, properties.fixture(),
-                                     referenceFields(name, properties.referenceFields()), properties.uniqueNames());
+                                     declaredFields(name, "reference field", properties.referenceFields(),
+                                                    ReferenceField.class),
+                                     declaredFields(name, "boolean field", properties.booleanFields(),
+                                                    BooleanField.class),
+                                     properties.uniqueNames());
     }
 
     private static void requireNoEmptyEntry(String typeName, String list, List<String> values) {
@@ -138,14 +145,20 @@ public class ReferenceDataTypeRegistry {
         }
     }
 
-    private static Set<ReferenceField> referenceFields(String typeName, List<String> fieldNames) {
-        EnumSet<ReferenceField> fields = EnumSet.noneOf(ReferenceField.class);
+    /**
+     * Resolves the field names a type declares ({@code reference-fields} or {@code boolean-fields}); {@code kind}
+     * names the list in error messages.
+     */
+    private static <E extends Enum<E> & DeclaredField<?>> Set<E> declaredFields(String typeName, String kind,
+                                                                                List<String> fieldNames,
+                                                                                Class<E> type) {
+        EnumSet<E> fields = EnumSet.noneOf(type);
         for (String fieldName : fieldNames) {
-            ReferenceField field = ReferenceField.fromFieldName(fieldName).orElseThrow(() -> new IllegalStateException(
-                    "Invalid reference-data type " + typeName + ": unknown reference field '" + fieldName + "'"));
+            E field = DeclaredField.byName(type, fieldName).orElseThrow(() -> new IllegalStateException(
+                    "Invalid reference-data type " + typeName + ": unknown " + kind + " '" + fieldName + "'"));
             if (!fields.add(field)) {
                 throw new IllegalStateException(
-                        "Invalid reference-data type " + typeName + ": duplicate reference field " + fieldName);
+                        "Invalid reference-data type " + typeName + ": duplicate " + kind + " " + fieldName);
             }
         }
         return fields;

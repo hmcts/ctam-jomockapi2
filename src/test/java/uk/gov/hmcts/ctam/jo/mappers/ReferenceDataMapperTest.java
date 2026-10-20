@@ -14,6 +14,7 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.UPDATED_AT;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.record;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.recordBuilder;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.referencingResponse;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.salariedResponse;
 
 class ReferenceDataMapperTest {
 
@@ -24,7 +25,7 @@ class ReferenceDataMapperTest {
         ReferenceDataResponse response = mapper.toResponse(record(70, "Ended", END_DATE));
 
         assertThat(response).isEqualTo(
-                new ReferenceDataResponse(70, "Ended", null, null, null, CREATED_AT, UPDATED_AT, START_DATE,
+                new ReferenceDataResponse(70, "Ended", null, null, null, null, CREATED_AT, UPDATED_AT, START_DATE,
                                           END_DATE));
     }
 
@@ -34,6 +35,15 @@ class ReferenceDataMapperTest {
                 recordBuilder(10, "Referencing").typeId(8L).parentId(1722L).jurisdictionId(84L).build());
 
         assertThat(response).isEqualTo(referencingResponse(10, "Referencing", 8, 1722, 84));
+    }
+
+    @Test
+    void mapsTheBooleanFields() {
+        assertThat(mapper.toResponse(recordBuilder(10, "Paid").salaried(true).build()))
+                .isEqualTo(salariedResponse(10, "Paid", true));
+        assertThat(mapper.toResponse(recordBuilder(20, "Unpaid").salaried(false).build()))
+                .isEqualTo(salariedResponse(20, "Unpaid", false));
+        assertThat(mapper.toResponse(record(30, "Plain")).salaried()).isNull();
     }
 
     @Test

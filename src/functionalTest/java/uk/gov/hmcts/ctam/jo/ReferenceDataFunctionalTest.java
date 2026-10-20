@@ -295,18 +295,20 @@ class ReferenceDataFunctionalTest {
     class UnsupportedTypeTests {
 
         // Also covers 003 AC-009/AC-010 (via base_location), AC-015 and EC-006
-        // (specs/003-base-locations-reference-data).
+        // (specs/003-base-locations-reference-data), and 004 AC-016 and EC-007
+        // (specs/004-contract-types-reference-data).
         @ParameterizedTest
         @ValueSource(strings = {
-            // The other 19 E-Links attribute names: nine canonical types, their nine deprecated aliases, and
-            // base_location, which 003 doesn't serve.
-            "contract_types", "genders", "judiciary_roles", "jurisdictions", "location_types",
+            // The other 18 E-Links attribute names: eight canonical types, their eight deprecated aliases, and
+            // base_location and contract_type, which 003 and 004 don't serve.
+            "genders", "judiciary_roles", "jurisdictions", "location_types",
             "locations", "ticket_categories", "ticket_category_types", "tickets",
             "base_location", "contract_type", "gender", "judiciary_role", "jurisdiction", "location_type",
             "location", "ticket_category", "ticket_category_type", "ticket",
             // Unknown names and case variants (EC-001).
             "foo", "Appointment_Titles", "APPOINTMENT_TITLES", "appointment_titles_",
-            "Base_Locations", "BASE_LOCATIONS", "base-locations"
+            "Base_Locations", "BASE_LOCATIONS", "base-locations",
+            "Contract_Types", "CONTRACT_TYPES", "contract-types"
         })
         void ac007Ac014UnsupportedNamesAreRejectedOnBothRoutes(String name) {
             String collection = "/api/v1/reference_data/" + name;
