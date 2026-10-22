@@ -74,4 +74,4 @@ Rules 3 to 7 are 002's rules unchanged.
 
 ## 4. Verifying the fixture without the extract
 
-The rule test (research R2) checks rules 3 to 8 and every record directly against the checked-in file, so a hand edit that breaks the pattern fails the unit suite. Start-up validation (002) separately rejects any record that breaks the field rules.
+The rule test (research R2) checks rules 3 to 7 and the field order of rule 8, and every record, directly against the checked-in file, so a hand edit that breaks the pattern fails the unit suite. It reads the file as parsed JSON, so rule 8's indent, encoding and trailing newline are not checked: they don't affect the API, whose responses are re-serialised. Start-up validation (002) separately rejects any record that breaks the field rules.
