@@ -34,7 +34,7 @@ No `aliases` (the alias is not served, spec Clarifications), no `reference-field
 
 Add a row to `ReferenceDataFixtureRulesTest`'s `fixtures()` table: `genders.json`, 4 records, 4 distinct names, `Map.of()` true counts, and all four records as reference points (`point(…)` with null end dates). The test's per-position rule already expects an open record at positions 1 to 4, so no rule changes.
 
-**On 002 FR-023**: no test asserts "at least one ended record" per fixture (checked: the fixture-rule test checks each position against the rule; no suite counts ended records), so the decision that Gender has no ended record (spec Clarifications) needs no test change and no exception in code.
+**On 002 FR-023**: no test asserts "at least one ended record" per fixture (checked: the fixture-rule test checks each position against the rule; no suite counts ended records), so Gender having no ended record needs no test change and no exception in code. FR-023 is read across the shipped default data, which the other types' ended records satisfy (spec Clarifications), so no waiver is needed either.
 
 **Rationale**: 002's rules unchanged keep one documented pattern across all fixtures; the spec chose this over a special rule for small types.
 

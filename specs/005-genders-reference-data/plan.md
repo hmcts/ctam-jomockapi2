@@ -70,7 +70,7 @@ Checked against constitution v1.13.0.
 | XVIII. API Contract and Swagger/OpenAPI | **Pass (planned).** The enum and description are generated from configuration; the contract test asserts them (research R3). A contract delta records the change. |
 
 **Non-principle checks**:
-- **002 FR-023 (at least one ended record)**: not met by this type, by the spec's explicit decision (Clarifications; EC-004). FR-023 is a 002 dataset requirement, not a constitution MUST, and no existing test asserts it per fixture, so no test changes because of it (research R2).
+- **002 FR-023 (at least one ended record)**: met. FR-023's "default dataset" is read as the shipped default data across all types (spec Clarifications; EC-004), and the other types include ended records, so Gender, with none, needs no waiver. 002 records this reading next to FR-023 (T032). FR-023 is a 002 dataset requirement, not a constitution MUST, and no existing test asserts it per fixture, so no test changes because of it (research R2).
 - **Earlier artifacts that become partly stale**: 004's FR-002 lists the supported names; this spec's FR-002 supersedes it. 002's quickstart uses `genders` as its example of an unsupported type (§ 3 row 5); it is a record of that feature and gets a one-line note pointing at a still-unsupported name (research R7).
 
 **Result**: No violations. Nothing for Complexity Tracking beyond the inherited Sonar deferral.
