@@ -7,7 +7,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
@@ -26,11 +25,11 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.METHOD_NOT_ALLOW
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.QUERY_PARAMETERS_NOT_SUPPORTED;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.RECORD_NOT_FOUND;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.RESOURCE_NOT_FOUND;
-import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNAUTHORIZED;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_ATTRIBUTE_NAME;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.APPOINTMENT_TITLES;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.CONTRACT_FIELDS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertError;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertUnauthorized;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.golden;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.json;
 
@@ -184,7 +183,7 @@ class ReferenceDataFunctionalTest {
         @ParameterizedTest
         @CsvSource({
             "GET, " + APPOINTMENT_TITLES, "GET, " + APPOINTMENT_TITLES + "/70",
-            "GET, /api/v1/reference_data/genders", "GET, " + APPOINTMENT_TITLES + "/abc",
+            "GET, /api/v1/reference_data/judiciary_roles", "GET, " + APPOINTMENT_TITLES + "/abc",
             "GET, " + APPOINTMENT_TITLES + "?page=2", "GET, " + APPOINTMENT_TITLES + "/",
             "POST, " + APPOINTMENT_TITLES
         })
@@ -236,16 +235,6 @@ class ReferenceDataFunctionalTest {
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getBody()).isEqualTo("{\"status\":\"ok\"}");
         }
-
-        /**
-         * AC-010 / AC-011 / SC-005: the shared 401, and no reference data in the body.
-         */
-        private void assertUnauthorized(ResponseEntity<String> response) {
-            JsonNode body = assertError(response, 401, UNAUTHORIZED);
-            assertThat(response.getHeaders().getFirst(HttpHeaders.WWW_AUTHENTICATE)).isEqualTo("Bearer");
-            assertThat(body.has("results")).isFalse();
-            assertThat(body.has("id")).isFalse();
-        }
     }
 
     @Nested
@@ -295,20 +284,22 @@ class ReferenceDataFunctionalTest {
     class UnsupportedTypeTests {
 
         // Also covers 003 AC-009/AC-010 (via base_location), AC-015 and EC-006
-        // (specs/003-base-locations-reference-data), and 004 AC-016 and EC-007
-        // (specs/004-contract-types-reference-data).
+        // (specs/003-base-locations-reference-data), 004 AC-016 and EC-007
+        // (specs/004-contract-types-reference-data), and 005 AC-015 and EC-007
+        // (specs/005-genders-reference-data).
         @ParameterizedTest
         @ValueSource(strings = {
-            // The other 18 E-Links attribute names: eight canonical types, their eight deprecated aliases, and
-            // base_location and contract_type, which 003 and 004 don't serve.
-            "genders", "judiciary_roles", "jurisdictions", "location_types",
+            // The other 17 E-Links attribute names: seven canonical types, their seven deprecated aliases, and
+            // base_location, contract_type and gender, which 003–005 don't serve.
+            "judiciary_roles", "jurisdictions", "location_types",
             "locations", "ticket_categories", "ticket_category_types", "tickets",
             "base_location", "contract_type", "gender", "judiciary_role", "jurisdiction", "location_type",
             "location", "ticket_category", "ticket_category_type", "ticket",
             // Unknown names and case variants (EC-001).
             "foo", "Appointment_Titles", "APPOINTMENT_TITLES", "appointment_titles_",
             "Base_Locations", "BASE_LOCATIONS", "base-locations",
-            "Contract_Types", "CONTRACT_TYPES", "contract-types"
+            "Contract_Types", "CONTRACT_TYPES", "contract-types",
+            "Genders", "GENDERS", "genders_"
         })
         void ac007Ac014UnsupportedNamesAreRejectedOnBothRoutes(String name) {
             String collection = "/api/v1/reference_data/" + name;

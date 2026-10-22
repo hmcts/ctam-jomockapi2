@@ -5,7 +5,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
@@ -14,7 +13,6 @@ import uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,15 +20,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.MALFORMED_REFERENCE_ID;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.METHOD_NOT_ALLOWED;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.NOT_ACCEPTABLE;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.QUERY_PARAMETERS_NOT_SUPPORTED;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.RECORD_NOT_FOUND;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.RESOURCE_NOT_FOUND;
-import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNAUTHORIZED;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_ATTRIBUTE_NAME;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.APPOINTMENT_TITLES;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.BASE_LOCATIONS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.CONTRACT_TYPES;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertError;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertUnauthorized;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.byId;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.golden;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.json;
 
@@ -177,9 +177,9 @@ class ContractTypesFunctionalTest {
 
     @Test
     void ac009IdsAreScopedToTheirType() {
-        assertThat(nameOf(CONTRACT_TYPES + "/10")).isEqualTo("Fee-paid");
-        assertThat(nameOf(APPOINTMENT_TITLES + "/10")).isEqualTo("Acting Senior Coroner");
-        assertThat(nameOf(BASE_LOCATIONS + "/10")).isEqualTo("Aberconwy");
+        assertThat(http.nameOf(CONTRACT_TYPES + "/10")).isEqualTo("Fee-paid");
+        assertThat(http.nameOf(APPOINTMENT_TITLES + "/10")).isEqualTo("Acting Senior Coroner");
+        assertThat(http.nameOf(BASE_LOCATIONS + "/10")).isEqualTo("Aberconwy");
     }
 
     // US3: the deprecated alias is not served.
@@ -256,6 +256,14 @@ class ContractTypesFunctionalTest {
         }
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {CONTRACT_TYPES, CONTRACT_TYPES + "/120"})
+    void ec009UnacceptableMediaTypesReturn406(String path) {
+        JsonNode body = assertError(http.getAccepting(path, "application/xml"), 406, NOT_ACCEPTABLE);
+        assertThat(body.has("results")).isFalse();
+        assertThat(body.has("id")).isFalse();
+    }
+
     @Test
     void ec009LeadingZerosAndOversizedIds() {
         ResponseEntity<String> response = http.get(CONTRACT_TYPES + "/0120");
@@ -263,16 +271,6 @@ class ContractTypesFunctionalTest {
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(json(response).get("id").asLong()).isEqualTo(120);
         assertError(http.get(CONTRACT_TYPES + "/99999999999999999999"), 404, RECORD_NOT_FOUND);
-    }
-
-    /**
-     * The shared 401, and no reference data in the body.
-     */
-    private static void assertUnauthorized(ResponseEntity<String> response) {
-        JsonNode body = assertError(response, 401, UNAUTHORIZED);
-        assertThat(response.getHeaders().getFirst(HttpHeaders.WWW_AUTHENTICATE)).isEqualTo("Bearer");
-        assertThat(body.has("results")).isFalse();
-        assertThat(body.has("id")).isFalse();
     }
 
     private static void assertRecord(JsonNode record, String name, boolean salaried, String endDate,
@@ -286,17 +284,5 @@ class ContractTypesFunctionalTest {
             assertThat(record.get("end_date").asString()).as("end_date of %s", name).isEqualTo(endDate);
         }
         assertThat(record.get("updated_at").asString()).as("updated_at of %s", name).isEqualTo(updatedAt);
-    }
-
-    private static Map<Long, JsonNode> byId(JsonNode results) {
-        Map<Long, JsonNode> byId = new HashMap<>();
-        results.forEach(record -> byId.put(record.get("id").asLong(), record));
-        return byId;
-    }
-
-    private String nameOf(String path) {
-        ResponseEntity<String> response = http.get(path);
-        assertThat(response.getStatusCode().value()).as(path).isEqualTo(200);
-        return json(response).get("name").asString();
     }
 }

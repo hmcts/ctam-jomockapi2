@@ -41,7 +41,7 @@ OpenAPI: `operationId: getReferenceData`, summary "Get reference data", tag `Ref
 |------|------|----------|----------------|
 | `attribute_name` | string | yes | `appointment_titles`, or `appointment_title` (deprecated alias). The OpenAPI `enum` is filled from the configured types. |
 
-Extended by 003: see [the base-locations contract delta](../../003-base-locations-reference-data/contracts/reference-data-api-base-locations.md). Extended by 004: see [the contract-types contract delta](../../004-contract-types-reference-data/contracts/reference-data-api-contract-types.md).
+Extended by 003: see [the base-locations contract delta](../../003-base-locations-reference-data/contracts/reference-data-api-base-locations.md). Extended by 004: see [the contract-types contract delta](../../004-contract-types-reference-data/contracts/reference-data-api-contract-types.md). Extended by 005: see [the genders contract delta](../../005-genders-reference-data/contracts/reference-data-api-genders.md).
 
 **Header parameters**
 

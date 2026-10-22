@@ -27,6 +27,12 @@ class ReferenceDataOpenApiContractTest {
 
     private static final String SINGLE_PATH = "/api/v1/reference_data/{attribute_name}/{reference_id}";
 
+    /**
+     * The {@code attribute_name} enum both operations document: the served types, then the deprecated aliases.
+     */
+    private static final List<String> ATTRIBUTE_NAMES =
+            List.of("appointment_titles", "base_locations", "contract_types", "genders", "appointment_title");
+
     @LocalServerPort
     private int port;
 
@@ -68,9 +74,9 @@ class ReferenceDataOpenApiContractTest {
         assertThat(parameter.path("in").asString()).isEqualTo("path");
         assertThat(parameter.path("required").asBoolean()).isTrue();
         assertThat(texts(parameter.path("schema").path("enum")))
-                .containsExactly("appointment_titles", "base_locations", "contract_types", "appointment_title");
+                .containsExactlyElementsOf(ATTRIBUTE_NAMES);
         assertThat(parameter.path("description").asString())
-                .isEqualTo("Can be one of: appointment_titles, base_locations, contract_types. "
+                .isEqualTo("Can be one of: appointment_titles, base_locations, contract_types, genders. "
                          + "Also supports deprecated values: appointment_title");
     }
 
@@ -148,7 +154,7 @@ class ReferenceDataOpenApiContractTest {
         assertThat(referenceId.path("schema").path("type").asString()).isEqualTo("string");
         assertThat(referenceId.path("schema").path("pattern").asString()).isEqualTo("^[0-9]+$");
         assertThat(texts(parameter(operation, "attribute_name").path("schema").path("enum")))
-                .containsExactly("appointment_titles", "base_locations", "contract_types", "appointment_title");
+                .containsExactlyElementsOf(ATTRIBUTE_NAMES);
 
         JsonNode responses = operation.path("responses");
         assertThat(responses.propertyNames()).containsExactlyInAnyOrder("200", "400", "401", "404", "406", "500");
