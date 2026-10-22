@@ -132,7 +132,7 @@ Expected values come from [data-model.md § 3](./data-model.md) and the [contrac
 
 **Independent Test**: `NoTypeSpecificCodeTest` passes with the new fragment; `git diff --stat main -- src/main/java` is empty (quickstart § 2).
 
-- [ ] T024 [P] [US6] In src/test/java/…/jo/architecture/NoTypeSpecificCodeTest.java add `"gender"` to the fragments of `noMainSourceFileNamesASpecificReferenceDataType`, with no exemption (spec Clarifications); add a parameterised recognition test for `gender`, `genders`, `GENDER`, `Gender`, `GenderHelper`, `myGender`, `XGENDER`, `genderId` and `gender_id`, and a non-matching test for `engender`, `agender`, `transgender` and `agenda` (research R5; FR-016, AC-018)
+- [ ] T024 [P] [US6] In src/test/java/…/jo/architecture/NoTypeSpecificCodeTest.java add `"gender"` to the fragments of `noMainSourceFileNamesASpecificReferenceDataType`, with no exemption (spec Clarifications); add a parameterised recognition test for `gender`, `genders`, `GENDER`, `Gender`, `GenderHelper`, `myGender`, `XGENDER`, `genderId` and `gender_id`, and a non-matching test for `engender`, `engendered`, `agender` and `transgender` (research R5; FR-016, AC-018)
 - [ ] T025 [US6] Run `git diff --stat main -- src/main/java` (expect no output) and `git diff --stat main -- src/main/resources` (expect application.yml and genders.json only), and record the result in specs/005-genders-reference-data/plan.md § Implementation notes (AC-017, SC-007)
 - [ ] T026 [US6] Confirm AC-019 (OpenAPI lists `genders`, not `gender`, schema unchanged) is covered by T005, and note the mapping in specs/005-genders-reference-data/plan.md § Implementation notes
 

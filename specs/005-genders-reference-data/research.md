@@ -67,9 +67,9 @@ Existing golden files for `appointment_titles`, `base_locations` and `contract_t
 
 ## R5. Widening the type-specific-code guard
 
-**Decision**: Add `gender` to `NoTypeSpecificCodeTest`'s fragments, with recognition cases (`gender`, `genders`, `GENDER`, `Gender`, `GenderHelper`, `myGender`, `XGENDER`, `genderId`, `gender_id`) and non-matching cases (`engender`, `agender`, `transgender`, `agenda`). No exemption for `gender` or `gender_id` (spec Clarifications).
+**Decision**: Add `gender` to `NoTypeSpecificCodeTest`'s fragments, with recognition cases (`gender`, `genders`, `GENDER`, `Gender`, `GenderHelper`, `myGender`, `XGENDER`, `genderId`, `gender_id`) and non-matching cases (`engender`, `engendered`, `agender`, `transgender`). No exemption for `gender` or `gender_id` (spec Clarifications).
 
-The guard's matcher finds the fragment anywhere except straight after a lower-case letter, unless the fragment starts with an upper-case letter there (a camelCase hump). So `engender` (lower-case `n` before `gender`) does not match, while `myGender` and `XGENDER` do. `agender` and `transgender` likewise have `gender` straight after a lower-case letter, so they show the boundary rule; `agenda` shows that a near-spelling doesn't match.
+The guard's matcher finds the fragment anywhere except straight after a lower-case letter, unless the fragment starts with an upper-case letter there (a camelCase hump). So `engender` (lower-case `n` before `gender`) does not match, while `myGender` and `XGENDER` do. `engendered`, `agender` and `transgender` likewise have `gender` straight after a lower-case letter, so every non-matching case contains the fragment and exercises the boundary rule.
 
 **Rationale**: Same treatment as `appointment` (also a single word). No main Java source mentions `gender` today (checked), so the guard passes immediately; the People feature will add its reviewed exception (DF-3).
 
