@@ -18,21 +18,9 @@ This feature serves Gender through the generic reference-data routes, as `gender
 
 ## Technical Context
 
-**Language/Version**: Java 25 (Gradle toolchain), per Principle II. Unchanged.
+Unchanged from 002's plan: no new language, dependency, storage or platform. `gradle.lockfile` is untouched. This feature changes only the following.
 
-**Build Tool**: Gradle via the wrapper. No dependency changes, so `gradle.lockfile` is untouched.
-
-**Primary Dependencies**: None added. Spring Boot 4.1.1, springdoc-openapi, Jackson 3, Lombok and MapStruct, as before.
-
-**Storage**: No database. One more classpath JSON fixture, loaded at start-up by the existing repository.
-
-**Testing**: JUnit 5, AssertJ, MockMvc and real HTTP in the four existing suites (`test`, `integrationTest`, `functionalTest`, `smokeTest`). Postman via newman.
-
-**Target Platform**: JVM 25, executable Spring Boot JAR; CI on GitHub Actions as today.
-
-**Project Type**: A single web service.
-
-**Performance Goals**: 002's targets unchanged: collection p95 under 100 ms on a developer machine (`-Dperf.strict=true`), under 1 s on CI. The gender collection is about 0.7 KB of JSON, the smallest served.
+**Data**: one more classpath JSON fixture, `genders.json` (4 records, about 0.7 KB of JSON, the smallest collection served), loaded at start-up by the existing repository.
 
 **Constraints**:
 - No main Java change (FR-003, AC-017, SC-007).
@@ -51,23 +39,13 @@ Checked against constitution v1.13.0.
 | Principle | Assessment |
 |---|---|
 | I. Contract-First Development | **Pass.** `genders` is a contract-valid value the E-Links Swagger enumerates. Its deprecated alias `gender` is not served, which Principle I allows and which is not a contract deviation. Response shape is the contract's `ReferenceDataResponse` plus `name` under the agreed deviation D-1. No new deviation. |
-| II. Java Spring Boot Architecture | **Pass.** No code or layer change. |
-| III. Reuse Before Duplication | **Pass.** The type reuses every shared component; functional tests reuse `ReferenceDataHttp`. |
 | IV. Synthetic Data Only | **Pass.** Only four generic category labels come from the extract; ids, timestamps and dates are synthetic (data-model.md § 3). No real person's gender is involved. DF-3 records the backward reference the People feature must make resolve, with its closing test. |
-| V. Deterministic Behaviour | **Pass.** Static fixture, fixed generation rules, ascending `id` order; a golden-file test covers the new collection (research R4). |
-| VI. Behavioural Fidelity | **Pass.** No parameters added; query parameters are still rejected. |
 | VII. Generic Reference-Data Handling | **Pass, and demonstrated in its simplest form.** The type is added through configuration alone. The spec states the alias is not served (`gender` → `400`); the entry has no `aliases`. The guard test is widened to `gender` with no exemptions (spec Clarifications; research R5). |
-| VIII. Typed API Models | **Pass.** No DTO change. |
-| IX. Centralised Validation and Error Handling | **Pass.** No new error path; start-up fixture validation applies to the new fixture unchanged. |
-| X. Configuration Over Hard-Coding | **Pass.** The type and its fixture are configuration. |
 | XI. Testability | **Pass (planned).** Unit (fixture rules, guard), integration (OpenAPI contract), functional (AC-001 to AC-016 over HTTP) and smoke (latency for the new collection) coverage (research R3–R6). |
-| XII. Simplicity and Maintainability | **Pass.** Nothing added to main code. |
-| XIII. Automated Quality Gates | **Pass, inheriting 002's open Sonar deferral unchanged.** No gate added, removed or relaxed. |
-| XIV. Observability & Traceability | **Pass.** Correlation IDs and logging are path-generic. |
-| XV. Security by Design | **Pass.** The new routes are under `/api/`, so the existing filter authenticates them before routing; AC-011 to AC-013 test it. |
-| XVI. Object-Oriented Design Discipline | **Pass.** No code change. |
 | XVII. API Testability and Postman Artifacts | **Pass (planned).** "Reference Data › Genders" sub-folder with nine requests and tests; the request that used `genders` as an unsupported example moves to `judiciary_roles` (research R7). No hard-coded environment values. |
 | XVIII. API Contract and Swagger/OpenAPI | **Pass (planned).** The enum and description are generated from configuration; the contract test asserts them (research R3). A contract delta records the change. |
+
+Principles II, III, V, VI, VIII–X and XII–XVI: no change from 002; this feature adds no code. XIII inherits 002's open Sonar deferral unchanged.
 
 **Non-principle checks**:
 - **002 FR-023 (at least one ended record)**: met. FR-023's "default dataset" is read as the shipped default data across all types (spec Clarifications; EC-004), and the other types include ended records, so Gender, with none, needs no waiver. 002 records this reading next to FR-023 (T032). FR-023 is a 002 dataset requirement, not a constitution MUST, and no existing test asserts it per fixture, so no test changes because of it (research R2).
@@ -142,4 +120,4 @@ The design adds no code, dependency, layer or abstraction. Three details strengt
 - The widened guard turns "no type-specific code" for genders into a build failure, with no exemptions (spec Clarifications) — supports VII.
 - The two existing checks that used `genders` as their unsupported example move to `judiciary_roles`, so they keep testing what they were written to test rather than silently changing meaning — supports XI and XVII.
 
-Every row stays **Pass**. Open item: the inherited Sonar deferral.
+Every principle stays **Pass**. Open item: the inherited Sonar deferral.
