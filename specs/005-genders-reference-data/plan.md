@@ -89,7 +89,7 @@ specs/005-genders-reference-data/
 │   └── reference-data-api-genders.md              # Phase 1: contract delta against 002–004
 ├── checklists/
 │   └── requirements.md                            # From /speckit-specify
-└── tasks.md                                       # Phase 2 (/speckit-tasks; not created here)
+└── tasks.md                                       # Phase 2: task list (/speckit-tasks)
 ```
 
 ### Source Code (repository root)
