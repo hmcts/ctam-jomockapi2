@@ -34,9 +34,10 @@ import static uk.gov.hmcts.ctam.jo.repository.ReferenceDataFixtureRulesTest.Refe
 
 /**
  * Every shipped fixture follows the generation rules (002 data-model.md § Fixture generation rules, 003
- * data-model.md § 3, 004 data-model.md § 3), so ids stay stable without the local extract: names in code-point order
- * (repeats allowed), {@code id = 10 × position}, every seventh record ended, fixed timestamps and start dates, and
- * the reference and boolean fields the type declares in {@code application.yml}, in the documented field order.
+ * data-model.md § 3, 004 data-model.md § 3, 005 data-model.md § 3), so ids stay stable without the local extract:
+ * names in code-point order (repeats allowed), {@code id = 10 × position}, every seventh record ended, fixed
+ * timestamps and start dates, and the reference and boolean fields the type declares in {@code application.yml}, in
+ * the documented field order.
  */
 class ReferenceDataFixtureRulesTest {
 
@@ -131,7 +132,12 @@ class ReferenceDataFixtureRulesTest {
                         point(70, "SPTW-60%", END_DATE).withBooleans(true),
                         point(120, "Salaried", null).withBooleans(true),
                         point(130, "Unknown", null).withBooleans(false),
-                        point(140, "Voluntary", END_DATE).withBooleans(false))));
+                        point(140, "Voluntary", END_DATE).withBooleans(false))),
+                new Fixture("genders.json", 4, 4, Map.of(), List.of(
+                        point(10, "Female", null),
+                        point(20, "Male", null),
+                        point(30, "Other", null),
+                        point(40, "Prefer not to say", null))));
     }
 
     @Test

@@ -41,7 +41,7 @@ class NoTypeSpecificCodeTest {
     // in any spelling: snake_case, spaced or wrapped words, camelCase or upper case ("base_location",
     // "base location", "BaseLocation", "XBASE_LOCATION").
     @ParameterizedTest
-    @ValueSource(strings = {"appointment", "base_location", "contract_type"})
+    @ValueSource(strings = {"appointment", "base_location", "contract_type", "gender"})
     void noMainSourceFileNamesASpecificReferenceDataType(String fragment) {
         Pattern spellings = spellingsOf(fragment);
         assertThat(sources)
@@ -71,6 +71,14 @@ class NoTypeSpecificCodeTest {
         assertThat(spellingsOf("appointment").matcher(text).find()).isTrue();
     }
 
+    // No exemption for gender_id or the plural: the People feature adds its own reviewed exception (005 DF-3).
+    @ParameterizedTest
+    @ValueSource(strings = {"gender", "genders", "GENDER", "Gender", "GenderHelper", "myGender", "XGENDER", "genderId",
+        "gender_id"})
+    void theGuardRecognisesEveryGenderSpelling(String text) {
+        assertThat(spellingsOf("gender").matcher(text).find()).isTrue();
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"database location", "databaseLocation", "base", "location", "baseline location"})
     void theGuardIgnoresOtherWords(String text) {
@@ -82,6 +90,13 @@ class NoTypeSpecificCodeTest {
     @ValueSource(strings = {"contract", "type", "contractual type", "salaried", "BooleanField"})
     void theGuardIgnoresOtherWordsNearContractType(String text) {
         assertThat(spellingsOf("contract_type").matcher(text).find()).isFalse();
+    }
+
+    // Each contains "gender" straight after a lower-case letter, so each exercises the boundary rule.
+    @ParameterizedTest
+    @ValueSource(strings = {"engender", "engendered", "agender", "transgender"})
+    void theGuardIgnoresWordsContainingGender(String text) {
+        assertThat(spellingsOf("gender").matcher(text).find()).isFalse();
     }
 
     /**

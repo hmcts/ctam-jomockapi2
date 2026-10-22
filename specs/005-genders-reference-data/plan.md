@@ -121,3 +121,36 @@ The design adds no code, dependency, layer or abstraction. Three details strengt
 - The two existing checks that used `genders` as their unsupported example move to `judiciary_roles`, so they keep testing what they were written to test rather than silently changing meaning — supports XI and XVII.
 
 Every principle stays **Pass**. Open item: the inherited Sonar deferral.
+
+## Implementation notes
+
+**Baseline (T001, before any change)**: `./gradlew check -PskipOwasp` green. Tests per suite: `test` 279, `integrationTest` 33, `functionalTest` 182, `smokeTest` 5. JaCoCo: lines 497/497 (100%), branches 221/222 (99.5%; the missed branch is MapStruct's generated null check on the boxed `id`, as recorded in 003).
+
+**Final (T033)**: `./gradlew check -PskipOwasp` green. Tests per suite: `test` 295 (+16: one fixture-rule row, which adds two cases, plus the `gender` fragment, nine spelling cases and four non-matching cases in `NoTypeSpecificCodeTest`), `integrationTest` 33 (the contract test's `enum` and description now include `genders`), `functionalTest` 225 (+43: 41 in `GendersFunctionalTest`, and 002's unsupported-name list lost `genders` and gained three case variants), `smokeTest` 6 (+1: the genders collection). JaCoCo: lines 497/497 (100%), branches 221/222 (99.5%), unchanged, as no main code changed.
+
+**Strict latency (T033, `./gradlew smokeTest -Dperf.strict=true`)**: collection p95 over 20 calls: `appointment_titles` 2 ms, `base_locations` 4 ms, `contract_types` 1 ms, `genders` 1 ms (bound 100 ms).
+
+**AC-017 / SC-007 (T025)**: `git diff --stat main -- src/main/java` prints nothing. `git diff --stat main -- src/main/resources` lists only `application.yml` (+2: the type entry), plus the new `reference-data/genders.json`. The widened `NoTypeSpecificCodeTest` passes: no main source mentions `gender` in any spelling.
+
+**AC coverage (T026)**: AC-019 (OpenAPI lists `genders`, not `gender`; `ReferenceDataResponse` unchanged) is asserted by `ReferenceDataOpenApiContractTest` (T005). AC-015 is covered by `ReferenceDataFunctionalTest` › `UnsupportedTypeTests` (T006).
+
+**Fixture (T002)**: generated once from the gitignored `REF_Gender.csv` by a throwaway script outside the repository; equals data-model.md § 3 (10 Female, 20 Male, 30 Other, 40 Prefer not to say, all open), UTF-8 without BOM, trailing newline.
+
+**Extension test (T007)**: `ReferenceDataExtensionIntegrationTest` passed unchanged; it needed no redeclared type list.
+
+**Golden file (T014, T021)**: `golden/genders.json` was captured from `./gradlew bootRun` with `curl -o` (compact, no trailing newline) and equals the fixture's records. `git diff main -- src/functionalTest/resources/golden/` shows the existing three golden files unchanged.
+
+**Postman (T028)**: newman ran 42 requests (9 new in Reference Data › Genders) with 155 assertions (+34), 0 failures. The folder was inserted as text so the existing collection's formatting is untouched; the unsupported example now requests `judiciary_roles`.
+
+**Quickstart (T034)**: §§ 1–5 walked through; every expected result matched (§ 3 rows 1–15 and the § 4 `enum` `["appointment_titles","base_locations","contract_types","genders","appointment_title"]`). An older `bootRun` was already listening on 8080, so §§ 3–5 ran against this build on port 8081 (`--server.port=8081`, newman with `--env-var baseUrl=http://localhost:8081`).
+
+**Differences from the planned design**:
+- The two lengthened `enum` assertions in `ReferenceDataOpenApiContractTest` were wrapped to stay within Checkstyle's 120-character limit.
+- `GendersFunctionalTest` was written in one pass (T009 and the story tasks), as every story adds to the same file; T010's gate ran before it was added, and T033's after.
+
+**Code-review follow-ups (2026-10-22)**: one `/code-review` round found no correctness bugs and six findings; three were fixed and three kept.
+- 002's quickstart § 3 row 5 now requests `judiciary_roles` instead of carrying a note under the table, so the row passes when run.
+- `assertUnauthorized`, `byId` and `nameOf` moved into `testsupport/ReferenceDataHttp` (`nameOf` as an instance method), replacing the private copies in `GendersFunctionalTest`, `ContractTypesFunctionalTest`, `BaseLocationsFunctionalTest` and `ReferenceDataFunctionalTest`. No assertion changed, so AC-014 still holds.
+- `ac003NoGenderIsEndedAndNamesAreServedExactly` now checks only the raw body, since `ac002` already checks the parsed records: exactly four `"end_date":null` and "Prefer not to say" verbatim. A second review pass found that an earlier version, which checked for the absence of `"end_date":"`, would pass silently if the JSON were ever reformatted; counting the null values fails instead.
+- **Kept**: the FR-023 reading (decided in PR review; spec Clarifications); the guard matching all-caps words such as `TRANSGENDER`, which follows from matching `XGENDER` and fails safe; and the earlier types' id-scoping tests, which AC-014 keeps unchanged (`ac008` covers all four types).
+- `./gradlew check -PskipOwasp` green after the fixes, with the same counts: `test` 295, `integrationTest` 33, `functionalTest` 225, `smokeTest` 6; JaCoCo lines 497/497, branches 221/222.

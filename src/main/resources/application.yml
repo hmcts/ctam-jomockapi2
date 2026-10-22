@@ -35,3 +35,5 @@ jo:
         fixture: classpath:reference-data/contract_types.json
         # The extract's salaried flag (004 D-3).
         boolean-fields: [salaried]
+      - name: genders
+        fixture: classpath:reference-data/genders.json

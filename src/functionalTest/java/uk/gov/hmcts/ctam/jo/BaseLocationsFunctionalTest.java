@@ -5,7 +5,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
@@ -24,14 +23,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.MALFORMED_REFERENCE_ID;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.METHOD_NOT_ALLOWED;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.NOT_ACCEPTABLE;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.QUERY_PARAMETERS_NOT_SUPPORTED;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.RECORD_NOT_FOUND;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.RESOURCE_NOT_FOUND;
-import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNAUTHORIZED;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_ATTRIBUTE_NAME;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.APPOINTMENT_TITLES;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.BASE_LOCATIONS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertError;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertUnauthorized;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.byId;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.golden;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.json;
 
@@ -184,10 +185,11 @@ class BaseLocationsFunctionalTest {
 
     @Test
     void ac008IdsAreScopedToTheirType() {
-        assertThat(nameOf(BASE_LOCATIONS + "/10")).isEqualTo("Aberconwy");
-        assertThat(nameOf(APPOINTMENT_TITLES + "/10")).isEqualTo("Acting Senior Coroner");
-        assertThat(nameOf(BASE_LOCATIONS + "/1940")).isEqualTo("Central Buckinghamshire");
-        assertThat(nameOf(APPOINTMENT_TITLES + "/1940")).isEqualTo("Vice-President, Employment Tribunal (Scotland)");
+        assertThat(http.nameOf(BASE_LOCATIONS + "/10")).isEqualTo("Aberconwy");
+        assertThat(http.nameOf(APPOINTMENT_TITLES + "/10")).isEqualTo("Acting Senior Coroner");
+        assertThat(http.nameOf(BASE_LOCATIONS + "/1940")).isEqualTo("Central Buckinghamshire");
+        assertThat(http.nameOf(APPOINTMENT_TITLES + "/1940"))
+                .isEqualTo("Vice-President, Employment Tribunal (Scotland)");
     }
 
     // US3: the deprecated alias is not served.
@@ -255,6 +257,14 @@ class BaseLocationsFunctionalTest {
         }
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {BASE_LOCATIONS, BASE_LOCATIONS + "/70"})
+    void ec008UnacceptableMediaTypesReturn406(String path) {
+        JsonNode body = assertError(http.getAccepting(path, "application/xml"), 406, NOT_ACCEPTABLE);
+        assertThat(body.has("results")).isFalse();
+        assertThat(body.has("id")).isFalse();
+    }
+
     @Test
     void ec008LeadingZerosAndOversizedIds() {
         ResponseEntity<String> response = http.get(BASE_LOCATIONS + "/070");
@@ -262,16 +272,6 @@ class BaseLocationsFunctionalTest {
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(json(response).get("id").asLong()).isEqualTo(70);
         assertError(http.get(BASE_LOCATIONS + "/99999999999999999999"), 404, RECORD_NOT_FOUND);
-    }
-
-    /**
-     * The shared 401, and no reference data in the body.
-     */
-    private static void assertUnauthorized(ResponseEntity<String> response) {
-        JsonNode body = assertError(response, 401, UNAUTHORIZED);
-        assertThat(response.getHeaders().getFirst(HttpHeaders.WWW_AUTHENTICATE)).isEqualTo("Bearer");
-        assertThat(body.has("results")).isFalse();
-        assertThat(body.has("id")).isFalse();
     }
 
     private static void assertRecord(JsonNode record, String name, String endDate, String updatedAt) {
@@ -290,17 +290,5 @@ class BaseLocationsFunctionalTest {
         assertThat(record.get("type_id").asLong()).isEqualTo(typeId);
         assertThat(record.get("parent_id").asLong()).isEqualTo(parentId);
         assertThat(record.get("jurisdiction_id").asLong()).isEqualTo(jurisdictionId);
-    }
-
-    private static Map<Long, JsonNode> byId(JsonNode results) {
-        Map<Long, JsonNode> byId = new HashMap<>();
-        results.forEach(record -> byId.put(record.get("id").asLong(), record));
-        return byId;
-    }
-
-    private String nameOf(String path) {
-        ResponseEntity<String> response = http.get(path);
-        assertThat(response.getStatusCode().value()).as(path).isEqualTo(200);
-        return json(response).get("name").asString();
     }
 }

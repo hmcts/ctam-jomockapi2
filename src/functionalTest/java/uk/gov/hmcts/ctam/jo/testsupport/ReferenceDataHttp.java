@@ -11,16 +11,20 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.IntSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNAUTHORIZED;
 import static uk.gov.hmcts.ctam.jo.testsupport.ErrorResponseAssertions.assertErrorBody;
 import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.BEARER_TOKEN;
 
 /**
- * Real-HTTP calls and checks shared by the functional test classes, so each type's class doesn't copy them.
+ * Real-HTTP calls, checks and record lookups shared by the functional test classes, so each type's class doesn't
+ * copy them.
  */
 public final class ReferenceDataHttp {
 
@@ -45,6 +49,16 @@ public final class ReferenceDataHttp {
         return send(HttpMethod.GET, path);
     }
 
+    /**
+     * An authorised GET that asks for the given media type.
+     */
+    public ResponseEntity<String> getAccepting(String path, String accept) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, BEARER_TOKEN);
+        headers.set(HttpHeaders.ACCEPT, accept);
+        return exchange(HttpMethod.GET, path, headers);
+    }
+
     public ResponseEntity<String> send(HttpMethod method, String path) {
         return send(method, path, BEARER_TOKEN);
     }
@@ -57,6 +71,19 @@ public final class ReferenceDataHttp {
         if (authorization != null) {
             headers.set(HttpHeaders.AUTHORIZATION, authorization);
         }
+        return exchange(method, path, headers);
+    }
+
+    /**
+     * The name of the single record at the path, which must return {@code 200}.
+     */
+    public String nameOf(String path) {
+        ResponseEntity<String> response = get(path);
+        assertThat(response.getStatusCode().value()).as(path).isEqualTo(200);
+        return json(response).get("name").asString();
+    }
+
+    private ResponseEntity<String> exchange(HttpMethod method, String path, HttpHeaders headers) {
         return restTemplate.exchange(URI.create("http://localhost:" + port.getAsInt() + path), method,
                                      new HttpEntity<>(headers), String.class);
     }
@@ -70,6 +97,25 @@ public final class ReferenceDataHttp {
         JsonNode body = assertErrorBody(response.getBody(), message);
         assertThat(body.get("traceId").asString()).isEqualTo(response.getHeaders().getFirst("X-Correlation-Id"));
         return body;
+    }
+
+    /**
+     * 002's AC-010 / AC-011 / SC-005: the shared 401, and no reference data in the body.
+     */
+    public static void assertUnauthorized(ResponseEntity<String> response) {
+        JsonNode body = assertError(response, 401, UNAUTHORIZED);
+        assertThat(response.getHeaders().getFirst(HttpHeaders.WWW_AUTHENTICATE)).isEqualTo("Bearer");
+        assertThat(body.has("results")).isFalse();
+        assertThat(body.has("id")).isFalse();
+    }
+
+    /**
+     * A collection's records keyed by id.
+     */
+    public static Map<Long, JsonNode> byId(JsonNode results) {
+        Map<Long, JsonNode> byId = new HashMap<>();
+        results.forEach(record -> byId.put(record.get("id").asLong(), record));
+        return byId;
     }
 
     public static JsonNode json(ResponseEntity<String> response) {
