@@ -41,7 +41,7 @@ class NoTypeSpecificCodeTest {
     // in any spelling: snake_case, spaced or wrapped words, camelCase or upper case ("base_location",
     // "base location", "BaseLocation", "XBASE_LOCATION").
     @ParameterizedTest
-    @ValueSource(strings = {"appointment", "base_location", "contract_type", "gender"})
+    @ValueSource(strings = {"appointment", "base_location", "contract_type", "gender", "judiciary_role"})
     void noMainSourceFileNamesASpecificReferenceDataType(String fragment) {
         Pattern spellings = spellingsOf(fragment);
         assertThat(sources)
@@ -79,6 +79,16 @@ class NoTypeSpecificCodeTest {
         assertThat(spellingsOf("gender").matcher(text).find()).isTrue();
     }
 
+    // No exemption for the plural, judiciary_role_id or judiciary_role_name_id: the People feature adds its own
+    // reviewed exception (006 DF-4).
+    @ParameterizedTest
+    @ValueSource(strings = {"judiciary_role", "judiciary_roles", "JUDICIARY_ROLE", "judiciary role", "Judiciary Role",
+        "judiciary-role", "JudiciaryRole", "judiciaryRole", "myJudiciaryRole", "XJUDICIARY_ROLE", "judiciary_role_id",
+        "judiciaryRoleNameId", "judiciary\n     * role"})
+    void theGuardRecognisesEveryJudiciaryRoleSpelling(String text) {
+        assertThat(spellingsOf("judiciary_role").matcher(text).find()).isTrue();
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"database location", "databaseLocation", "base", "location", "baseline location"})
     void theGuardIgnoresOtherWords(String text) {
@@ -97,6 +107,14 @@ class NoTypeSpecificCodeTest {
     @ValueSource(strings = {"engender", "engendered", "agender", "transgender"})
     void theGuardIgnoresWordsContainingGender(String text) {
         assertThat(spellingsOf("gender").matcher(text).find()).isFalse();
+    }
+
+    // The last has the fragment straight after a lower-case letter, so it exercises the boundary rule.
+    @ParameterizedTest
+    @ValueSource(strings = {"judiciary", "role", "judicial role", "JudicialRole", "judiciary member role",
+        "nonjudiciary role"})
+    void theGuardIgnoresOtherWordsNearJudiciaryRole(String text) {
+        assertThat(spellingsOf("judiciary_role").matcher(text).find()).isFalse();
     }
 
     /**

@@ -235,7 +235,7 @@ Every record has `created_at` 2024-01-15T09:00:00Z and `start_date` 2024-01-01. 
 | Unknown id (gap) | `GET /api/v1/reference_data/genders/15` | `404`, shared error shape |
 | Malformed id | `GET /api/v1/reference_data/genders/abc` | `400`, shared error shape |
 | Query parameter | `GET /api/v1/reference_data/genders?name=Male` | `400`, shared error shape |
-| Still unsupported type | `GET /api/v1/reference_data/judiciary_roles` | `400`, shared error shape |
+| Still unsupported type | `GET /api/v1/reference_data/jurisdictions` | `400`, shared error shape |
 | Missing or invalid credentials | any gender route | `401`, shared error shape |
 
 ### Key Entities

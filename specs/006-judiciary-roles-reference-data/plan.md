@@ -127,3 +127,37 @@ The design adds no main code, dependency, layer or abstraction. Four details str
 The quickstart's expected values were checked against a response simulated from the extract by the data-model rules (164 records, first/last, 23 ended from 70 to 1610, the EC-008 ordering, the reference-point names, 141 null and 23 dated `end_date` values, about 27 KB compact). The real fixture is generated during implementation and checked again then.
 
 Every principle stays **Pass**. Open item: the inherited Sonar deferral.
+
+## Implementation notes
+
+**Baseline (T001, before any change)**: `./gradlew check -PskipOwasp` green. Tests per suite: `test` 295, `integrationTest` 33, `functionalTest` 231, `smokeTest` 6. JaCoCo: lines 497/497 (100%), branches 221/222 (99.5%; the missed branch is MapStruct's generated null check on the boxed `id`, as recorded in 003).
+
+**Fixture (T002)**: generated once from the gitignored `REF_JudiciaryRole.csv` by a throwaway script in the session scratchpad (never committed). Before the file was kept, the script confirmed: 164 records and 164 distinct names; the sorted names in the file equal the sorted `name` column of the extract as code points (SC-003); exactly 7 names contain non-ASCII characters, at ids 140, 150, 450, 580, 960, 990 and 1180, and the file contains no `\u`; 23 ended records, ids 70 to 1610 in steps of 70; and every row of data-model.md § 3's Reference points table, including which are ended. UTF-8 without BOM, two-space indent, trailing newline, 34,345 bytes.
+
+**Final (T035)**: `./gradlew check -PskipOwasp` green. Tests per suite: `test` 322 (+27: one fixture-rule row, which adds two cases; the new literal-character check, one case per fixture, five; and the `judiciary_role` fragment, 13 spelling cases and six non-matching cases in `NoTypeSpecificCodeTest`), `integrationTest` 33 (the contract test's `enum` and description now include `judiciary_roles`), `functionalTest` 282 (+51: 47 in `JudiciaryRolesFunctionalTest`, and 002's unsupported-name list lost `judiciary_roles` and gained five case variants), `smokeTest` 7 (+1: the judiciary roles collection). JaCoCo: lines 497/497 (100%), branches 221/222 (99.5%), unchanged, as no main code changed.
+
+**Strict latency (T035, `./gradlew smokeTest -Dperf.strict=true`)**: collection p95 over 20 calls: `appointment_titles` 2 ms, `base_locations` 4 ms, `contract_types` 1 ms, `genders` 1 ms, `judiciary_roles` 1 ms (bound 100 ms).
+
+**AC-018 / SC-008 (T027)**: `git diff --stat main -- src/main/java` prints nothing. `git diff --stat main -- src/main/resources` lists only `application.yml` (+2: the type entry), plus the new `reference-data/judiciary_roles.json`. The widened `NoTypeSpecificCodeTest` passes: no main source mentions `judiciary_role` in any spelling.
+
+**AC coverage (T028)**: AC-020 (OpenAPI lists `judiciary_roles`, not `judiciary_role`; `ReferenceDataResponse` unchanged) is asserted by `ReferenceDataOpenApiContractTest` (T005). AC-016 is covered by `ReferenceDataFunctionalTest` › `UnsupportedTypeTests` (T006).
+
+**Extension test (T007)**: `ReferenceDataExtensionIntegrationTest` passed unchanged; it needed no redeclared type list.
+
+**Golden file (T016, T023)**: `golden/judiciary_roles.json` was captured from `./gradlew bootRun` with `curl -o` (compact, no trailing newline, 27,467 bytes); its 164 records equal the fixture's, and it holds `’` and `–` as UTF-8 characters, with no `\u`. `git diff main -- src/functionalTest/resources/golden/` shows the existing four golden files unchanged.
+
+**Postman (T030)**: newman ran 51 requests (9 new in Reference Data › Judiciary Roles) with 190 assertions (+35), 0 failures. The folder was inserted as text, copied from the Genders folder's layout, so the existing collection's formatting is untouched; the unsupported example now requests `jurisdictions` (the diff removes only its name, `raw` URL and `path` lines).
+
+**Quickstart (T036)**: §§ 1–5 walked through; every expected result matched (§ 3 rows 1–20, and the § 4 `enum` `["appointment_titles","base_locations","contract_types","genders","judiciary_roles","appointment_title"]`).
+
+**Differences from the planned design**:
+- `JudiciaryRolesFunctionalTest` was written in one pass (T010 and the story tasks), as every story adds to the same file, and the golden file was captured before the first gate run; so T011's gate and T035's are the same run.
+- The lengthened `enum` list and description in `ReferenceDataOpenApiContractTest` were wrapped to stay within Checkstyle's 120-character limit.
+- The literal-character test is named `writesNonAsciiCharactersLiterally`, following the file's existing method names. Its Javadoc avoids writing a backslash-u sequence, which Java would read as a Unicode escape even in a comment.
+
+**Code-review follow-ups (2026-10-27)**: two `/code-review` rounds found no correctness bugs; four findings were fixed and the rest kept.
+- The no-escape check in `ReferenceDataFixtureRulesTest` now matches only a real JSON escape (a backslash that is not itself escaped, then `u` and four hex digits), so a name with an escaped backslash before a `u` no longer fails it.
+- `ac003` now checks all seven non-ASCII names on the raw body (it checked two), since parsed names can't show whether a character was escaped; it and `ac004` each fetch and parse the collection once.
+- 005's spec example "Still unsupported type" now requests `jurisdictions`, matching its quickstart.
+- **Kept**: the per-type functional tests and guard-test methods that mirror 003–005 (a shared base class would be a cross-feature refactor); the reference points listed in both the fixture-rule and functional tests (each suite checks a different thing: the file and the served response); the hard-coded OpenAPI `enum` (deriving it from configuration would make the test compare the configuration with itself); the contract-valid unsupported example moving to `jurisdictions` (choosing a never-served name is a cross-feature decision); Postman's stored `Mentor%20Judge` query value (Postman's own format; the request returns `400` as expected).
+- `./gradlew check -PskipOwasp` green after the fixes, with the same counts: `test` 322, `integrationTest` 33, `functionalTest` 282, `smokeTest` 7; JaCoCo lines 497/497, branches 221/222.

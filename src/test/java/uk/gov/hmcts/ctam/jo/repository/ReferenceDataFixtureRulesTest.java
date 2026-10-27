@@ -33,11 +33,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.hmcts.ctam.jo.repository.ReferenceDataFixtureRulesTest.ReferencePoint.point;
 
 /**
- * Every shipped fixture follows the generation rules (002 data-model.md § Fixture generation rules, 003
- * data-model.md § 3, 004 data-model.md § 3, 005 data-model.md § 3), so ids stay stable without the local extract:
- * names in code-point order (repeats allowed), {@code id = 10 × position}, every seventh record ended, fixed
- * timestamps and start dates, and the reference and boolean fields the type declares in {@code application.yml}, in
- * the documented field order.
+ * Every shipped fixture follows the generation rules (002 data-model.md § Fixture generation rules, 003 to 006
+ * data-model.md § 3), so ids stay stable without the local extract: names in code-point order (repeats allowed),
+ * {@code id = 10 × position}, every seventh record ended, fixed timestamps and start dates, the reference and boolean
+ * fields the type declares in {@code application.yml}, in the documented field order, and non-ASCII characters
+ * written literally.
  */
 class ReferenceDataFixtureRulesTest {
 
@@ -137,7 +137,22 @@ class ReferenceDataFixtureRulesTest {
                         point(10, "Female", null),
                         point(20, "Male", null),
                         point(30, "Other", null),
-                        point(40, "Prefer not to say", null))));
+                        point(40, "Prefer not to say", null))),
+                // 006 data-model.md § 3: names exactly as in the extract, including ’, – and the truncated name.
+                new Fixture("judiciary_roles.json", 164, 164, Map.of(), List.of(
+                        point(10, "Acting Designated Civil Judge", null),
+                        point(70, "Acting Senior Costs Judge", END_DATE),
+                        point(140, "Boundary Commission for England – Deputy Chair", END_DATE),
+                        point(150, "Boundary Commission for Wales – Deputy Chair", null),
+                        point(170, "Business & Property Courts Supervising", null),
+                        point(340, "Course Director for COP (JC)", null),
+                        point(960, "Judge in Charge of Jury List (King’s Bench)", null),
+                        point(970, "Judge in Charge of Jury List (Queen's Bench)", null),
+                        point(1070, "Judicial Commissioner Investigatory Powers Commiss", null),
+                        point(1280, "Principle Judge - Land Registration", null),
+                        point(1400, "Senior Family Liaison Judge", END_DATE),
+                        point(1610, "Vice President of the Unified Tribunals", END_DATE),
+                        point(1640, "Wales Training Course Director (JC)", null))));
     }
 
     @Test
@@ -231,6 +246,21 @@ class ReferenceDataFixtureRulesTest {
             List<Boolean> booleans = booleanFields.stream().map(field -> record.get(field).asBoolean()).toList();
             assertThat(point.booleans()).as("%s of %d", booleanFields, point.id()).isEqualTo(booleans);
         }
+    }
+
+    /**
+     * Non-ASCII characters are written literally (006 FR-008), which the parsed records can't show: an escaped
+     * character parses to the same name.
+     */
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("fixtures")
+    void writesNonAsciiCharactersLiterally(Fixture fixture) throws IOException {
+        String text = Files.readString(MAIN_FIXTURES.resolve(fixture.file()), StandardCharsets.UTF_8);
+
+        // A JSON escape: a backslash that is not itself escaped, then u and four hex digits. An escaped backslash
+        // followed by a u, as in a path-like name, is not an escape and doesn't match.
+        assertThat(text).as("%s has no escaped characters", fixture.file())
+                .doesNotContainPattern("(?<!\\\\)(?:\\\\\\\\)*\\\\u[0-9A-Fa-f]{4}");
     }
 
     /**

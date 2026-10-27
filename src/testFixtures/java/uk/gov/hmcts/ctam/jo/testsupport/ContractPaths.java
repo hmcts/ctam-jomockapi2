@@ -13,6 +13,7 @@ public final class ContractPaths {
     public static final String CONTRACT_TYPES = "/api/v1/reference_data/contract_types";
 
     public static final String GENDERS = "/api/v1/reference_data/genders";
+    public static final String JUDICIARY_ROLES = "/api/v1/reference_data/judiciary_roles";
 
     private ContractPaths() {
     }
