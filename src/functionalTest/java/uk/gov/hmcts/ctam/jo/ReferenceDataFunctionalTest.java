@@ -183,7 +183,7 @@ class ReferenceDataFunctionalTest {
         @ParameterizedTest
         @CsvSource({
             "GET, " + APPOINTMENT_TITLES, "GET, " + APPOINTMENT_TITLES + "/70",
-            "GET, /api/v1/reference_data/judiciary_roles", "GET, " + APPOINTMENT_TITLES + "/abc",
+            "GET, /api/v1/reference_data/jurisdictions", "GET, " + APPOINTMENT_TITLES + "/abc",
             "GET, " + APPOINTMENT_TITLES + "?page=2", "GET, " + APPOINTMENT_TITLES + "/",
             "POST, " + APPOINTMENT_TITLES
         })
@@ -285,13 +285,14 @@ class ReferenceDataFunctionalTest {
 
         // Also covers 003 AC-009/AC-010 (via base_location), AC-015 and EC-006
         // (specs/003-base-locations-reference-data), 004 AC-016 and EC-007
-        // (specs/004-contract-types-reference-data), and 005 AC-015 and EC-007
-        // (specs/005-genders-reference-data).
+        // (specs/004-contract-types-reference-data), 005 AC-015 and EC-007
+        // (specs/005-genders-reference-data), and 006 AC-016 and EC-011
+        // (specs/006-judiciary-roles-reference-data).
         @ParameterizedTest
         @ValueSource(strings = {
-            // The other 17 E-Links attribute names: seven canonical types, their seven deprecated aliases, and
-            // base_location, contract_type and gender, which 003–005 don't serve.
-            "judiciary_roles", "jurisdictions", "location_types",
+            // The other 16 E-Links attribute names: six canonical types, their six deprecated aliases, and
+            // base_location, contract_type, gender and judiciary_role, which 003–006 don't serve.
+            "jurisdictions", "location_types",
             "locations", "ticket_categories", "ticket_category_types", "tickets",
             "base_location", "contract_type", "gender", "judiciary_role", "jurisdiction", "location_type",
             "location", "ticket_category", "ticket_category_type", "ticket",
@@ -299,7 +300,8 @@ class ReferenceDataFunctionalTest {
             "foo", "Appointment_Titles", "APPOINTMENT_TITLES", "appointment_titles_",
             "Base_Locations", "BASE_LOCATIONS", "base-locations",
             "Contract_Types", "CONTRACT_TYPES", "contract-types",
-            "Genders", "GENDERS", "genders_"
+            "Genders", "GENDERS", "genders_",
+            "Judiciary_roles", "JUDICIARY_ROLES", "judiciary-roles", "judiciaryRoles", "judiciary_roles_"
         })
         void ac007Ac014UnsupportedNamesAreRejectedOnBothRoutes(String name) {
             String collection = "/api/v1/reference_data/" + name;

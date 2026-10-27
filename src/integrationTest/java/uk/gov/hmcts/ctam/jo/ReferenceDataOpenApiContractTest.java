@@ -31,7 +31,8 @@ class ReferenceDataOpenApiContractTest {
      * The {@code attribute_name} enum both operations document: the served types, then the deprecated aliases.
      */
     private static final List<String> ATTRIBUTE_NAMES =
-            List.of("appointment_titles", "base_locations", "contract_types", "genders", "appointment_title");
+            List.of("appointment_titles", "base_locations", "contract_types", "genders", "judiciary_roles",
+                    "appointment_title");
 
     @LocalServerPort
     private int port;
@@ -76,8 +77,8 @@ class ReferenceDataOpenApiContractTest {
         assertThat(texts(parameter.path("schema").path("enum")))
                 .containsExactlyElementsOf(ATTRIBUTE_NAMES);
         assertThat(parameter.path("description").asString())
-                .isEqualTo("Can be one of: appointment_titles, base_locations, contract_types, genders. "
-                         + "Also supports deprecated values: appointment_title");
+                .isEqualTo("Can be one of: appointment_titles, base_locations, contract_types, genders, "
+                         + "judiciary_roles. Also supports deprecated values: appointment_title");
     }
 
     @Test

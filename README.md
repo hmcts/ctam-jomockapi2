@@ -93,7 +93,7 @@ Two routes serve every configured reference-data type through the same code:
 | `GET /api/v1/reference_data/{attribute_name}` | `{"results": [...]}`: every record, in ascending `id` order |
 | `GET /api/v1/reference_data/{attribute_name}/{reference_id}` | One record, as a single object |
 
-Four types are configured:
+Five types are configured:
 
 | Type | Records | Deprecated alias served |
 |------|---------|-------------------------|
@@ -101,6 +101,7 @@ Four types are configured:
 | `base_locations` | 1,462, one per source row (1,276 distinct names) | none: `base_location` returns `400` |
 | `contract_types` | 14 | none: `contract_type` returns `400` |
 | `genders` | 4 | none: `gender` returns `400` |
+| `judiciary_roles` | 164 | none: `judiciary_role` returns `400` |
 
 Base-location records also carry `type_id`, `parent_id` and `jurisdiction_id`, after `name`:
 the E-Links ids of each location's type, parent location and jurisdiction (30 Courts, 34 Tribunals,

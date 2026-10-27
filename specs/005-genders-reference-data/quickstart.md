@@ -49,7 +49,7 @@ AUTH='Authorization: Bearer local-dev-token'
 | 11 | `curl -si $BASE/genders` | `401`, `WWW-Authenticate: Bearer` | AC-012 |
 | 12 | `curl -si -H 'Authorization: Bearer wrong' $BASE/genders/20` | `401` | AC-013 |
 | 13 | `curl -si -H "$AUTH" "$BASE/genders?name=Male"` | `400`, query parameter message | AC-016 |
-| 14 | `curl -si -H "$AUTH" $BASE/judiciary_roles` | `400`, unsupported attribute | AC-015 |
+| 14 | `curl -si -H "$AUTH" $BASE/jurisdictions` | `400`, unsupported attribute | AC-015 |
 | 15 | `curl -s -H "$AUTH" $BASE/contract_types \| jq '.results \| length'` | `14` (unchanged) | AC-014 |
 
 ## 4. OpenAPI
@@ -68,4 +68,4 @@ npx newman run postman/ctam-jomockapi.postman_collection.json \
   -e postman/ctam-jomockapi.postman_environment.json
 ```
 
-**Expected**: every request passes, including the nine in **Reference Data › Genders** and the unsupported-type example, now `judiciary_roles` (AC-020).
+**Expected**: every request passes, including the nine in **Reference Data › Genders** and the unsupported-type example, now `jurisdictions` (AC-020).

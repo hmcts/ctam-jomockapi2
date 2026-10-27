@@ -37,3 +37,5 @@ jo:
         boolean-fields: [salaried]
       - name: genders
         fixture: classpath:reference-data/genders.json
+      - name: judiciary_roles
+        fixture: classpath:reference-data/judiciary_roles.json
