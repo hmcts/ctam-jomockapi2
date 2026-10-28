@@ -32,7 +32,7 @@ class ReferenceDataOpenApiContractTest {
      */
     private static final List<String> ATTRIBUTE_NAMES =
             List.of("appointment_titles", "base_locations", "contract_types", "genders", "judiciary_roles",
-                    "appointment_title");
+                    "locations", "appointment_title");
 
     @LocalServerPort
     private int port;
@@ -78,7 +78,7 @@ class ReferenceDataOpenApiContractTest {
                 .containsExactlyElementsOf(ATTRIBUTE_NAMES);
         assertThat(parameter.path("description").asString())
                 .isEqualTo("Can be one of: appointment_titles, base_locations, contract_types, genders, "
-                         + "judiciary_roles. Also supports deprecated values: appointment_title");
+                         + "judiciary_roles, locations. Also supports deprecated values: appointment_title");
     }
 
     @Test
@@ -109,11 +109,19 @@ class ReferenceDataOpenApiContractTest {
         assertThat(texts(schema("ReferenceDataResponse").path("required"))).containsExactlyInAnyOrder(
                 "id", "name", "created_at", "updated_at", "start_date", "end_date");
         for (String reference : List.of("type_id", "parent_id", "jurisdiction_id")) {
+            assertThat(typesOf(properties.path(reference))).as(reference).contains("integer");
             assertThat(properties.path(reference).path("format").asString()).as(reference).isEqualTo("int64");
-            assertThat(isNullable(properties.path(reference))).as(reference + " not nullable").isFalse();
+            assertThat(properties.path(reference).has("$ref")).as(reference + " inline").isFalse();
             assertThat(properties.path(reference).path("description").asString()).as(reference)
                     .contains("deviation D-2");
         }
+        // 007 FR-013: parent_id may be null, for a top-level record of a type that declares it nullable.
+        assertThat(isNullable(properties.path("parent_id"))).as("parent_id nullable").isTrue();
+        assertThat(properties.path("parent_id").path("description").asString()).contains("top-level record");
+        assertThat(isNullable(properties.path("type_id"))).as("type_id not nullable").isFalse();
+        assertThat(isNullable(properties.path("jurisdiction_id"))).as("jurisdiction_id not nullable").isFalse();
+        assertThat(root.path("components").path("schemas").has("ReferenceFieldValue"))
+                .as("no ReferenceFieldValue schema").isFalse();
         // 004 FR-011: salaried is an optional boolean, never null when present.
         assertThat(typesOf(properties.path("salaried"))).containsExactly("boolean");
         assertThat(isNullable(properties.path("salaried"))).as("salaried not nullable").isFalse();

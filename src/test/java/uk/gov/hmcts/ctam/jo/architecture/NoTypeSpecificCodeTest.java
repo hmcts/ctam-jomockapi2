@@ -41,7 +41,7 @@ class NoTypeSpecificCodeTest {
     // in any spelling: snake_case, spaced or wrapped words, camelCase or upper case ("base_location",
     // "base location", "BaseLocation", "XBASE_LOCATION").
     @ParameterizedTest
-    @ValueSource(strings = {"appointment", "base_location", "contract_type", "gender", "judiciary_role"})
+    @ValueSource(strings = {"appointment", "base_location", "contract_type", "gender", "judiciary_role", "location"})
     void noMainSourceFileNamesASpecificReferenceDataType(String fragment) {
         Pattern spellings = spellingsOf(fragment);
         assertThat(sources)
@@ -87,6 +87,21 @@ class NoTypeSpecificCodeTest {
         "judiciaryRoleNameId", "judiciary\n     * role"})
     void theGuardRecognisesEveryJudiciaryRoleSpelling(String text) {
         assertThat(spellingsOf("judiciary_role").matcher(text).find()).isTrue();
+    }
+
+    // No exemption: the People feature adds its own reviewed exception for its location fields (007 DF-6).
+    @ParameterizedTest
+    @ValueSource(strings = {"location", "locations", "LOCATION", "Location", "LocationHelper", "myLocation",
+        "XLOCATION", "location_id", "base_location", "baseLocation"})
+    void theGuardRecognisesEveryLocationSpelling(String text) {
+        assertThat(spellingsOf("location").matcher(text).find()).isTrue();
+    }
+
+    // Each contains "location" straight after a lower-case letter, so each exercises the boundary rule.
+    @ParameterizedTest
+    @ValueSource(strings = {"allocation", "relocation", "dislocation", "collocation"})
+    void theGuardIgnoresWordsContainingLocation(String text) {
+        assertThat(spellingsOf("location").matcher(text).find()).isFalse();
     }
 
     @ParameterizedTest

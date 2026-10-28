@@ -31,25 +31,24 @@ public class ReferenceDataRecord {
     String name;
 
     /**
-     * Null unless the type declares {@link ReferenceField#TYPE_ID}. A fixture leaves an undeclared reference field
-     * out rather than setting it to {@code null}, so an explicit {@code null} fails, as for every reference field.
+     * Null unless the type declares {@link ReferenceField#TYPE_ID}. Whether a fixture may leave a reference field out
+     * or set it to {@code null} depends on the type's declarations, so the repository decides, not this class.
      */
     @JsonProperty("type_id")
-    @JsonSetter(nulls = Nulls.FAIL)
     Long typeId;
 
     /**
-     * Null unless the type declares {@link ReferenceField#PARENT_ID}.
+     * Null unless the type declares {@link ReferenceField#PARENT_ID}, or declares it nullable and the record has no
+     * value. The repository decides whether a null or a missing key is allowed.
      */
     @JsonProperty("parent_id")
-    @JsonSetter(nulls = Nulls.FAIL)
     Long parentId;
 
     /**
-     * Null unless the type declares {@link ReferenceField#JURISDICTION_ID}.
+     * Null unless the type declares {@link ReferenceField#JURISDICTION_ID}. The repository decides whether a null or
+     * a missing key is allowed.
      */
     @JsonProperty("jurisdiction_id")
-    @JsonSetter(nulls = Nulls.FAIL)
     Long jurisdictionId;
 
     /**

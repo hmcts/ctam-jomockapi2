@@ -23,8 +23,8 @@ import java.util.regex.Pattern;
  * The ONLY place reference-data names and deprecated aliases are resolved (spec FR-005).
  *
  * <p>Built once from configuration. Any invalid declaration (bad name, duplicate name or alias, missing
- * fixture, empty list entry, unknown or repeated reference or boolean field) throws {@link IllegalStateException},
- * so the application does not start.
+ * fixture, empty list entry, unknown or repeated reference or boolean field, nullable reference field not declared as
+ * a reference field) throws {@link IllegalStateException}, so the application does not start.
  */
 @Component
 public class ReferenceDataTypeRegistry {
@@ -117,6 +117,7 @@ public class ReferenceDataTypeRegistry {
         requireNoEmptyEntry(name, "aliases", properties.aliases());
         requireNoEmptyEntry(name, "reference-fields", properties.referenceFields());
         requireNoEmptyEntry(name, "boolean-fields", properties.booleanFields());
+        requireNoEmptyEntry(name, "nullable-reference-fields", properties.nullableReferenceFields());
         LinkedHashSet<String> aliases = new LinkedHashSet<>();
         for (String alias : properties.aliases()) {
             requireValidName(alias, "alias of " + name);
@@ -131,12 +132,20 @@ public class ReferenceDataTypeRegistry {
         if (properties.fixture() == null || properties.fixture().isBlank()) {
             throw new IllegalStateException("Invalid reference-data type " + name + ": fixture is required");
         }
-        return new ReferenceDataType(name, aliases, properties.fixture(),
-                                     declaredFields(name, "reference field", properties.referenceFields(),
-                                                    ReferenceField.class),
+        Set<ReferenceField> referenceFields =
+                declaredFields(name, "reference field", properties.referenceFields(), ReferenceField.class);
+        Set<ReferenceField> nullableReferenceFields = declaredFields(
+                name, "nullable reference field", properties.nullableReferenceFields(), ReferenceField.class);
+        for (ReferenceField field : nullableReferenceFields) {
+            if (!referenceFields.contains(field)) {
+                throw new IllegalStateException("Invalid reference-data type " + name + ": nullable reference field "
+                                                + field.fieldName() + " is not a reference field");
+            }
+        }
+        return new ReferenceDataType(name, aliases, properties.fixture(), referenceFields,
                                      declaredFields(name, "boolean field", properties.booleanFields(),
                                                     BooleanField.class),
-                                     properties.uniqueNames());
+                                     properties.uniqueNames(), nullableReferenceFields);
     }
 
     private static void requireNoEmptyEntry(String typeName, String list, List<String> values) {
@@ -146,8 +155,8 @@ public class ReferenceDataTypeRegistry {
     }
 
     /**
-     * Resolves the field names a type declares ({@code reference-fields} or {@code boolean-fields}); {@code kind}
-     * names the list in error messages.
+     * Resolves the field names a type declares ({@code reference-fields}, {@code boolean-fields} or
+     * {@code nullable-reference-fields}); {@code kind} names the list in error messages.
      */
     private static <E extends Enum<E> & DeclaredField<?>> Set<E> declaredFields(String typeName, String kind,
                                                                                 List<String> fieldNames,

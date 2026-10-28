@@ -183,3 +183,59 @@ The design adds one generic option, one small typed value class and one new mapp
 The quickstart's expected values were checked against a response simulated from the extract by the data-model rules: 2,000 records; first and last; 285 ended, from 9 to 2364; 142 null parents with the key always present; 0 unresolved parents; 40 "National"; about 414 KB compact. The simulation also confirmed that every `parent_id` in the checked-in `base_locations.json` (408 distinct) is a location id. The real fixture is generated during implementation and checked again then.
 
 Every principle stays **Pass**. Open item: the inherited Sonar deferral.
+
+## Implementation notes
+
+**Baseline (T001, before any change)**: `./gradlew check -PskipOwasp` green. Tests per suite: `test` 322, `integrationTest` 33, `functionalTest` 282, `smokeTest` 7. JaCoCo: lines 497/497 (100%), branches 221/222 (99.5%; the missed branch is MapStruct's generated null check on the boxed `id`, as recorded in 003).
+
+**Generic capability (T002–T016)**: built test-first. After the main-code change, `./gradlew test integrationTest functionalTest` passed with only the T002–T007 test changes (`test` 343, `integrationTest` 33, `functionalTest` 282), and every existing golden file matched byte for byte. springdoc publishes each reference field as an inline `int64` integer with `@Schema(implementation = Long.class, …)`, and `parent_id` as `"type": ["integer", "null"]`, with no `ReferenceFieldValue` component, so R4's fallback wasn't needed.
+
+**Fixture (T017)**: generated once from the gitignored `REF_Location.csv` by a throwaway script in the session scratchpad (never committed). Before the file was kept, the script confirmed:
+- 2,000 records and 1,523 distinct names ("National" 40, "London" 8, "Unknown" 7);
+- the five copied columns equal the extract's row for row, as code points (SC-003);
+- 142 null parents, all of types 1, 3, 6 and 14; every non-null parent resolves, none is self-referencing, and the maximum depth is 2;
+- 285 ended records, ids 9 to 2364;
+- one non-ASCII name, at id 2398 (62 characters), and no `\u` in the file;
+- every row of data-model.md § 4's Reference points table, at the documented positions; ids 2, 4, 15, 2434 and 999999 absent; `type_id` values 1 to 16 and `jurisdiction_id` values {30, 34, 84, 86};
+- every `parent_id` in the checked-in `base_locations.json` (408 distinct) is a location id.
+
+UTF-8 without BOM, two-space indent, trailing newline, 533,818 bytes.
+
+**Extension test (T022)**: `ReferenceDataExtensionIntegrationTest` passed unchanged (6 tests).
+
+**Golden file (T030)**: `golden/locations.json` was captured from `./gradlew bootRun` with `curl -o` (compact, no trailing newline, 413,828 bytes). Its 2,000 records equal the fixture's; it holds 142 `"parent_id":null`, 285 ended records and the en dash as a UTF-8 character, with no `\u`. `git diff --stat origin/main -- src/functionalTest/resources/golden/` prints nothing: the existing five golden files are unchanged (AC-018, SC-008). (The local `main` branch predates the 006 merge, so diffs here are against `origin/main`.)
+
+**AC-021 / SC-009 (T042)**: `git diff --stat origin/main -- src/main/java` lists exactly the eight planned changed files (`ReferenceDataProperties`, `ReferenceDataResponse`, `ReferenceDataRecord`, `ReferenceDataType`, `ReferenceDataMapper`, `FixtureReferenceDataRepository`, `ReferenceDataService`, `ReferenceDataTypeRegistry`; 114 insertions, 45 deletions), plus the new `ReferenceFieldValue`. Under `src/main/resources`, only `application.yml` (the type entry, with comments, and `base_locations`' comment updated to say `parent_id` is now checked) and the new `reference-data/locations.json`. `git grep -n -i 'location' -- src/main/java` prints nothing.
+
+**AC coverage (T043)**: AC-022 (nullable versus non-nullable start-up behaviour) is covered by `ReferenceDataTypeRegistryTest` (T002) and `FixtureReferenceDataRepositoryTest` (T004). AC-024 (OpenAPI lists `locations`, not `location`; `parent_id` nullable; no `ReferenceFieldValue` schema) is covered by `ReferenceDataOpenApiContractTest` (T014, T020).
+
+**Postman (T045)**: newman ran 61 requests (10 new in Reference Data › Locations) with 230 assertions (+40), 0 failures. The folder was inserted as text after Judiciary Roles, in the collection's own layout; the diff is insertions only.
+
+**Final (T050)**: `./gradlew check -PskipOwasp` green. Tests per suite:
+- `test` 366 (+44): registry, type, repository, mapper, service and controller cases for nullable reference fields; the new `ReferenceFieldValueTest` (4); one fixture-rule row, which adds three cases; `ReferenceDataReferencesTest` (5); and the `location` fragment, with 10 spelling and 4 non-matching cases.
+- `integrationTest` 33 (the contract test's `enum`, description and `parent_id` schema changed).
+- `functionalTest` 334 (+52): 49 in `LocationsFunctionalTest`, and 002's unsupported-name list lost `locations` and gained four case variants.
+- `smokeTest` 8 (+1: the locations collection).
+
+JaCoCo: lines 519/519 (100%), branches 241/242 (99.6%). The one missed branch is still MapStruct's generated null check on the boxed `id`; the new branches are all covered.
+
+**Strict latency (T050, `./gradlew smokeTest -Dperf.strict=true`)**: collection p95 over 20 calls: `appointment_titles` 3 ms, `base_locations` 11 ms, `contract_types` 2 ms, `genders` 2 ms, `judiciary_roles` 2 ms, `locations` 4 ms (bound 100 ms).
+
+**Quickstart (T051)**: §§ 1–5 walked through against `./gradlew bootRun`. Every expected result matched: § 3 rows 1–23, the § 4 `enum` (`locations` listed, `location` not) and `parent_id` schema (`int64`, `"null"` among its types, no `ReferenceFieldValue`), and § 5's newman run.
+
+**Differences from the planned design**:
+- As in 006, `LocationsFunctionalTest` was written in one pass (T024 and the story tasks), and the golden file was captured before the first gate run, so T025's gate already ran every story's functional test.
+- `ReferenceDataFixtures` gained resolved-type builders (`plainType`, `referencingType`, `nullableParentType`, `salariedType`, `fullType`) for the mapper's new context parameter, and `FixtureReferenceDataRepositoryTest`'s explicit-null case on a type with no `parent_id` declared now fails in validation, as research R3 planned.
+- The shared `validateDeclaredFields` rule takes the type's nullable fields (none for boolean fields), so a declared nullable reference field may hold null while every other rule is unchanged. The new JSON-tree check runs first, so its messages are the ones reported.
+
+**Code-review follow-ups (2026-10-28)**: one `/code-review` round found no correctness bugs. Two findings were fixed and six were kept.
+- **Fixed, one rule in one place**: `FixtureReferenceDataRepository` no longer checks reference fields' presence and nullability a second time on the parsed record, since the JSON-tree check (`requireReferenceKeys`) already enforces them. `validateReferenceFields` now checks only that each present value is positive. `validateDeclaredFields` is back to its 006 form and serves boolean fields only. Behaviour and messages are unchanged.
+- **Fixed, a clear failure**: `ReferenceDataReferencesTest` › `selfReferencesHaveNoCycles` now fails with an assertion naming the record when a record lacks the key, instead of throwing a NullPointerException.
+- **Kept**:
+  - `salaried` keeps `Nulls.FAIL` (research R3; 004 FR-018).
+  - `ReferenceFieldValue` rather than `Optional<Long>` (research R4; Sonar java:S3553).
+  - Each fixture is still parsed twice at start-up, as before 007.
+  - Records are still mapped per request; the locations p95 is 4 ms against a 100 ms bound.
+  - `salaried` is still present when the record has a value, which start-up validation makes the same as the type declaring it.
+  - `parent_id` is documented as nullable on the one shared schema, with its description limiting null to types that declare it nullable (FR-013; research R4 rejected a second DTO).
+- `./gradlew check -PskipOwasp` green after the fixes: `test` 366, `integrationTest` 33, `functionalTest` 334, `smokeTest` 8. JaCoCo: lines 513/513 (100%), branches 237/238 (99.6%), fewer in total because the removed duplicate branches are gone.
