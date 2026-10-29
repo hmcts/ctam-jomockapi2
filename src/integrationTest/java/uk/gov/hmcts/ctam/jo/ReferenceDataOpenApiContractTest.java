@@ -79,8 +79,7 @@ class ReferenceDataOpenApiContractTest {
         assertThat(parameter.path("description").asString())
                 .isEqualTo("Can be one of: appointment_titles, base_locations, contract_types, genders, "
                          + "judiciary_roles, locations, location_types, jurisdictions. Also supports deprecated "
-                         + "values: "
-                         + "appointment_title");
+                         + "values: appointment_title");
     }
 
     @Test

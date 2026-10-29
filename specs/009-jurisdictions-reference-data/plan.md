@@ -202,3 +202,11 @@ JaCoCo: lines 534/534 (100%), branches 239/240 (99.6%), unchanged, as no main co
   - `JURISDICTION_IDS` and the base-locations Postman check stay pinned to {30, 34, 84, 86}: they pin the values the location data uses, while resolution is `ReferenceDataReferencesTest`'s job (research R3).
   - `ac009` and `ac011` repeat the resolution check over HTTP because US3 requires it to be observable to integrators; the extra fetches cost a few milliseconds.
   - The OpenAPI test's wrapped description string follows the existing style.
+
+**Second code-review round (2026-10-29)**: no correctness bugs; three findings repeated the first round and stay as recorded above. Two were fixed:
+- `ReferenceDataOpenApiContractTest`'s expected description no longer splits "values: appointment_title" across two string fragments.
+- `JurisdictionsFunctionalTest`'s `ac009` and `ac011` read `jurisdiction_id` through `jurisdictionIdOf`, which fails with the record named if the field is absent or not a whole number, instead of a NullPointerException.
+
+One was kept: `ReferenceDataReferencesTest` skips a missing field as well as a null one (007's behaviour). A missing declared reference field is already rejected at start-up and by `ReferenceDataFixtureRulesTest`'s field-order check.
+
+`./gradlew check -PskipOwasp` green after the fixes, with unchanged counts: `test` 421, `integrationTest` 33, `functionalTest` 444, `smokeTest` 10.

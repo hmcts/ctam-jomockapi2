@@ -177,9 +177,7 @@ class JurisdictionsFunctionalTest {
 
         // So an empty response can't pass.
         assertThat(results.size()).isEqualTo(counts.get(path));
-        results.forEach(record -> assertThat(record.get("jurisdiction_id").asLong())
-                .as("%s %d: jurisdiction_id", path, record.get("id").asLong())
-                .isIn(jurisdictionIds));
+        results.forEach(record -> assertThat(jurisdictionIdOf(path, record)).isIn(jurisdictionIds));
     }
 
     @Test
@@ -189,8 +187,7 @@ class JurisdictionsFunctionalTest {
         for (String path : List.of(LOCATIONS, BASE_LOCATIONS, LOCATION_TYPES)) {
             JsonNode results = json(http.get(path)).get("results");
             assertThat(results).isNotEmpty();
-            assertThat(results).as(path).noneSatisfy(record ->
-                    assertThat(record.get("jurisdiction_id").asLong()).isEqualTo(87L));
+            results.forEach(record -> assertThat(jurisdictionIdOf(path, record)).isNotEqualTo(87L));
         }
     }
 
@@ -274,6 +271,16 @@ class JurisdictionsFunctionalTest {
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(json(response).get("id").asLong()).isEqualTo(84);
         assertError(http.get(JURISDICTIONS + "/99999999999999999999"), 404, RECORD_NOT_FOUND);
+    }
+
+    /**
+     * The record's {@code jurisdiction_id}, failing with the record named if it is absent or not a whole number.
+     */
+    private static long jurisdictionIdOf(String path, JsonNode record) {
+        JsonNode value = record.path("jurisdiction_id");
+        assertThat(value.isIntegralNumber()).as("%s %d: jurisdiction_id %s", path, record.get("id").asLong(), value)
+                .isTrue();
+        return value.asLong();
     }
 
     private static void assertRecord(JsonNode record, Row row) {
