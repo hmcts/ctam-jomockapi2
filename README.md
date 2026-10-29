@@ -37,9 +37,9 @@ breakdown.
 Implemented and covered by automated tests:
 
 - `GET /api/v1/healthcheck` (see `specs/001-healthcheck-api/`)
-- the Reference Data API for seven types, from appointment titles to location types (see
+- the Reference Data API for eight types, from appointment titles to jurisdictions (see
   [Reference data](#reference-data) and `specs/002-reference-data-api/` to
-  `specs/008-location-types-reference-data/`)
+  `specs/009-jurisdictions-reference-data/`)
 
 ### Quality gates
 
@@ -94,7 +94,7 @@ Two routes serve every configured reference-data type through the same code:
 | `GET /api/v1/reference_data/{attribute_name}` | `{"results": [...]}`: every record, in ascending `id` order |
 | `GET /api/v1/reference_data/{attribute_name}/{reference_id}` | One record, as a single object |
 
-Seven types are configured:
+Eight types are configured:
 
 | Type | Records | Deprecated alias served |
 |------|---------|-------------------------|
@@ -105,27 +105,33 @@ Seven types are configured:
 | `judiciary_roles` | 164 | none: `judiciary_role` returns `400` |
 | `locations` | 2,000, one per source row (1,523 distinct names) | none: `location` returns `400` |
 | `location_types` | 16, one per source row (13 distinct names) | none: `location_type` returns `400` |
+| `jurisdictions` | 5, one per source entry | none: `jurisdiction` returns `400` |
 
 Base-location records also carry `type_id`, `parent_id` and `jurisdiction_id`, after `name`:
 the E-Links ids of each location's type, parent location and jurisdiction (30 Courts, 34 Tribunals,
 84 Magistrates, 86 Coroners), copied from the source data. Every `parent_id` is the id of a served
-location, and every `type_id` the id of a served location type in the same jurisdiction. Only
-`jurisdiction_id` still refers to a type that isn't served yet, `jurisdictions`; the feature that
-adds it must make every reference resolve (constitution, Principle IV). Appointment-title records
-don't have these fields.
+location, and every `type_id` the id of a served location type in the same jurisdiction. Every
+`jurisdiction_id` is the id of a served jurisdiction. Appointment-title records don't have these
+fields.
 
 Location records carry the same three fields, after `name`. Unlike every other type, locations
 keep the E-Links ids (1 to 2433, with gaps), so that parent references resolve: every non-null
 `parent_id` is the id of another served location. The 142 top-level locations have
 `"parent_id": null`; the field is never left out. Every `type_id` is the id of a served location
-type with the same `jurisdiction_id`. Base-location ids are not location ids: the two types are
-not linked by id.
+type with the same `jurisdiction_id`, and every `jurisdiction_id` the id of a served
+jurisdiction. Base-location ids are not location ids: the two types are not linked by id.
 
 Location-type records also keep the E-Links ids (1 to 16), so that every location's and base
-location's `type_id` resolves. Each carries `jurisdiction_id` and then `integration_code` (E-Links'
-code for the type, e.g. `MAGS_AC_LJA`), after `name`. Names repeat: "Region" three times and "AC"
+location's `type_id` resolves. Every `jurisdiction_id` is the id of a served jurisdiction. Each
+carries `jurisdiction_id` and then `integration_code` (E-Links' code for the type, e.g.
+`MAGS_AC_LJA`), after `name`. Names repeat: "Region" three times and "AC"
 twice, told apart by jurisdiction and integration code. Ids 7 and 14 are ended by the synthetic
 date rule, although open locations still use them.
+
+Jurisdiction records keep the E-Links ids too (30 Courts, 34 Tribunals, 84 Magistrates,
+86 Coroners, 87 Skills), so that every location's, base location's and location type's
+`jurisdiction_id` resolves. They carry no reference, boolean or text field, and none is ended.
+Skills (87) is served although no shipped record refers to it.
 
 Contract-type records also carry `salaried`, after `name`: a JSON boolean, `true` for "Salaried"
 and the ten salaried part-time working ("SPTW-…%") types, `false` for "Fee-paid", "Unknown" and
@@ -217,7 +223,8 @@ this working for a type declared only in test properties.
 Tests to update for a new type:
 
 - `NoTypeSpecificCodeTest`: add the type's forbidden fragment, unless an existing one already covers its
-  name (as `location` covers `location_types`).
+  name (as `location` covers `location_types`); if a generic field name contains the singular, use the
+  plural instead (as `jurisdictions` does, because of `jurisdiction_id`).
 - `ReferenceDataFixtureRulesTest`: add the fixture with its record count, distinct-name count,
   whether it has reference, text or boolean fields, and reference points.
 - `ReferenceDataOpenApiContractTest`: update the `attribute_name` enum and description.

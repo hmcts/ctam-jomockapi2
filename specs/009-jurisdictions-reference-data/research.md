@@ -50,7 +50,7 @@ The plan's implementation notes record the result.
 ## R3. Fixture rules on every build
 
 **Decision**: `ReferenceDataFixtureRulesTest`:
-- **New row**: `new Fixture("jurisdictions.json", 5, 5, Map.of(), IdRule.SOURCE, …)` with reference points 30 "Courts", 84 "Magistrates", 86 "Coroners" and 87 "Skills", each with a null end date.
+- **New row**: `new Fixture("jurisdictions.json", 5, 5, Map.of(), IdRule.SOURCE, …)` with all five records as reference points (30 "Courts", 34 "Tribunals", 84 "Magistrates", 86 "Coroners" and 87 "Skills"), each with a null end date.
 - **`JURISDICTION_IDS`** stays `{30, 34, 84, 86}`: it pins the values that the location data uses, which is narrower than the served set (87 is unreferenced). Its Javadoc changes from "The E-Links jurisdictions" to "The jurisdictions the shipped location data refers to (Skills, 87, is served but unreferenced)".
 - The `SOURCE` id rule, the date rule by position, the field order and the literal-character check apply unchanged.
 

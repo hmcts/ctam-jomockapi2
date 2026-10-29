@@ -152,3 +152,53 @@ The design adds a configuration entry, a fixture and tests, with no new dependen
 The quickstart's expected values were checked against a collection simulated from the extract by the data-model rules: 5 records; ids `[30,34,84,86,87]`; first `[30,"Courts"]` and last `[87,"Skills"]`; no ended record; 5 distinct names; 0 unresolved `jurisdiction_id` values across `locations.json` (2,000), `base_locations.json` (1,462) and `location_types.json` (16). The real fixture is generated during implementation and checked again then.
 
 Every principle stays **Pass**. Open item: the inherited Sonar deferral.
+
+## Implementation notes
+
+**Baseline (T001, before any change)**: `./gradlew check -PskipOwasp` green. Tests per suite: `test` 400, `integrationTest` 33, `functionalTest` 392, `smokeTest` 9. JaCoCo: lines 534/534 (100%), branches 239/240 (99.6%; the missed branch is MapStruct's generated null check on the boxed `id`, as recorded in 003, 007 and 008).
+
+**Fixture (T002)**: generated once from the gitignored `REF_Jurisdiction.json` by a throwaway script in the session scratchpad (never committed). Before the file was kept, the script confirmed:
+- no BOM; the top level is an object whose only key is `results`; 5 entries, each with exactly `id`, `name`, `start_date`, `end_date`, `created_at` and `updated_at`;
+- ids are the integers 30, 34, 84, 86, 87; names non-blank, trimmed and distinct;
+- the written `id` and `name` equal the extract's, entry for entry (SC-003); no record is ended;
+- every row of data-model.md § 3's Records table;
+- every `jurisdiction_id` in the checked-in `locations.json` (2,000 records), `base_locations.json` (1,462) and `location_types.json` (16) is one of the written ids; each uses exactly {30, 34, 84, 86}, and none uses 87.
+
+UTF-8 without BOM, two-space indent, trailing newline, 923 bytes, no `\u`.
+
+**Extension test (T009)**: `ReferenceDataExtensionIntegrationTest` passed unchanged (6 tests).
+
+**Golden file (T015)**: `golden/jurisdictions.json` was captured from `./gradlew bootRun` with `curl -o` (compact, no trailing newline, 723 bytes). Its 5 records equal the fixture's, field for field and in key order. The existing seven golden files are unchanged (`git diff --quiet origin/main -- src/functionalTest/resources/golden/` succeeds; AC-017, SC-008).
+
+**AC-010 (T021)**: met by T008. `everyReferenceBetweenServedTypesIsChecked` passes with the three new `jurisdiction_id` rows; with every target type now served, it requires a row for every reference field of every served type, and all seven rows are present. No new check was added (spec Clarifications Q2).
+
+**AC-020 / SC-009 (T029)**: `git diff --stat origin/main -- src/main/java` prints nothing. Under `src/main/resources`, only `application.yml` (the type entry and the three reworded comments; 8 insertions, 6 deletions) and the new `reference-data/jurisdictions.json`.
+
+**AC-022 (T030)**: covered by `ReferenceDataOpenApiContractTest` (T005): both operations' `enum` lists `jurisdictions` after `location_types` and before `appointment_title`, the description names it, `jurisdiction` is absent, and the `ReferenceDataResponse` assertions are unchanged.
+
+**Postman (T032)**: newman ran 81 requests (+10 in Reference Data › Jurisdictions) with 309 assertions (+39), 0 failures. The folder was inserted as text after Location Types, in the collection's own layout (checked by round-tripping the Location Types folder first); the only other change is the "unsupported" example renamed from `jurisdictions` to `tickets` (name, `raw` and `path`, tests unchanged). The diff is 557 insertions and those 3 changed lines.
+
+**Final (T038)**: `./gradlew check -PskipOwasp` green. Tests per suite:
+- `test` 421 (+21): one fixture-rules row, which adds three cases; `ReferenceDataReferencesTest` (+6: the three `jurisdiction_id` rows, each run by the resolution and cycle tests); `NoTypeSpecificCodeTest` (+12: the `jurisdictions` fragment, six recognised spellings and five ignored field spellings).
+- `integrationTest` 33 (the contract test's `enum` and description changed).
+- `functionalTest` 444 (+52): 50 in `JurisdictionsFunctionalTest`, and 002's unsupported-name list lost `jurisdictions` and gained three case variants (+2).
+- `smokeTest` 10 (+1: the jurisdictions collection).
+
+JaCoCo: lines 534/534 (100%), branches 239/240 (99.6%), unchanged, as no main code changed.
+
+**Strict latency (T038, `./gradlew smokeTest -Dperf.strict=true`)**: collection p95: `appointment_titles` 2 ms, `base_locations` 4 ms, `contract_types` 1 ms, `genders` 1 ms, `judiciary_roles` 1 ms, `locations` 3 ms, `location_types` 1 ms, `jurisdictions` 1 ms (bound 100 ms).
+
+**Quickstart (T039)**: §§ 1–5 walked through against `./gradlew bootRun`. Every expected result matched: § 2's scope checks, § 3 rows 1–16 (including 0 unresolved `jurisdiction_id` values and 0 references to 87 in each of `locations`, `base_locations` and `location_types`), the § 4 `enum` (`jurisdictions` listed, `jurisdiction` not) and § 5's newman run.
+
+**Differences from the planned design**:
+- As in 006–008, `JurisdictionsFunctionalTest` was written in one pass (T010 and the story tasks), and the golden file was captured before the first gate run, so T011's gate already ran every story's functional test. T028's guard cases and T033's smoke path were also added before T011, since they touch files the gate runs.
+- `assertUnauthorized` and `byId` come from `ReferenceDataHttp`, where 007 moved them, so the new class has only `assertRecord` as a private helper.
+- T035 also adds jurisdiction names to CLAUDE.md's list of public names taken from the extracts, alongside the ids.
+
+**Code-review follow-ups (2026-10-29)**: one `/code-review` round found no correctness bugs. One finding was fixed and the rest kept.
+- **Fixed, every record pinned**: the `jurisdictions.json` fixture-rules row lists all five records as reference points, adding 34 Tribunals, so the unit suite catches a changed name without the functional suite. `test` 421, unchanged in count (reference points are checked inside the row's existing cases).
+- **Kept**:
+  - The guard's plural fragment `jurisdictions` doesn't catch the singular in main code; this is the decision recorded in spec Clarifications Q1.
+  - `JURISDICTION_IDS` and the base-locations Postman check stay pinned to {30, 34, 84, 86}: they pin the values the location data uses, while resolution is `ReferenceDataReferencesTest`'s job (research R3).
+  - `ac009` and `ac011` repeat the resolution check over HTTP because US3 requires it to be observable to integrators; the extra fetches cost a few milliseconds.
+  - The OpenAPI test's wrapped description string follows the existing style.

@@ -28,9 +28,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Every reference between served types resolves in the shipped fixtures (constitution Principle IV; 007 FR-012), so
- * the check needs no running service. References to types not served yet are forward references, checked by the
- * feature that serves the target type: the completeness test fails until that feature adds its row here (003 DF-1,
- * 007 DF-5, 008 DF-7). Fields that a record and the record it refers to both hold agree, so the served data is
+ * the check needs no running service. A reference to a type not served yet is a forward reference, which the feature
+ * adding it records as a deferred item; the completeness test fails until the feature that serves the target type
+ * adds its row here. Fields that a record and the record it refers to both hold agree, so the served data is
  * internally consistent (constitution Principle IV; 008 FR-012).
  */
 class ReferenceDataReferencesTest {
@@ -69,7 +69,11 @@ class ReferenceDataReferencesTest {
                 new Reference("base_locations", "parent_id", "locations"),
                 // Close 007 DF-5 and 003 DF-1 for type_id.
                 new Reference("locations", "type_id", "location_types"),
-                new Reference("base_locations", "type_id", "location_types"));
+                new Reference("base_locations", "type_id", "location_types"),
+                // Close 003 DF-1, 007 DF-5 and 008 DF-7 for jurisdiction_id.
+                new Reference("locations", "jurisdiction_id", "jurisdictions"),
+                new Reference("base_locations", "jurisdiction_id", "jurisdictions"),
+                new Reference("location_types", "jurisdiction_id", "jurisdictions"));
     }
 
     /**

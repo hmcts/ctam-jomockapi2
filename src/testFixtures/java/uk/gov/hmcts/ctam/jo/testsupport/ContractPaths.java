@@ -19,6 +19,8 @@ public final class ContractPaths {
 
     public static final String LOCATION_TYPES = "/api/v1/reference_data/location_types";
 
+    public static final String JURISDICTIONS = "/api/v1/reference_data/jurisdictions";
+
     private ContractPaths() {
     }
 }
