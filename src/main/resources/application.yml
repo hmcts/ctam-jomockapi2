@@ -27,7 +27,8 @@ jo:
         fixture: classpath:reference-data/appointment_titles.json
       - name: base_locations
         fixture: classpath:reference-data/base_locations.json
-        # Ids of records in types not served yet (constitution Principle IV forward references, 003 DF-1).
+        # parent_id is a locations id (checked by ReferenceDataReferencesTest, 007); type_id and jurisdiction_id are
+        # ids of records in types not served yet (constitution Principle IV forward references, 003 DF-1).
         reference-fields: [type_id, parent_id, jurisdiction_id]
         # Different locations share names; one record per location (003 FR-017).
         unique-names: false
@@ -39,3 +40,12 @@ jo:
         fixture: classpath:reference-data/genders.json
       - name: judiciary_roles
         fixture: classpath:reference-data/judiciary_roles.json
+      - name: locations
+        # Keeps the extract's E-Links ids, so parent_id values resolve (007 DR-1).
+        fixture: classpath:reference-data/locations.json
+        # parent_id is the id of another location; type_id and jurisdiction_id are forward references (007 DF-5).
+        reference-fields: [type_id, parent_id, jurisdiction_id]
+        # Null for the 142 top-level locations (007 FR-011).
+        nullable-reference-fields: [parent_id]
+        # Different locations share names (007 EC-002).
+        unique-names: false

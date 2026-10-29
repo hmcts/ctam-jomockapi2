@@ -29,7 +29,7 @@ public class ReferenceDataService {
 
     public ReferenceDataApiResponse getAll(String attributeName) {
         ReferenceDataType type = registry.resolve(attributeName);
-        return new ReferenceDataApiResponse(mapper.toResponses(repository.findAll(type)));
+        return new ReferenceDataApiResponse(mapper.toResponses(repository.findAll(type), type));
     }
 
     /**
@@ -43,7 +43,7 @@ public class ReferenceDataService {
             throw notFound(type, rawReferenceId);
         }
         return repository.findById(type, id.getAsLong())
-                .map(mapper::toResponse)
+                .map(record -> mapper.toResponse(record, type))
                 .orElseThrow(() -> notFound(type, rawReferenceId));
     }
 

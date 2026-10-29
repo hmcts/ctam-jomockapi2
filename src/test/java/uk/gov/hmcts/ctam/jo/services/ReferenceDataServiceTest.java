@@ -3,7 +3,9 @@ package uk.gov.hmcts.ctam.jo.services;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 import uk.gov.hmcts.ctam.jo.domain.ReferenceDataApiResponse;
+import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties.TypeProperties;
 import uk.gov.hmcts.ctam.jo.domain.ReferenceDataResponse;
+import uk.gov.hmcts.ctam.jo.domain.ReferenceFieldValue;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataType;
 import uk.gov.hmcts.ctam.jo.exceptions.InvalidReferenceIdException;
 import uk.gov.hmcts.ctam.jo.exceptions.ReferenceDataNotFoundException;
@@ -24,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.RECORD_NOT_FOUND;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.record;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.recordBuilder;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.registry;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.type;
 
@@ -80,6 +83,31 @@ class ReferenceDataServiceTest {
 
         assertThat(service.getById("widget", "070").id()).isEqualTo(70);
         verify(repository).findById(widgets, 70);
+    }
+
+    /**
+     * The mapper is given the resolved type, so a declared nullable field without a value is written as a present
+     * null, by both routes.
+     */
+    @Test
+    void mapsWithTheResolvedTypesDeclarations() {
+        ReferenceDataTypeRegistry declaring = registry(new TypeProperties(
+                "widgets", List.of(), "classpath:widgets.json", List.of("type_id", "parent_id", "jurisdiction_id"),
+                List.of(), null, List.of("parent_id")));
+        ReferenceDataService declaringService =
+                new ReferenceDataService(declaring, repository, mapper, new ReferenceIdParser());
+        ReferenceDataType widgets = declaring.resolve("widgets");
+        given(repository.findById(widgets, 10)).willReturn(
+                Optional.of(recordBuilder(10, "Top level").typeId(6L).jurisdictionId(84L).build()));
+        given(repository.findAll(widgets)).willReturn(
+                List.of(recordBuilder(10, "Top level").typeId(6L).jurisdictionId(84L).build()));
+
+        ReferenceDataResponse single = declaringService.getById("widgets", "10");
+        ReferenceDataResponse inCollection = declaringService.getAll("widgets").results().getFirst();
+
+        assertThat(single.parentId()).isEqualTo(new ReferenceFieldValue(null));
+        assertThat(single.typeId()).isEqualTo(new ReferenceFieldValue(6L));
+        assertThat(inCollection).isEqualTo(single);
     }
 
     @Test

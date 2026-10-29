@@ -25,12 +25,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.function.Predicate;
 
 /**
  * Loads every declared type's JSON fixture once, at startup, and validates it (data-model.md §2). Any invalid
@@ -106,11 +104,13 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
             throw invalid(fixture, "resource not found");
         }
         List<ReferenceDataRecord> records;
+        JsonNode tree = null;
         try (InputStream in = resource.getInputStream()) {
             byte[] json = in.readAllBytes();
             records = mapper.readValue(json, RECORD_LIST);
             if (records != null) {
-                requireDateStrings(fixture, mapper.readTree(json));
+                tree = mapper.readTree(json);
+                requireDateStrings(fixture, tree);
             }
         } catch (IOException | JacksonException e) {
             throw new IllegalStateException("Invalid reference-data fixture " + fixture + ": " + e.getMessage(), e);
@@ -130,6 +130,7 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
             if (record.getId() == null) {
                 throw invalid(fixture, "record at position " + position + ": id is required");
             }
+            requireReferenceKeys(fixture, type, record.getId(), tree.get(position - 1));
             validate(fixture, record);
             validateReferenceFields(fixture, type, record);
             validateBooleanFields(fixture, type, record);
@@ -195,11 +196,34 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
     }
 
     /**
-     * A field the type declares must hold a positive id in every record; a field it doesn't declare must be absent.
+     * Which reference-field keys a record may hold, read from its JSON, since a parsed record can't tell a missing key
+     * from a null one (data-model.md § 2). A field the type declares must be present, and may be {@code null} only if
+     * the type declares it nullable; a field it doesn't declare must be absent, not even {@code null}.
+     */
+    private static void requireReferenceKeys(String fixture, ReferenceDataType type, long id, JsonNode record) {
+        for (ReferenceField field : ReferenceField.values()) {
+            JsonNode value = record.get(field.fieldName());
+            if (!type.getReferenceFields().contains(field)) {
+                if (value != null) {
+                    throw invalid(fixture, id, field.fieldName() + " is not a reference field of " + type.getName());
+                }
+            } else if (value == null || (value.isNull() && !type.getNullableReferenceFields().contains(field))) {
+                throw invalid(fixture, id, field.fieldName() + " is required");
+            }
+        }
+    }
+
+    /**
+     * Every reference-field value present must be a positive id. Whether each key may be missing or null is checked
+     * on the record's JSON first ({@link #requireReferenceKeys}), so only the values are left to check here.
      */
     private static void validateReferenceFields(String fixture, ReferenceDataType type, ReferenceDataRecord record) {
-        validateDeclaredFields(fixture, type, record, "reference field", ReferenceField.values(),
-                               type.getReferenceFields(), value -> value > 0, "must be greater than 0");
+        for (ReferenceField field : type.getReferenceFields()) {
+            Long value = field.readFrom(record);
+            if (value != null && value <= 0) {
+                throw invalid(fixture, record.getId(), field.fieldName() + " must be greater than 0");
+            }
+        }
     }
 
     /**
@@ -211,8 +235,8 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
     }
 
     /**
-     * The rule every kind of declared field shares: required in each record of a type that declares it, absent from
-     * every other type's records.
+     * The rule every kind of declared field read from the parsed record shares: required in each record of a type
+     * that declares it, absent from every other type's records.
      */
     private static <T> void validateDeclaredFields(String fixture, ReferenceDataType type, ReferenceDataRecord record,
                                                    String kind, DeclaredField<T>[] fields,
@@ -226,26 +250,6 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
                 }
             } else if (value == null) {
                 throw invalid(fixture, record.getId(), field.fieldName() + " is required");
-            }
-        }
-    }
-
-    /**
-     * The shared rule, then a further rule on every present value: a value that fails {@code valid} is reported as
-     * {@code <field> <rule>}, so the rule must be given.
-     */
-    private static <T> void validateDeclaredFields(String fixture, ReferenceDataType type, ReferenceDataRecord record,
-                                                   String kind, DeclaredField<T>[] fields,
-                                                   Set<? extends DeclaredField<T>> declared, Predicate<T> valid,
-                                                   String rule) {
-        Objects.requireNonNull(valid, "valid");
-        Objects.requireNonNull(rule, "rule");
-        validateDeclaredFields(fixture, type, record, kind, fields, declared);
-        for (DeclaredField<T> field : fields) {
-            // Only declared fields can still hold a value here.
-            T value = field.readFrom(record);
-            if (value != null && !valid.test(value)) {
-                throw invalid(fixture, record.getId(), field.fieldName() + " " + rule);
             }
         }
     }

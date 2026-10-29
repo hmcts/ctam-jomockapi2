@@ -32,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_ATTRIBUTE_NAME;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.endedResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.fullResponse;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.nullableParentResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.referencingResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.response;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.salariedResponse;
@@ -87,6 +88,22 @@ class ReferenceDataControllerTest {
 
         assertThat(body).startsWith(
                 "{\"id\":10,\"name\":\"Alpha\",\"type_id\":8,\"parent_id\":1722,\"jurisdiction_id\":84,"
+                + "\"created_at\":");
+    }
+
+    @Test
+    void nullableReferenceFieldWithoutAValueIsWrittenAsNull() throws Exception {
+        given(service.getById("widgets", "10")).willReturn(nullableParentResponse(10, "Alpha", 6, 84));
+
+        String body = mockMvc.perform(get("/api/v1/reference_data/widgets/10").header("Authorization", BEARER_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.*", hasSize(9)))
+                .andExpect(jsonPath("$").value(hasKey("parent_id")))
+                .andExpect(jsonPath("$.parent_id").value(nullValue()))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(body).startsWith(
+                "{\"id\":10,\"name\":\"Alpha\",\"type_id\":6,\"parent_id\":null,\"jurisdiction_id\":84,"
                 + "\"created_at\":");
     }
 

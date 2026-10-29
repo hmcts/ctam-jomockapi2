@@ -15,6 +15,8 @@ public final class ContractPaths {
     public static final String GENDERS = "/api/v1/reference_data/genders";
     public static final String JUDICIARY_ROLES = "/api/v1/reference_data/judiciary_roles";
 
+    public static final String LOCATIONS = "/api/v1/reference_data/locations";
+
     private ContractPaths() {
     }
 }

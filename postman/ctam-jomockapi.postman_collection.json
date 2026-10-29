@@ -2541,6 +2541,572 @@
           ]
         },
         {
+          "name": "Locations",
+          "item": [
+            {
+              "name": "GET /api/v1/reference_data/locations - success",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/locations",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "locations"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('results is an array of 2000 records', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body)).to.eql(['results']);",
+                      "    pm.expect(body.results).to.be.an('array').with.lengthOf(2000);",
+                      "});",
+                      "",
+                      "pm.test('Each record has the contract fields and the reference fields, in order', function () {",
+                      "    pm.response.json().results.forEach(function (record) {",
+                      "        pm.expect(Object.keys(record)).to.eql(['id', 'name', 'type_id', 'parent_id', 'jurisdiction_id', 'created_at', 'updated_at', 'start_date', 'end_date']);",
+                      "    });",
+                      "});",
+                      "",
+                      "pm.test('Exactly 285 records are ended', function () {",
+                      "    const ended = pm.response.json().results.filter(function (record) { return record.end_date !== null; });",
+                      "    pm.expect(ended).to.have.lengthOf(285);",
+                      "});",
+                      "",
+                      "pm.test('Exactly 142 top-level records have parent_id present and null', function () {",
+                      "    const topLevel = pm.response.json().results.filter(function (record) {",
+                      "        return Object.prototype.hasOwnProperty.call(record, 'parent_id') && record.parent_id === null;",
+                      "    });",
+                      "    pm.expect(topLevel).to.have.lengthOf(142);",
+                      "});",
+                      "",
+                      "pm.test('First and last records are the reference points', function () {",
+                      "    const results = pm.response.json().results;",
+                      "    pm.expect(results[0].id).to.eql(1);",
+                      "    pm.expect(results[0].name).to.eql('Aberconwy');",
+                      "    pm.expect(results[results.length - 1].id).to.eql(2433);",
+                      "    pm.expect(results[results.length - 1].name).to.eql('Kent and Medway');",
+                      "});",
+                      "",
+                      "pm.test('ids are in ascending order', function () {",
+                      "    const ids = pm.response.json().results.map(function (record) { return record.id; });",
+                      "    for (let i = 1; i < ids.length; i++) {",
+                      "        pm.expect(ids[i]).to.be.above(ids[i - 1]);",
+                      "    }",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/locations/1 - success",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/locations/1",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "locations",
+                    "1"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('A single record with the contract fields and the reference fields', function () {",
+                      "    pm.expect(Object.keys(pm.response.json())).to.eql(['id', 'name', 'type_id', 'parent_id', 'jurisdiction_id', 'created_at', 'updated_at', 'start_date', 'end_date']);",
+                      "});",
+                      "",
+                      "pm.test('Record 1 is Aberconwy, with parent 1722', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.id).to.eql(1);",
+                      "    pm.expect(body.name).to.eql('Aberconwy');",
+                      "    pm.expect(body.type_id).to.eql(8);",
+                      "    pm.expect(body.parent_id).to.eql(1722);",
+                      "    pm.expect(body.jurisdiction_id).to.eql(84);",
+                      "    pm.expect(body.end_date).to.eql(null);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/locations/2141 - top-level location",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/locations/2141",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "locations",
+                    "2141"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('A single record with the contract fields and the reference fields', function () {",
+                      "    pm.expect(Object.keys(pm.response.json())).to.eql(['id', 'name', 'type_id', 'parent_id', 'jurisdiction_id', 'created_at', 'updated_at', 'start_date', 'end_date']);",
+                      "});",
+                      "",
+                      "pm.test('Record 2141 is Gwynedd, a top-level location with parent_id present and null', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.id).to.eql(2141);",
+                      "    pm.expect(body.name).to.eql('Gwynedd');",
+                      "    pm.expect(body).to.have.property('parent_id');",
+                      "    pm.expect(body.parent_id).to.eql(null);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/locations/2 - unknown id",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/locations/2",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "locations",
+                    "2"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 404', function () {",
+                      "    pm.response.to.have.status(404);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('Reference data record not found.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/locations/abc - malformed id",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/locations/abc",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "locations",
+                    "abc"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 400', function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('reference_id must be a non-negative whole number.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/locations?parent_id=1722 - query parameter rejected",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/locations?parent_id=1722",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "locations"
+                  ],
+                  "query": [
+                    {
+                      "key": "parent_id",
+                      "value": "1722"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 400', function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('Query parameters are not supported on this endpoint.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/locations/ - trailing slash",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/locations/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "locations",
+                    ""
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 404', function () {",
+                      "    pm.response.to.have.status(404);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('Resource not found.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/locations - missing token",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/locations",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "locations"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 401', function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "",
+                      "pm.test('WWW-Authenticate is Bearer', function () {",
+                      "    pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer');",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('Unauthorized. Invalid or missing token.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/locations - invalid token",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{invalidBearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/locations",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "locations"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 401', function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "",
+                      "pm.test('WWW-Authenticate is Bearer', function () {",
+                      "    pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer');",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('Unauthorized. Invalid or missing token.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/location - singular name not served",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/location",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "location"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 400', function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('Unsupported reference data attribute_name.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});",
+                      "",
+                      "pm.test('No reference data is returned', function () {",
+                      "    pm.expect(pm.response.json()).to.not.have.property('results');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            }
+          ]
+        },
+        {
           "name": "GET /api/v1/reference_data/jurisdictions - unsupported (contract-valid, out of scope)",
           "request": {
             "method": "GET",

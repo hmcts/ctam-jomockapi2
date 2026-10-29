@@ -3,12 +3,18 @@ package uk.gov.hmcts.ctam.jo.testsupport;
 import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties;
 import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties.TypeProperties;
 import uk.gov.hmcts.ctam.jo.domain.ReferenceDataResponse;
+import uk.gov.hmcts.ctam.jo.domain.ReferenceFieldValue;
+import uk.gov.hmcts.ctam.jo.entity.BooleanField;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataRecord;
+import uk.gov.hmcts.ctam.jo.entity.ReferenceDataType;
+import uk.gov.hmcts.ctam.jo.entity.ReferenceField;
 import uk.gov.hmcts.ctam.jo.services.ReferenceDataTypeRegistry;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Reference-data test objects for the unit suite, all built from the same standard values so no test has to
@@ -66,8 +72,18 @@ public final class ReferenceDataFixtures {
      */
     public static ReferenceDataResponse referencingResponse(long id, String name, long typeId, long parentId,
                                                             long jurisdictionId) {
-        return new ReferenceDataResponse(id, name, typeId, parentId, jurisdictionId, null, CREATED_AT, UPDATED_AT,
-                                         START_DATE, null);
+        return new ReferenceDataResponse(id, name, value(typeId), value(parentId), value(jurisdictionId), null,
+                                         CREATED_AT, UPDATED_AT, START_DATE, null);
+    }
+
+    /**
+     * A current top-level record of a type that declares all three reference fields, with {@code parent_id}
+     * nullable: the parent is present and null.
+     */
+    public static ReferenceDataResponse nullableParentResponse(long id, String name, long typeId,
+                                                               long jurisdictionId) {
+        return new ReferenceDataResponse(id, name, value(typeId), new ReferenceFieldValue(null), value(jurisdictionId),
+                                         null, CREATED_AT, UPDATED_AT, START_DATE, null);
     }
 
     /**
@@ -83,15 +99,61 @@ public final class ReferenceDataFixtures {
      */
     public static ReferenceDataResponse fullResponse(long id, String name, long typeId, long parentId,
                                                      long jurisdictionId, boolean salaried) {
-        return new ReferenceDataResponse(id, name, typeId, parentId, jurisdictionId, salaried, CREATED_AT,
-                                         UPDATED_AT, START_DATE, null);
+        return new ReferenceDataResponse(id, name, value(typeId), value(parentId), value(jurisdictionId), salaried,
+                                         CREATED_AT, UPDATED_AT, START_DATE, null);
+    }
+
+    public static ReferenceFieldValue value(long id) {
+        return new ReferenceFieldValue(id);
+    }
+
+    /**
+     * A resolved type declaring no reference or boolean fields.
+     */
+    public static ReferenceDataType plainType() {
+        return resolvedType(Set.of(), Set.of(), Set.of());
+    }
+
+    /**
+     * A resolved type declaring all three reference fields, none of them nullable.
+     */
+    public static ReferenceDataType referencingType() {
+        return resolvedType(EnumSet.allOf(ReferenceField.class), Set.of(), Set.of());
+    }
+
+    /**
+     * A resolved type declaring all three reference fields, with {@code parent_id} nullable.
+     */
+    public static ReferenceDataType nullableParentType() {
+        return resolvedType(EnumSet.allOf(ReferenceField.class), EnumSet.of(ReferenceField.PARENT_ID), Set.of());
+    }
+
+    /**
+     * A resolved type declaring the boolean field {@code salaried} and no reference fields.
+     */
+    public static ReferenceDataType salariedType() {
+        return resolvedType(Set.of(), Set.of(), EnumSet.of(BooleanField.SALARIED));
+    }
+
+    /**
+     * A resolved type declaring all three reference fields and {@code salaried}.
+     */
+    public static ReferenceDataType fullType() {
+        return resolvedType(EnumSet.allOf(ReferenceField.class), Set.of(), EnumSet.of(BooleanField.SALARIED));
+    }
+
+    private static ReferenceDataType resolvedType(Set<ReferenceField> referenceFields,
+                                                  Set<ReferenceField> nullableReferenceFields,
+                                                  Set<BooleanField> booleanFields) {
+        return new ReferenceDataType("widgets", Set.of(), "classpath:x.json", referenceFields, booleanFields, true,
+                                     nullableReferenceFields);
     }
 
     /**
      * A declared type whose records carry no reference fields.
      */
     public static TypeProperties type(String name, List<String> aliases, String fixture) {
-        return new TypeProperties(name, aliases, fixture, List.of(), List.of(), null);
+        return new TypeProperties(name, aliases, fixture, List.of(), List.of(), null, List.of());
     }
 
     public static ReferenceDataTypeRegistry registry(TypeProperties... types) {

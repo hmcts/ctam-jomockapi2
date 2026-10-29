@@ -8,8 +8,9 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * One declared reference-data type: its canonical attribute name, deprecated aliases, fixture location, the
- * reference fields and boolean fields its records carry and whether its record names must be unique.
+ * One declared reference-data type: its canonical attribute name, deprecated aliases, fixture path, the reference
+ * fields and boolean fields its records carry, whether its record names must be unique, and which of its reference
+ * fields may be null.
  */
 @Value
 public class ReferenceDataType {
@@ -27,17 +28,25 @@ public class ReferenceDataType {
     boolean uniqueNames;
 
     /**
+     * Always a subset of {@link #referenceFields}: the registry rejects any other declaration.
+     */
+    Set<ReferenceField> nullableReferenceFields;
+
+    /**
      * Copies the sets, so later changes to the caller's sets don't reach the type: aliases keep their iteration
-     * order, and reference and boolean fields are held as {@link EnumSet}s, in declaration order. Null means none.
+     * order, and reference, boolean and nullable reference fields are held as {@link EnumSet}s, in declaration order.
+     * Null means none.
      */
     public ReferenceDataType(String name, Set<String> aliases, String fixture, Set<ReferenceField> referenceFields,
-                             Set<BooleanField> booleanFields, boolean uniqueNames) {
+                             Set<BooleanField> booleanFields, boolean uniqueNames,
+                             Set<ReferenceField> nullableReferenceFields) {
         this.name = name;
         this.aliases = aliases == null ? Set.of() : Collections.unmodifiableSet(new LinkedHashSet<>(aliases));
         this.fixture = fixture;
         this.referenceFields = copyOf(referenceFields, ReferenceField.class);
         this.booleanFields = copyOf(booleanFields, BooleanField.class);
         this.uniqueNames = uniqueNames;
+        this.nullableReferenceFields = copyOf(nullableReferenceFields, ReferenceField.class);
     }
 
     private static <E extends Enum<E>> Set<E> copyOf(Set<E> values, Class<E> type) {

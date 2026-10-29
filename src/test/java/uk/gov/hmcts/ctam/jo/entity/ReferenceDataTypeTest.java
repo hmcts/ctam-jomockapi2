@@ -14,17 +14,18 @@ class ReferenceDataTypeTest {
 
     @Test
     void nullAliasesAndFieldsMeanNone() {
-        ReferenceDataType type = new ReferenceDataType("widgets", null, "classpath:x.json", null, null, true);
+        ReferenceDataType type = new ReferenceDataType("widgets", null, "classpath:x.json", null, null, true, null);
 
         assertThat(type.getAliases()).isEmpty();
         assertThat(type.getReferenceFields()).isEmpty();
         assertThat(type.getBooleanFields()).isEmpty();
+        assertThat(type.getNullableReferenceFields()).isEmpty();
     }
 
     @Test
     void keepsTheBooleanFields() {
         ReferenceDataType type = new ReferenceDataType("widgets", null, "classpath:x.json", null,
-                                                       EnumSet.of(BooleanField.SALARIED), true);
+                                                       EnumSet.of(BooleanField.SALARIED), true, null);
 
         assertThat(type.getBooleanFields()).containsExactly(BooleanField.SALARIED);
     }
@@ -32,7 +33,8 @@ class ReferenceDataTypeTest {
     @Test
     void keepsTheCallersOrder() {
         ReferenceDataType type = new ReferenceDataType("widgets", new LinkedHashSet<>(List.of("widget", "old_widget")),
-                "classpath:x.json", EnumSet.of(ReferenceField.JURISDICTION_ID, ReferenceField.TYPE_ID), null, false);
+                "classpath:x.json", EnumSet.of(ReferenceField.JURISDICTION_ID, ReferenceField.TYPE_ID), null, false,
+                null);
 
         assertThat(type.getAliases()).containsExactly("widget", "old_widget");
         assertThat(type.getReferenceFields()).containsExactly(ReferenceField.TYPE_ID, ReferenceField.JURISDICTION_ID);
@@ -45,7 +47,7 @@ class ReferenceDataTypeTest {
         Set<ReferenceField> fields = EnumSet.of(ReferenceField.TYPE_ID);
         Set<BooleanField> booleanFields = EnumSet.noneOf(BooleanField.class);
         final ReferenceDataType type = new ReferenceDataType("widgets", aliases, "classpath:x.json", fields,
-                                                             booleanFields, true);
+                                                             booleanFields, true, null);
 
         aliases.add("gadget");
         fields.add(ReferenceField.PARENT_ID);
@@ -58,5 +60,19 @@ class ReferenceDataTypeTest {
                 .isThrownBy(() -> type.getAliases().add("gadget"));
         assertThatExceptionOfType(UnsupportedOperationException.class)
                 .isThrownBy(() -> type.getBooleanFields().add(BooleanField.SALARIED));
+    }
+
+    @Test
+    void copiesTheNullableReferenceFields() {
+        Set<ReferenceField> fields = EnumSet.allOf(ReferenceField.class);
+        Set<ReferenceField> nullable = EnumSet.of(ReferenceField.PARENT_ID);
+        final ReferenceDataType type = new ReferenceDataType("widgets", null, "classpath:x.json", fields, null, false,
+                                                             nullable);
+
+        nullable.add(ReferenceField.TYPE_ID);
+
+        assertThat(type.getNullableReferenceFields()).containsExactly(ReferenceField.PARENT_ID);
+        assertThatExceptionOfType(UnsupportedOperationException.class)
+                .isThrownBy(() -> type.getNullableReferenceFields().add(ReferenceField.JURISDICTION_ID));
     }
 }

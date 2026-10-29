@@ -12,7 +12,8 @@ import java.time.LocalDate;
  * One reference-data record as returned by the API: the E-Links {@code ReferenceDataResponse} plus
  * {@code name} (deviation D-1) and, for types that declare them, the reference fields {@code type_id},
  * {@code parent_id} and {@code jurisdiction_id} (deviation D-2) and the boolean field {@code salaried} (deviation
- * D-3). A reference or boolean field is left out of the JSON when the record doesn't carry it.
+ * D-3). A reference or boolean field is left out of the JSON when the record's type doesn't declare it. A reference
+ * field is written as {@code null} when the type declares it nullable and the record has no value.
  */
 @Schema(description = "One reference-data record.")
 @JsonPropertyOrder({"id", "name", "type_id", "parent_id", "jurisdiction_id", "salaried", "created_at",
@@ -30,24 +31,28 @@ public record ReferenceDataResponse(
 
         @Schema(description = "Id of the record's type, in E-Links' numbering. Present only for types whose "
                               + "records carry it (deviation D-2 from the E-Links schema).",
-                format = "int64", requiredMode = Schema.RequiredMode.NOT_REQUIRED, example = "8")
+                implementation = Long.class, format = "int64", requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+                example = "8")
         @JsonProperty("type_id")
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        Long typeId,
+        ReferenceFieldValue typeId,
 
         @Schema(description = "Id of the record's parent record, in E-Links' numbering. Present only for types whose "
-                              + "records carry it (deviation D-2 from the E-Links schema).",
-                format = "int64", requiredMode = Schema.RequiredMode.NOT_REQUIRED, example = "1722")
+                              + "records carry it (deviation D-2 from the E-Links schema). Null for a top-level "
+                              + "record of a type that declares it nullable.",
+                implementation = Long.class, format = "int64", requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+                nullable = true, example = "1722")
         @JsonProperty("parent_id")
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        Long parentId,
+        ReferenceFieldValue parentId,
 
         @Schema(description = "Id of the record's jurisdiction, in E-Links' numbering. Present only for types whose "
                               + "records carry it (deviation D-2 from the E-Links schema).",
-                format = "int64", requiredMode = Schema.RequiredMode.NOT_REQUIRED, example = "84")
+                implementation = Long.class, format = "int64", requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+                example = "84")
         @JsonProperty("jurisdiction_id")
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        Long jurisdictionId,
+        ReferenceFieldValue jurisdictionId,
 
         @Schema(description = "Whether the record is salaried, including salaried part-time working. Present only for "
                               + "types whose records carry it (deviation D-3 from the E-Links schema).",

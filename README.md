@@ -93,7 +93,7 @@ Two routes serve every configured reference-data type through the same code:
 | `GET /api/v1/reference_data/{attribute_name}` | `{"results": [...]}`: every record, in ascending `id` order |
 | `GET /api/v1/reference_data/{attribute_name}/{reference_id}` | One record, as a single object |
 
-Five types are configured:
+Six types are configured:
 
 | Type | Records | Deprecated alias served |
 |------|---------|-------------------------|
@@ -102,13 +102,20 @@ Five types are configured:
 | `contract_types` | 14 | none: `contract_type` returns `400` |
 | `genders` | 4 | none: `gender` returns `400` |
 | `judiciary_roles` | 164 | none: `judiciary_role` returns `400` |
+| `locations` | 2,000, one per source row (1,523 distinct names) | none: `location` returns `400` |
 
 Base-location records also carry `type_id`, `parent_id` and `jurisdiction_id`, after `name`:
 the E-Links ids of each location's type, parent location and jurisdiction (30 Courts, 34 Tribunals,
-84 Magistrates, 86 Coroners), copied from the source data. They refer to `location_types`,
-`locations` and `jurisdictions`, which aren't served yet; the features that add those types must
-make every reference resolve (constitution, Principle IV). Appointment-title records don't have
-these fields.
+84 Magistrates, 86 Coroners), copied from the source data. Every `parent_id` is the id of a served
+location. `type_id` and `jurisdiction_id` refer to `location_types` and `jurisdictions`, which
+aren't served yet; the features that add those types must make every reference resolve
+(constitution, Principle IV). Appointment-title records don't have these fields.
+
+Location records carry the same three fields, after `name`. Unlike every other type, locations
+keep the E-Links ids (1 to 2433, with gaps), so that parent references resolve: every non-null
+`parent_id` is the id of another served location. The 142 top-level locations have
+`"parent_id": null`; the field is never left out. Base-location ids are not location ids: the
+two types are not linked by id.
 
 Contract-type records also carry `salaried`, after `name`: a JSON boolean, `true` for "Salaried"
 and the ten salaried part-time working ("SPTW-…%") types, `false` for "Fee-paid", "Unknown" and
@@ -165,12 +172,17 @@ No Java changes are needed, as long as the type's fields are among those below. 
            reference-fields: [type_id, parent_id, jurisdiction_id]   # optional: any of the three
            boolean-fields: [salaried]        # optional
            unique-names: false               # optional: allow repeated names (default true)
+           nullable-reference-fields: [parent_id]   # optional: declared reference fields that may be null
    ```
 
    `reference-fields` lists the ids of other types' records that the type's records carry. Every
    record must then have each declared field as a positive integer, and no record may have an
    undeclared one. Responses include a reference field only when the record has it. Names must be
    unique within the type unless it declares `unique-names: false`; ids must always be unique.
+
+   `nullable-reference-fields` lists declared reference fields that may be null. Every record must
+   still have each such field, as a positive integer or `null`, and responses write it as `null`
+   when the record has no value. Start-up fails if a listed field isn't also in `reference-fields`.
 
    `boolean-fields` works the same way for yes/no fields: every record must have each declared
    field as a JSON `true` or `false` (not `null`, `0`/`1` or a string), and no record may have an

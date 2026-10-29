@@ -286,14 +286,15 @@ class ReferenceDataFunctionalTest {
         // Also covers 003 AC-009/AC-010 (via base_location), AC-015 and EC-006
         // (specs/003-base-locations-reference-data), 004 AC-016 and EC-007
         // (specs/004-contract-types-reference-data), 005 AC-015 and EC-007
-        // (specs/005-genders-reference-data), and 006 AC-016 and EC-011
-        // (specs/006-judiciary-roles-reference-data).
+        // (specs/005-genders-reference-data), 006 AC-016 and EC-011
+        // (specs/006-judiciary-roles-reference-data), and 007 AC-019 and EC-010
+        // (specs/007-locations-reference-data).
         @ParameterizedTest
         @ValueSource(strings = {
-            // The other 16 E-Links attribute names: six canonical types, their six deprecated aliases, and
-            // base_location, contract_type, gender and judiciary_role, which 003–006 don't serve.
+            // The other 15 E-Links attribute names: five canonical types, their five deprecated aliases, and
+            // base_location, contract_type, gender, judiciary_role and location, which 003–007 don't serve.
             "jurisdictions", "location_types",
-            "locations", "ticket_categories", "ticket_category_types", "tickets",
+            "ticket_categories", "ticket_category_types", "tickets",
             "base_location", "contract_type", "gender", "judiciary_role", "jurisdiction", "location_type",
             "location", "ticket_category", "ticket_category_type", "ticket",
             // Unknown names and case variants (EC-001).
@@ -301,7 +302,8 @@ class ReferenceDataFunctionalTest {
             "Base_Locations", "BASE_LOCATIONS", "base-locations",
             "Contract_Types", "CONTRACT_TYPES", "contract-types",
             "Genders", "GENDERS", "genders_",
-            "Judiciary_roles", "JUDICIARY_ROLES", "judiciary-roles", "judiciaryRoles", "judiciary_roles_"
+            "Judiciary_roles", "JUDICIARY_ROLES", "judiciary-roles", "judiciaryRoles", "judiciary_roles_",
+            "Locations", "LOCATIONS", "locations_", "Location"
         })
         void ac007Ac014UnsupportedNamesAreRejectedOnBothRoutes(String name) {
             String collection = "/api/v1/reference_data/" + name;
