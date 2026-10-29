@@ -57,7 +57,8 @@ class ReferenceDataFixtureRulesTest {
     private static final Path MAIN_CONFIGURATION = Path.of("src/main/resources/application.yml");
 
     /**
-     * The E-Links jurisdictions: 30 Courts, 34 Tribunals, 84 Magistrates, 86 Coroners.
+     * The jurisdictions the shipped location data refers to: 30 Courts, 34 Tribunals, 84 Magistrates, 86 Coroners.
+     * Skills (87) is served but unreferenced (009 EC-003).
      */
     private static final Set<Long> JURISDICTION_IDS = Set.of(30L, 34L, 84L, 86L);
 
@@ -210,7 +211,14 @@ class ReferenceDataFixtureRulesTest {
                         point(10, "Area or Parent AC", null).withReferences(84L).withTexts("MAGS_AREA_OR_PARENT_AC"),
                         point(11, "AC", null).withReferences(84L).withTexts("MAGS_AREA_AC"),
                         point(14, "Region", END_DATE).withReferences(86L).withTexts("CORONERS_REGION"),
-                        point(16, "Geographic Area", null).withReferences(86L).withTexts("CORONERS_AREA"))));
+                        point(16, "Geographic Area", null).withReferences(86L).withTexts("CORONERS_AREA"))),
+                // 009 data-model.md § 3: the extract's ids, with gaps; none ended.
+                new Fixture("jurisdictions.json", 5, 5, Map.of(), IdRule.SOURCE, List.of(
+                        point(30, "Courts", null),
+                        point(34, "Tribunals", null),
+                        point(84, "Magistrates", null),
+                        point(86, "Coroners", null),
+                        point(87, "Skills", null))));
     }
 
     @Test

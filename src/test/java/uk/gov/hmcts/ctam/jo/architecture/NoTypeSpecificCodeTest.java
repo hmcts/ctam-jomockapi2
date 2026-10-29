@@ -39,9 +39,11 @@ class NoTypeSpecificCodeTest {
 
     // One fragment per configured type; each type's feature adds its own. Checks code, comments and Javadoc alike,
     // in any spelling: snake_case, spaced or wrapped words, camelCase or upper case ("base_location",
-    // "base location", "BaseLocation", "XBASE_LOCATION").
+    // "base location", "BaseLocation", "XBASE_LOCATION"). Jurisdictions' fragment is the plural, because the generic
+    // reference field jurisdiction_id (003) contains the singular (009 Clarifications).
     @ParameterizedTest
-    @ValueSource(strings = {"appointment", "base_location", "contract_type", "gender", "judiciary_role", "location"})
+    @ValueSource(strings = {"appointment", "base_location", "contract_type", "gender", "judiciary_role", "location",
+        "jurisdictions"})
     void noMainSourceFileNamesASpecificReferenceDataType(String fragment) {
         Pattern spellings = spellingsOf(fragment);
         assertThat(sources)
@@ -130,6 +132,22 @@ class NoTypeSpecificCodeTest {
         "nonjudiciary role"})
     void theGuardIgnoresOtherWordsNearJudiciaryRole(String text) {
         assertThat(spellingsOf("judiciary_role").matcher(text).find()).isFalse();
+    }
+
+    // No exemption: the plural matches no main source.
+    @ParameterizedTest
+    @ValueSource(strings = {"jurisdictions", "Jurisdictions", "JURISDICTIONS", "myJurisdictions", "JurisdictionsHelper",
+        "XJURISDICTIONS"})
+    void theGuardRecognisesEveryJurisdictionsSpelling(String text) {
+        assertThat(spellingsOf("jurisdictions").matcher(text).find()).isTrue();
+    }
+
+    // The generic reference field and its OpenAPI description, which name the singular only.
+    @ParameterizedTest
+    @ValueSource(strings = {"jurisdiction_id", "jurisdictionId", "JURISDICTION_ID", "getJurisdictionId",
+        "Id of the record's jurisdiction"})
+    void theGuardIgnoresTheGenericJurisdictionField(String text) {
+        assertThat(spellingsOf("jurisdictions").matcher(text).find()).isFalse();
     }
 
     /**
