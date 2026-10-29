@@ -70,8 +70,8 @@ class ReferenceDataFixtureRulesTest {
             75L, 76L, 77L, 78L, 80L, 82L, 83L, 85L, 88L);
 
     /**
-     * Reference fields whose values are pinned: every value a fixture holds must be in the set, and together the
-     * fixture's values must use the whole set.
+     * Reference fields whose values are pinned: every value a fixture holds must be in the set, and the shipped
+     * fixtures together must use the whole set ({@link #everyPinnedReferenceValueIsUsed}).
      */
     private static final Map<String, Set<Long>> PINNED_REFERENCE_VALUES = Map.of(
             ReferenceField.JURISDICTION_ID.fieldName(), JURISDICTION_IDS,
@@ -276,7 +276,6 @@ class ReferenceDataFixtureRulesTest {
         }
         Set<String> names = new HashSet<>();
         Map<String, Integer> trueCounts = new HashMap<>();
-        Map<String, Set<Long>> usedReferenceValues = new HashMap<>();
         booleanFields.forEach(field -> trueCounts.put(field, 0));
         String previous = null;
         long previousId = 0;
@@ -328,10 +327,8 @@ class ReferenceDataFixtureRulesTest {
             }
             for (String field : referenceFields) {
                 Set<Long> pinned = PINNED_REFERENCE_VALUES.get(field);
-                if (pinned != null) {
-                    long value = record.get(field).asLong();
-                    assertThat(pinned).as("%s at position %d", field, position).contains(value);
-                    usedReferenceValues.computeIfAbsent(field, key -> new HashSet<>()).add(value);
+                if (pinned != null && !record.get(field).isNull()) {
+                    assertThat(pinned).as("%s at position %d", field, position).contains(record.get(field).asLong());
                 }
             }
             names.add(name);
@@ -340,12 +337,28 @@ class ReferenceDataFixtureRulesTest {
         }
         assertThat(names).hasSize(fixture.distinctNames());
         assertThat(trueCounts).as("true records per boolean field").isEqualTo(fixture.trueCounts());
-        for (String field : referenceFields) {
-            if (PINNED_REFERENCE_VALUES.containsKey(field)) {
-                assertThat(usedReferenceValues.get(field)).as("%s values used", field)
-                        .isEqualTo(PINNED_REFERENCE_VALUES.get(field));
+    }
+
+    /**
+     * A pinned value no shipped fixture uses means the fixtures lost a reference; one fixture alone need not use the
+     * whole set (a type may cover only some jurisdictions).
+     */
+    @Test
+    void everyPinnedReferenceValueIsUsed() throws IOException {
+        Map<String, Set<Long>> used = new HashMap<>();
+        for (Fixture fixture : fixtures().toList()) {
+            for (String field : fixture.declaration().referenceFields()) {
+                if (PINNED_REFERENCE_VALUES.containsKey(field)) {
+                    for (JsonNode record : read(fixture.file())) {
+                        if (!record.get(field).isNull()) {
+                            used.computeIfAbsent(field, key -> new HashSet<>()).add(record.get(field).asLong());
+                        }
+                    }
+                }
             }
         }
+
+        assertThat(used).isEqualTo(PINNED_REFERENCE_VALUES);
     }
 
     @ParameterizedTest(name = "{0}")
