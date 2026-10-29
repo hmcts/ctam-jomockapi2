@@ -13,6 +13,7 @@ import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties.TypeProperties;
 import uk.gov.hmcts.ctam.jo.entity.BooleanField;
 import uk.gov.hmcts.ctam.jo.entity.DeclaredField;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceField;
+import uk.gov.hmcts.ctam.jo.entity.TextField;
 import uk.gov.hmcts.ctam.jo.testsupport.JsonTrees;
 
 import java.io.IOException;
@@ -27,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,10 +36,11 @@ import static uk.gov.hmcts.ctam.jo.repository.ReferenceDataFixtureRulesTest.Refe
 
 /**
  * Every shipped fixture follows the generation rules (002 data-model.md § Fixture generation rules, 003 to 006
- * data-model.md § 3, 007 data-model.md § 4), so ids stay stable without the local extract: the fixture's id rule
- * ({@link IdRule}), every seventh record ended, fixed timestamps and start dates, the reference and boolean fields the
- * type declares in {@code application.yml}, in the documented field order (a reference field null only where the type
- * declares it nullable), and non-ASCII characters written literally.
+ * data-model.md § 3, 007 and 008 data-model.md § 4), so ids stay stable without the local extract: the fixture's id
+ * rule ({@link IdRule}), every seventh record ended, fixed timestamps and start dates, the reference, text and boolean
+ * fields the type declares in {@code application.yml}, in the documented field order (a reference field null only where
+ * the type declares it nullable; a text field a non-empty, trimmed string in its known format), and non-ASCII
+ * characters written literally.
  */
 class ReferenceDataFixtureRulesTest {
 
@@ -59,6 +62,12 @@ class ReferenceDataFixtureRulesTest {
     private static final Set<Long> JURISDICTION_IDS = Set.of(30L, 34L, 84L, 86L);
 
     /**
+     * The format each text field's values take in the shipped data, where one is known (008 EC-004).
+     */
+    private static final Map<String, Pattern> TEXT_FORMATS =
+            Map.of("integration_code", Pattern.compile("[A-Z_]+"));
+
+    /**
      * How a fixture's ids are assigned.
      */
     enum IdRule {
@@ -76,23 +85,28 @@ class ReferenceDataFixtureRulesTest {
     }
 
     /**
-     * A record the tests and Postman rely on; a null end date means the record is open. References and booleans hold
-     * the values of the type's declared reference and boolean fields, in declaration order, and are empty when the
-     * type declares none; a point must list every declared field's value, with null for a null reference.
+     * A record the tests and Postman rely on; a null end date means the record is open. References, texts and booleans
+     * hold the values of the type's declared reference, text and boolean fields, in declaration order, and are empty
+     * when the type declares none; a point must list every declared field's value, with null for a null reference.
      */
-    record ReferencePoint(long id, String name, String endDate, List<Long> references, List<Boolean> booleans) {
+    record ReferencePoint(long id, String name, String endDate, List<Long> references, List<String> texts,
+                          List<Boolean> booleans) {
 
         static ReferencePoint point(long id, String name, String endDate) {
-            return new ReferencePoint(id, name, endDate, List.of(), List.of());
+            return new ReferencePoint(id, name, endDate, List.of(), List.of(), List.of());
         }
 
         ReferencePoint withReferences(Long... values) {
             // Arrays.asList, not List.of, so a top-level point can expect a null reference.
-            return new ReferencePoint(id, name, endDate, Arrays.asList(values), booleans);
+            return new ReferencePoint(id, name, endDate, Arrays.asList(values), texts, booleans);
+        }
+
+        ReferencePoint withTexts(String... values) {
+            return new ReferencePoint(id, name, endDate, references, List.of(values), booleans);
         }
 
         ReferencePoint withBooleans(Boolean... values) {
-            return new ReferencePoint(id, name, endDate, references, List.of(values));
+            return new ReferencePoint(id, name, endDate, references, texts, List.of(values));
         }
     }
 
@@ -121,11 +135,11 @@ class ReferenceDataFixtureRulesTest {
     }
 
     /**
-     * A type's declared reference and boolean fields, each in response field order, whether its names must be
+     * A type's declared reference, boolean and text fields, each in response field order, whether its names must be
      * unique, and which reference fields may be null.
      */
     record Declaration(List<String> referenceFields, List<String> booleanFields, boolean uniqueNames,
-                       List<String> nullableReferenceFields) {
+                       List<String> nullableReferenceFields, List<String> textFields) {
     }
 
     private static Map<String, Declaration> declarations;
@@ -187,7 +201,16 @@ class ReferenceDataFixtureRulesTest {
                         point(2364, "Newcastle and North Tyneside", END_DATE).withReferences(16L, 1820L, 86L),
                         point(2398, "Royal Courts of Justice – Office of the Judge Advocate General", null)
                                 .withReferences(2L, 1482L, 30L),
-                        point(2433, "Kent and Medway", null).withReferences(16L, 1925L, 86L))));
+                        point(2433, "Kent and Medway", null).withReferences(16L, 1925L, 86L))),
+                // 008: the extract's ids, 1 to 16; "Region" and "AC" repeat.
+                new Fixture("location_types.json", 16, 13, Map.of(), IdRule.SOURCE, List.of(
+                        point(1, "Region", null).withReferences(30L).withTexts("COURTS_REGION"),
+                        point(6, "Region", null).withReferences(84L).withTexts("MAGS_REGION"),
+                        point(7, "AC", END_DATE).withReferences(84L).withTexts("MAGS_AC"),
+                        point(10, "Area or Parent AC", null).withReferences(84L).withTexts("MAGS_AREA_OR_PARENT_AC"),
+                        point(11, "AC", null).withReferences(84L).withTexts("MAGS_AREA_AC"),
+                        point(14, "Region", END_DATE).withReferences(86L).withTexts("CORONERS_REGION"),
+                        point(16, "Geographic Area", null).withReferences(86L).withTexts("CORONERS_AREA"))));
     }
 
     @Test
@@ -210,6 +233,7 @@ class ReferenceDataFixtureRulesTest {
         final List<String> referenceFields = declaration.referenceFields();
         final List<String> booleanFields = declaration.booleanFields();
         final List<String> nullableFields = declaration.nullableReferenceFields();
+        final List<String> textFields = declaration.textFields();
 
         assertThat(records.size()).isEqualTo(fixture.records());
         if (declaration.uniqueNames()) {
@@ -245,13 +269,21 @@ class ReferenceDataFixtureRulesTest {
             assertThat(record.get("created_at").asString()).isEqualTo(CREATED_AT);
             assertThat(record.get("start_date").asString()).isEqualTo(START_DATE);
             assertThat(record.propertyNames()).as("fields at position %d", position)
-                    .containsExactlyElementsOf(fieldOrder(referenceFields, booleanFields));
+                    .containsExactlyElementsOf(fieldOrder(referenceFields, textFields, booleanFields));
             for (String field : referenceFields) {
                 if (record.get(field).isNull() && nullableFields.contains(field)) {
                     continue;
                 }
                 assertThat(record.get(field).isIntegralNumber()).as("%s at position %d", field, position).isTrue();
                 assertThat(record.get(field).asLong()).as("%s at position %d", field, position).isPositive();
+            }
+            for (String field : textFields) {
+                assertThat(record.get(field).isString()).as("%s at position %d", field, position).isTrue();
+                String text = record.get(field).asString();
+                assertThat(text).as("%s at position %d", field, position).isNotBlank().isEqualTo(text.strip());
+                if (TEXT_FORMATS.containsKey(field)) {
+                    assertThat(text).as("%s at position %d", field, position).matches(TEXT_FORMATS.get(field));
+                }
             }
             for (String field : booleanFields) {
                 assertThat(record.get(field).isBoolean()).as("%s at position %d", field, position).isTrue();
@@ -276,6 +308,7 @@ class ReferenceDataFixtureRulesTest {
     void referencePointsMatchTheDataModel(Fixture fixture) throws IOException {
         JsonNode records = read(fixture.file());
         List<String> referenceFields = fixture.declaration().referenceFields();
+        List<String> textFields = fixture.declaration().textFields();
         List<String> booleanFields = fixture.declaration().booleanFields();
 
         for (ReferencePoint point : fixture.referencePoints()) {
@@ -291,6 +324,8 @@ class ReferenceDataFixtureRulesTest {
             List<Long> references = referenceFields.stream()
                     .map(field -> record.get(field).isNull() ? null : record.get(field).asLong()).toList();
             assertThat(point.references()).as("%s of %d", referenceFields, point.id()).isEqualTo(references);
+            List<String> texts = textFields.stream().map(field -> record.get(field).asString()).toList();
+            assertThat(point.texts()).as("%s of %d", textFields, point.id()).isEqualTo(texts);
             List<Boolean> booleans = booleanFields.stream().map(field -> record.get(field).asBoolean()).toList();
             assertThat(point.booleans()).as("%s of %d", booleanFields, point.id()).isEqualTo(booleans);
         }
@@ -312,12 +347,14 @@ class ReferenceDataFixtureRulesTest {
     }
 
     /**
-     * 002's layout, with the reference fields and then the boolean fields after {@code name} when the type declares
-     * them.
+     * 002's layout, with the reference fields, then the text fields, then the boolean fields after {@code name} when
+     * the type declares them.
      */
-    private static List<String> fieldOrder(List<String> referenceFields, List<String> booleanFields) {
+    private static List<String> fieldOrder(List<String> referenceFields, List<String> textFields,
+                                           List<String> booleanFields) {
         List<String> fields = new ArrayList<>(List.of("id", "name"));
         fields.addAll(referenceFields);
+        fields.addAll(textFields);
         fields.addAll(booleanFields);
         fields.addAll(List.of("created_at", "updated_at", "start_date", "end_date"));
         return fields;
@@ -365,7 +402,8 @@ class ReferenceDataFixtureRulesTest {
             if (byFixture.put(file, new Declaration(
                     inResponseOrder(ReferenceField.values(), type.referenceFields()),
                     inResponseOrder(BooleanField.values(), type.booleanFields()), type.uniqueNames(),
-                    inResponseOrder(ReferenceField.values(), type.nullableReferenceFields()))) != null) {
+                    inResponseOrder(ReferenceField.values(), type.nullableReferenceFields()),
+                    inResponseOrder(TextField.values(), type.textFields()))) != null) {
                 throw new AssertionError("more than one type uses the fixture " + type.fixture());
             }
         }

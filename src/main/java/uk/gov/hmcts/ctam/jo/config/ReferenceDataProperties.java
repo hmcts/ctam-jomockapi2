@@ -13,6 +13,8 @@ import java.util.List;
  * to none. {@code boolean-fields} lists the boolean fields (e.g. {@code salaried}) the type's records carry; it
  * defaults to none. {@code unique-names} says whether record names must be unique within the type; it defaults to
  * true. {@code nullable-reference-fields} lists the declared reference fields that may be null; it defaults to none.
+ * {@code text-fields} lists the text fields (e.g. {@code integration_code}) the type's records carry; it defaults to
+ * none.
  */
 @ConfigurationProperties("jo.reference-data")
 public record ReferenceDataProperties(List<TypeProperties> types) {
@@ -23,7 +25,7 @@ public record ReferenceDataProperties(List<TypeProperties> types) {
 
     public record TypeProperties(String name, List<String> aliases, String fixture, List<String> referenceFields,
                                  List<String> booleanFields, Boolean uniqueNames,
-                                 List<String> nullableReferenceFields) {
+                                 List<String> nullableReferenceFields, List<String> textFields) {
 
         public TypeProperties {
             aliases = copyOf(aliases);
@@ -31,6 +33,7 @@ public record ReferenceDataProperties(List<TypeProperties> types) {
             booleanFields = copyOf(booleanFields);
             uniqueNames = uniqueNames == null || uniqueNames;
             nullableReferenceFields = copyOf(nullableReferenceFields);
+            textFields = copyOf(textFields);
         }
     }
 

@@ -5,7 +5,7 @@ import java.util.Optional;
 
 /**
  * An optional record field that a type declares in its configuration ({@code reference-fields},
- * {@code boolean-fields}). Records of a type that doesn't declare the field never carry it.
+ * {@code boolean-fields}, {@code text-fields}). Records of a type that doesn't declare the field never carry it.
  *
  * @param <T> the field's value type
  */

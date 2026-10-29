@@ -35,7 +35,9 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.fullRespons
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.nullableParentResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.referencingResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.response;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.referencingTextResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.salariedResponse;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.textResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.BEARER_TOKEN;
 import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.TOKEN;
 
@@ -116,7 +118,8 @@ class ReferenceDataControllerTest {
                 .andExpect(jsonPath("$.type_id").doesNotExist())
                 .andExpect(jsonPath("$.parent_id").doesNotExist())
                 .andExpect(jsonPath("$.jurisdiction_id").doesNotExist())
-                .andExpect(jsonPath("$.salaried").doesNotExist());
+                .andExpect(jsonPath("$.salaried").doesNotExist())
+                .andExpect(jsonPath("$.integration_code").doesNotExist());
     }
 
     @Test
@@ -141,6 +144,31 @@ class ReferenceDataControllerTest {
         assertThat(withReferences).startsWith(
                 "{\"id\":20,\"name\":\"Bravo\",\"type_id\":8,\"parent_id\":1722,\"jurisdiction_id\":84,"
                 + "\"salaried\":true,\"created_at\":");
+    }
+
+    @Test
+    void textFieldsAreWrittenAfterTheReferenceFieldsOnlyWhenTheRecordCarriesThem() throws Exception {
+        given(service.getById("widgets", "10")).willReturn(textResponse(10, "Alpha", "WIDGET_A"));
+        given(service.getById("widgets", "20")).willReturn(referencingTextResponse(20, "Bravo", 8, 1722, 84,
+                                                                                   "WIDGET_B"));
+
+        String withoutReferences = mockMvc.perform(
+                        get("/api/v1/reference_data/widgets/10").header("Authorization", BEARER_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.*", hasSize(7)))
+                .andExpect(jsonPath("$.integration_code").value("WIDGET_A"))
+                .andReturn().getResponse().getContentAsString();
+        String withReferences = mockMvc.perform(
+                        get("/api/v1/reference_data/widgets/20").header("Authorization", BEARER_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.*", hasSize(10)))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(withoutReferences).startsWith(
+                "{\"id\":10,\"name\":\"Alpha\",\"integration_code\":\"WIDGET_A\",\"created_at\":");
+        assertThat(withReferences).startsWith(
+                "{\"id\":20,\"name\":\"Bravo\",\"type_id\":8,\"parent_id\":1722,\"jurisdiction_id\":84,"
+                + "\"integration_code\":\"WIDGET_B\",\"created_at\":");
     }
 
     @Test

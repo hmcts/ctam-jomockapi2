@@ -1,0 +1,162 @@
+[
+  {
+    "id": 1,
+    "name": "Region",
+    "jurisdiction_id": 30,
+    "integration_code": "COURTS_REGION",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 2,
+    "name": "Court",
+    "jurisdiction_id": 30,
+    "integration_code": "COURTS_COURT_NAME",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 3,
+    "name": "Tier",
+    "jurisdiction_id": 34,
+    "integration_code": "TRIBS_TIER",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 4,
+    "name": "Chamber",
+    "jurisdiction_id": 34,
+    "integration_code": "TRIBS_CHAMBER",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 5,
+    "name": "Location",
+    "jurisdiction_id": 34,
+    "integration_code": "TRIBS_LOCATION",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 6,
+    "name": "Region",
+    "jurisdiction_id": 84,
+    "integration_code": "MAGS_REGION",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 7,
+    "name": "AC",
+    "jurisdiction_id": 84,
+    "integration_code": "MAGS_AC",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2025-04-01T08:00:00Z",
+    "start_date": "2024-01-01",
+    "end_date": "2025-03-31"
+  },
+  {
+    "id": 8,
+    "name": "LJA",
+    "jurisdiction_id": 84,
+    "integration_code": "MAGS_AC_LJA",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 9,
+    "name": "Court Name",
+    "jurisdiction_id": 84,
+    "integration_code": "MAGS_AC_COURT_NAME",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 10,
+    "name": "Area or Parent AC",
+    "jurisdiction_id": 84,
+    "integration_code": "MAGS_AREA_OR_PARENT_AC",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 11,
+    "name": "AC",
+    "jurisdiction_id": 84,
+    "integration_code": "MAGS_AREA_AC",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 12,
+    "name": "Subcommittee",
+    "jurisdiction_id": 84,
+    "integration_code": "MAGS_AREA_SUBCOMMITTEE",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 13,
+    "name": "Committee",
+    "jurisdiction_id": 84,
+    "integration_code": "MAGS_AREA_COMMITTEE",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 14,
+    "name": "Region",
+    "jurisdiction_id": 86,
+    "integration_code": "CORONERS_REGION",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2025-04-01T08:00:00Z",
+    "start_date": "2024-01-01",
+    "end_date": "2025-03-31"
+  },
+  {
+    "id": 15,
+    "name": "Local Authority",
+    "jurisdiction_id": 86,
+    "integration_code": "CORONERS_LOCAL_AUTH",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 16,
+    "name": "Geographic Area",
+    "jurisdiction_id": 86,
+    "integration_code": "CORONERS_AREA",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  }
+]

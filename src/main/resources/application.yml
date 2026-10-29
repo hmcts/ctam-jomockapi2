@@ -27,8 +27,9 @@ jo:
         fixture: classpath:reference-data/appointment_titles.json
       - name: base_locations
         fixture: classpath:reference-data/base_locations.json
-        # parent_id is a locations id (checked by ReferenceDataReferencesTest, 007); type_id and jurisdiction_id are
-        # ids of records in types not served yet (constitution Principle IV forward references, 003 DF-1).
+        # parent_id and type_id are ids of locations and location types (checked by ReferenceDataReferencesTest, 007,
+        # 008); jurisdiction_id is an id of a record in a type not served yet (constitution Principle IV forward
+        # reference, 003 DF-1).
         reference-fields: [type_id, parent_id, jurisdiction_id]
         # Different locations share names; one record per location (003 FR-017).
         unique-names: false
@@ -43,9 +44,19 @@ jo:
       - name: locations
         # Keeps the extract's E-Links ids, so parent_id values resolve (007 DR-1).
         fixture: classpath:reference-data/locations.json
-        # parent_id is the id of another location; type_id and jurisdiction_id are forward references (007 DF-5).
+        # parent_id is the id of another location and type_id of a location type (008); jurisdiction_id is a forward
+        # reference (007 DF-5).
         reference-fields: [type_id, parent_id, jurisdiction_id]
         # Null for the 142 top-level locations (007 FR-011).
         nullable-reference-fields: [parent_id]
         # Different locations share names (007 EC-002).
+        unique-names: false
+      - name: location_types
+        # Keeps the extract's E-Links ids, so locations' and base locations' type_id values resolve (008 DR-1).
+        fixture: classpath:reference-data/location_types.json
+        # A forward reference to jurisdictions (008 DF-7).
+        reference-fields: [jurisdiction_id]
+        # The extract's integration code (008 D-4).
+        text-fields: [integration_code]
+        # "Region" and "AC" repeat (008 EC-002).
         unique-names: false

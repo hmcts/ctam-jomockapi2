@@ -93,7 +93,7 @@ class ReferenceDataServiceTest {
     void mapsWithTheResolvedTypesDeclarations() {
         ReferenceDataTypeRegistry declaring = registry(new TypeProperties(
                 "widgets", List.of(), "classpath:widgets.json", List.of("type_id", "parent_id", "jurisdiction_id"),
-                List.of(), null, List.of("parent_id")));
+                List.of(), null, List.of("parent_id"), List.of()));
         ReferenceDataService declaringService =
                 new ReferenceDataService(declaring, repository, mapper, new ReferenceIdParser());
         ReferenceDataType widgets = declaring.resolve("widgets");

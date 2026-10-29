@@ -6,6 +6,7 @@ import uk.gov.hmcts.ctam.jo.entity.BooleanField;
 import uk.gov.hmcts.ctam.jo.entity.DeclaredField;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataType;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceField;
+import uk.gov.hmcts.ctam.jo.entity.TextField;
 import uk.gov.hmcts.ctam.jo.exceptions.UnsupportedReferenceDataTypeException;
 
 import java.util.ArrayList;
@@ -23,8 +24,8 @@ import java.util.regex.Pattern;
  * The ONLY place reference-data names and deprecated aliases are resolved (spec FR-005).
  *
  * <p>Built once from configuration. Any invalid declaration (bad name, duplicate name or alias, missing
- * fixture, empty list entry, unknown or repeated reference or boolean field, nullable reference field not declared as
- * a reference field) throws {@link IllegalStateException}, so the application does not start.
+ * fixture, empty list entry, unknown or repeated reference, boolean or text field, nullable reference field not
+ * declared as a reference field) throws {@link IllegalStateException}, so the application does not start.
  */
 @Component
 public class ReferenceDataTypeRegistry {
@@ -118,6 +119,7 @@ public class ReferenceDataTypeRegistry {
         requireNoEmptyEntry(name, "reference-fields", properties.referenceFields());
         requireNoEmptyEntry(name, "boolean-fields", properties.booleanFields());
         requireNoEmptyEntry(name, "nullable-reference-fields", properties.nullableReferenceFields());
+        requireNoEmptyEntry(name, "text-fields", properties.textFields());
         LinkedHashSet<String> aliases = new LinkedHashSet<>();
         for (String alias : properties.aliases()) {
             requireValidName(alias, "alias of " + name);
@@ -145,7 +147,8 @@ public class ReferenceDataTypeRegistry {
         return new ReferenceDataType(name, aliases, properties.fixture(), referenceFields,
                                      declaredFields(name, "boolean field", properties.booleanFields(),
                                                     BooleanField.class),
-                                     properties.uniqueNames(), nullableReferenceFields);
+                                     properties.uniqueNames(), nullableReferenceFields,
+                                     declaredFields(name, "text field", properties.textFields(), TextField.class));
     }
 
     private static void requireNoEmptyEntry(String typeName, String list, List<String> values) {
@@ -155,8 +158,8 @@ public class ReferenceDataTypeRegistry {
     }
 
     /**
-     * Resolves the field names a type declares ({@code reference-fields}, {@code boolean-fields} or
-     * {@code nullable-reference-fields}); {@code kind} names the list in error messages.
+     * Resolves the field names a type declares ({@code reference-fields}, {@code boolean-fields},
+     * {@code nullable-reference-fields} or {@code text-fields}); {@code kind} names the list in error messages.
      */
     private static <E extends Enum<E> & DeclaredField<?>> Set<E> declaredFields(String typeName, String kind,
                                                                                 List<String> fieldNames,

@@ -21,6 +21,8 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.referencing
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.referencingType;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.salariedResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.salariedType;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.textResponse;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.textType;
 
 class ReferenceDataMapperTest {
 
@@ -31,7 +33,7 @@ class ReferenceDataMapperTest {
         ReferenceDataResponse response = mapper.toResponse(record(70, "Ended", END_DATE), plainType());
 
         assertThat(response).isEqualTo(
-                new ReferenceDataResponse(70, "Ended", null, null, null, null, CREATED_AT, UPDATED_AT, START_DATE,
+                new ReferenceDataResponse(70, "Ended", null, null, null, null, null, CREATED_AT, UPDATED_AT, START_DATE,
                                           END_DATE));
     }
 
@@ -78,6 +80,13 @@ class ReferenceDataMapperTest {
         assertThat(mapper.toResponse(recordBuilder(20, "Unpaid").salaried(false).build(), salariedType()))
                 .isEqualTo(salariedResponse(20, "Unpaid", false));
         assertThat(mapper.toResponse(record(30, "Plain"), plainType()).salaried()).isNull();
+    }
+
+    @Test
+    void mapsTheTextFields() {
+        assertThat(mapper.toResponse(recordBuilder(10, "Coded").integrationCode("WIDGET_A").build(), textType()))
+                .isEqualTo(textResponse(10, "Coded", "WIDGET_A"));
+        assertThat(mapper.toResponse(record(20, "Plain"), plainType()).integrationCode()).isNull();
     }
 
     @Test

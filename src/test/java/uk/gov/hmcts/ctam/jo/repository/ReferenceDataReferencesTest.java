@@ -30,7 +30,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Every reference between served types resolves in the shipped fixtures (constitution Principle IV; 007 FR-012), so
  * the check needs no running service. References to types not served yet are forward references, checked by the
  * feature that serves the target type: the completeness test fails until that feature adds its row here (003 DF-1,
- * 007 DF-5).
+ * 007 DF-5, 008 DF-7). Fields that a record and the record it refers to both hold agree, so the served data is
+ * internally consistent (constitution Principle IV; 008 FR-012).
  */
 class ReferenceDataReferencesTest {
 
@@ -65,7 +66,28 @@ class ReferenceDataReferencesTest {
         return Stream.of(
                 new Reference("locations", "parent_id", "locations"),
                 // Closes 003 DF-1 for parent_id.
-                new Reference("base_locations", "parent_id", "locations"));
+                new Reference("base_locations", "parent_id", "locations"),
+                // Close 007 DF-5 and 003 DF-1 for type_id.
+                new Reference("locations", "type_id", "location_types"),
+                new Reference("base_locations", "type_id", "location_types"));
+    }
+
+    /**
+     * Every {@code source} record's {@code field} equals the {@code field} of the {@code target} record its
+     * {@code via} reference names.
+     */
+    record Agreement(String source, String via, String target, String field) {
+
+        @Override
+        public String toString() {
+            return source + "." + field + " = " + target + "." + field + " via " + via;
+        }
+    }
+
+    static Stream<Agreement> agreements() {
+        return Stream.of(
+                new Agreement("locations", "type_id", "location_types", "jurisdiction_id"),
+                new Agreement("base_locations", "type_id", "location_types", "jurisdiction_id"));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -141,6 +163,35 @@ class ReferenceDataReferencesTest {
         }
 
         assertThat(references()).containsExactlyInAnyOrderElementsOf(required);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("agreements")
+    void everyAgreementHolds(Agreement agreement) throws IOException {
+        Map<Long, JsonNode> targets = new HashMap<>();
+        read(agreement.target()).forEach(record -> targets.put(record.get("id").asLong(), record));
+
+        for (JsonNode record : read(agreement.source())) {
+            String source = fixture(agreement.source()) + " record " + record.get("id").asLong();
+            long targetId = integral(record, agreement.via(), source);
+            JsonNode target = targets.get(targetId);
+            assertThat(target).as("%s: %s %d", source, agreement.via(), targetId).isNotNull();
+            assertThat(integral(record, agreement.field(), source))
+                    .as("%s: %s, against %s record %d", source, agreement.field(), fixture(agreement.target()),
+                        targetId)
+                    .isEqualTo(integral(target, agreement.field(),
+                                        fixture(agreement.target()) + " record " + targetId));
+        }
+    }
+
+    /**
+     * The field's value, failing with a message if it is missing or not an integer, so an absent value can't be read
+     * as 0 and pass.
+     */
+    private static long integral(JsonNode record, String field, String description) {
+        JsonNode value = record.get(field);
+        assertThat(value != null && value.isIntegralNumber()).as("%s: %s is an integer", description, field).isTrue();
+        return value.asLong();
     }
 
     private static String fixture(String type) {

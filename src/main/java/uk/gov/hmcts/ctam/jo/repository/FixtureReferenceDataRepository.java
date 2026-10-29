@@ -16,6 +16,7 @@ import uk.gov.hmcts.ctam.jo.entity.DeclaredField;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataRecord;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceDataType;
 import uk.gov.hmcts.ctam.jo.entity.ReferenceField;
+import uk.gov.hmcts.ctam.jo.entity.TextField;
 import uk.gov.hmcts.ctam.jo.services.ReferenceDataTypeRegistry;
 
 import java.io.IOException;
@@ -49,8 +50,8 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
     public FixtureReferenceDataRepository(ReferenceDataTypeRegistry registry, ResourceLoader resourceLoader,
                                           JsonMapper jsonMapper) {
         // Each field must hold its own JSON type: ids are integers (no rounding of fractions, no parsing of strings),
-        // names are strings, booleans are JSON booleans (no 0/1 or "true"). Timestamps and dates are checked separately
-        // (requireDateStrings).
+        // names and text fields are strings, booleans are JSON booleans (no 0/1 or "true"). Timestamps and dates are
+        // checked separately (requireDateStrings).
         JsonMapper strictMapper = jsonMapper.rebuild()
                 .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .withCoercionConfig(LogicalType.Integer, config -> config
@@ -134,6 +135,7 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
             validate(fixture, record);
             validateReferenceFields(fixture, type, record);
             validateBooleanFields(fixture, type, record);
+            validateTextFields(fixture, type, record);
             if (byId.putIfAbsent(record.getId(), record) != null) {
                 throw invalid(fixture, record.getId(), "duplicate id");
             }
@@ -149,13 +151,7 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
         if (id <= 0) {
             throw invalid(fixture, id, "id must be greater than 0");
         }
-        String name = record.getName();
-        if (name == null || name.isBlank()) {
-            throw invalid(fixture, id, "name is required");
-        }
-        if (!name.equals(name.strip())) {
-            throw invalid(fixture, id, "name must be trimmed");
-        }
+        requireTrimmedText(fixture, id, "name", record.getName(), "is required");
         if (record.getCreatedAt() == null) {
             throw invalid(fixture, id, "created_at is required");
         }
@@ -235,8 +231,33 @@ public class FixtureReferenceDataRepository implements ReferenceDataRepository {
     }
 
     /**
-     * The rule every kind of declared field read from the parsed record shares: required in each record of a type
-     * that declares it, absent from every other type's records.
+     * A text field the type declares must be present in every record, as a non-empty string with no leading or
+     * trailing whitespace, as for names; one it doesn't declare must be absent. The value's JSON type is checked while
+     * reading.
+     */
+    private static void validateTextFields(String fixture, ReferenceDataType type, ReferenceDataRecord record) {
+        validateDeclaredFields(fixture, type, record, "text field", TextField.values(), type.getTextFields());
+        for (TextField field : type.getTextFields()) {
+            requireTrimmedText(fixture, record.getId(), field.fieldName(), field.readFrom(record), "must not be blank");
+        }
+    }
+
+    /**
+     * The rule every text value the mock serves follows, names and text fields alike: not blank, and no leading or
+     * trailing whitespace. {@code blankProblem} completes the message for a missing or blank value.
+     */
+    private static void requireTrimmedText(String fixture, long id, String field, String value, String blankProblem) {
+        if (value == null || value.isBlank()) {
+            throw invalid(fixture, id, field + " " + blankProblem);
+        }
+        if (!value.equals(value.strip())) {
+            throw invalid(fixture, id, field + " must be trimmed");
+        }
+    }
+
+    /**
+     * The rule every kind of declared field read from the parsed record shares (boolean and text fields): required in
+     * each record of a type that declares it, absent from every other type's records.
      */
     private static <T> void validateDeclaredFields(String fixture, ReferenceDataType type, ReferenceDataRecord record,
                                                    String kind, DeclaredField<T>[] fields,

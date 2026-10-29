@@ -173,3 +173,61 @@ The design adds one enum, one configuration list, one record field, one response
 The quickstart's expected values were checked against a collection simulated from the extract by the data-model rules: 16 records; first `[1,"Region","COURTS_REGION"]` and last `[16,"Geographic Area","CORONERS_AREA"]`; ended `[7,14]`; "Region" at `[[1,30],[6,84],[14,86]]`; 13 distinct names; 0 unresolved or disagreeing `type_id` values in both the checked-in `locations.json` and `base_locations.json`. The real fixture is generated during implementation and checked again then.
 
 Every principle stays **Pass**. Open item: the inherited Sonar deferral.
+
+## Implementation notes
+
+**Baseline (T001, before any change)**: `./gradlew check -PskipOwasp` green. Tests per suite: `test` 366, `integrationTest` 33, `functionalTest` 334, `smokeTest` 8. JaCoCo: lines 513/513 (100%), branches 237/238 (99.6%; the missed branch is MapStruct's generated null check on the boxed `id`, as recorded in 003 and 007).
+
+**Generic capability (T002–T014)**: built test-first. The new constructor argument was added at exactly the call sites the tasks counted (11, 9, 1 and 5 `TypeProperties`/`ReferenceDataType` calls; 8 `ReferenceDataResponse` calls). After the main-code change, `./gradlew test integrationTest functionalTest` passed with only the T002–T006 test changes and T013's contract-test change (`test` 391, `integrationTest` 33, `functionalTest` 334), and every existing golden file matched byte for byte. springdoc publishes `integration_code` as `"type": "string"`, not nullable and not required, with no new schema component. A null, number, boolean or object fails while the JSON is read, with Jackson's message naming `integration_code` and the record's array index (`[0]` for the first record); the declared-type test asserts both.
+
+**Fixture (T015)**: generated once from the gitignored `REF_LocationType.csv` by a throwaway script in the session scratchpad (never committed). Before the file was kept, the script confirmed:
+- 16 rows of 9 columns (the empty trailing column), no BOM; ids 1 to 16; 13 distinct names;
+- the four copied columns equal the extract's row for row (SC-003);
+- every `integration_code` matches `[A-Z_]{7,22}`;
+- ended ids exactly {7, 14};
+- every row of data-model.md § 4's Records table;
+- every `type_id` in the checked-in `locations.json` (2,000 records, 16 distinct values) and `base_locations.json` (1,462 records, 8 distinct values) is an id in the new file, with 0 jurisdiction mismatches.
+
+UTF-8 without BOM, two-space indent, trailing newline, 4,069 bytes, no `\u`.
+
+**Extension test (T020)**: `ReferenceDataExtensionIntegrationTest` passed unchanged (6 tests).
+
+**Golden file (T029)**: `golden/location_types.json` was captured from `./gradlew bootRun` with `curl -o` (compact, no trailing newline, 3,215 bytes). Its 16 records equal the fixture's, field for field and in key order. The existing six golden files are unchanged (`git diff --stat origin/main -- src/functionalTest/resources/golden/` prints nothing; AC-018, SC-009).
+
+**AC-021 / SC-010 (T040)**: `git diff --stat origin/main -- src/main/java` lists exactly the seven planned changed files (`ReferenceDataProperties`, `ReferenceDataResponse`, `DeclaredField`, `ReferenceDataRecord`, `ReferenceDataType`, `FixtureReferenceDataRepository`, `ReferenceDataTypeRegistry`; 66 insertions, 21 deletions), plus the new `TextField`. `ReferenceDataMapper` and `ReferenceDataService` are unchanged. Under `src/main/resources`, only `application.yml` (the type entry and the two updated comments) and the new `reference-data/location_types.json`. `git grep -n -i -E 'location|appointment|contract_type|gender|judiciary' -- src/main/java` prints nothing, and `NoTypeSpecificCodeTest` is unchanged.
+
+**AC coverage (T041)**: AC-022 (text-field start-up behaviour) is covered by `ReferenceDataTypeRegistryTest` (T002) and `FixtureReferenceDataRepositoryTest` (T004). AC-023 (OpenAPI lists `location_types`, not `location_type`; `integration_code` an optional, non-nullable string citing D-4) is covered by `ReferenceDataOpenApiContractTest` (T013, T018).
+
+**Postman (T043)**: newman ran 71 requests (10 new in Reference Data › Location Types) with 270 assertions (+40), 0 failures. The folder was inserted as text after Locations, in the collection's own layout; the diff is 567 insertions only.
+
+**Final (T048)**: `./gradlew check -PskipOwasp` green. Tests per suite:
+- `test` 400 (+34): registry (6), type (1), repository (15, including the four parse failures run for both a declaring and a non-declaring type), mapper (1), controller (1) and serialisation (1) cases for text fields; one fixture-rules row, which adds three cases; and `ReferenceDataReferencesTest` (+6: the two `type_id` rows, each run by the resolution and cycle tests, and the two agreement rows).
+- `integrationTest` 33 (the contract test's `enum`, description and `integration_code` schema changed).
+- `functionalTest` 392 (+58): 54 in `LocationTypesFunctionalTest`, and 002's unsupported-name list lost `location_types` and gained five case variants (+4).
+- `smokeTest` 9 (+1: the location-types collection).
+
+JaCoCo: lines 537/537 (100%), branches 243/244 (99.6%). The one missed branch is still MapStruct's generated null check on the boxed `id`; the new branches are all covered.
+
+**Strict latency (T048, `./gradlew smokeTest -Dperf.strict=true`)**: collection p95: `appointment_titles` 3 ms, `base_locations` 13 ms, `contract_types` 1 ms, `genders` 1 ms, `judiciary_roles` 1 ms, `locations` 4 ms, `location_types` 2 ms (bound 100 ms).
+
+**Quickstart (T049)**: §§ 1–5 walked through against `./gradlew bootRun`. Every expected result matched: § 3 rows 1–19 (including 0 unresolved or disagreeing `type_id` values for both `locations` and `base_locations`, and 0 locations carrying `integration_code`), the § 4 `enum` (`location_types` listed, `location_type` not) and `integration_code` schema (`["string",null]`), and § 5's newman run.
+
+**Differences from the planned design**:
+- As in 006 and 007, `LocationTypesFunctionalTest` was written in one pass (T023 and the story tasks), and the golden file was captured before the first gate run, so T024's gate already ran every story's functional test. T033's agreement table and T044's smoke path were also added before T024, since they touch files the gate runs.
+- `ReferenceDataFixtures` gained `referencingTextResponse` alongside `textType` and `textResponse`, for the controller case where `integration_code` follows `jurisdiction_id`. `ReferenceFieldValueTest` gained a separate all-fields order case rather than changing `fullResponse`, since no type declares both a text and a boolean field.
+- `ec004OtherTypesDoNotCarryIntegrationCode` checks all six other types, not only the three T038 names.
+- The README's Status section, which still listed only the first two types, now points at all seven.
+
+**Code-review follow-ups (2026-10-29)**: two `/code-review` rounds found no correctness bugs; their own checks confirmed every `type_id` resolves, every jurisdiction agrees, and the fixture's counts and ended ids. Five findings were fixed and the rest kept.
+- **Fixed, one rule in one place**: `FixtureReferenceDataRepository` checks names and text fields with one helper, `requireTrimmedText`, so the two can't drift (constitution Principle III). Behaviour and messages are unchanged.
+- **Fixed, no silent pass**: `ReferenceDataReferencesTest` › `everyAgreementHolds` asserts that the `via` value and both compared values are present integers, so an absent or null value fails with a message naming the record instead of reading as 0 or throwing a NullPointerException.
+- **Fixed, a format rule rather than today's data**: `ReferenceDataFixtureRulesTest`'s `TEXT_FORMATS` is now `[A-Z_]+`. The 7-to-22-character range describes today's 16 codes and would wrongly bind a later type that declares `integration_code`; the codes themselves stay pinned by the reference points and the golden file. Research R6 says so.
+- **Fixed, documentation**: the README's "Tests to update" list says a `NoTypeSpecificCodeTest` fragment is needed only when no existing one covers the type's name, and the fixture-rules `Declaration` Javadoc names all its fields.
+- **Kept**:
+  - The mapper copies `integration_code` by name without checking the type, as for `salaried` since 004 (research R4): start-up validation guarantees only a declaring type's records hold a value.
+  - Location types 7 and 14 are ended although open locations use them (spec Clarifications Q2, EC-005; the README says so).
+  - A null or non-string text field is reported by Jackson's 0-based array index, as every existing parse failure is.
+  - `agreements()` has no completeness check: which fields must agree can't be derived from configuration (a location's jurisdiction must equal its type's, not necessarily its parent's), so each feature adds its rows deliberately, starting with `jurisdictions` (DF-7).
+  - Positional constructor parameters and `TextField` mirroring `BooleanField` follow the pattern research R2 chose; a builder or a generic field holder would be a separate refactor across 003–008.
+  - `ReferenceDataExtensionIntegrationTest` is not extended: `text-fields` binding is exercised in every full-context suite by the shipped `location_types`.
+- `./gradlew check -PskipOwasp` green after the fixes: `test` 400, `integrationTest` 33, `functionalTest` 392, `smokeTest` 9. JaCoCo: lines 534/534 (100%), branches 239/240 (99.6%), fewer in total because the duplicate text checks are gone; the one missed branch is still MapStruct's.

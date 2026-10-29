@@ -37,8 +37,9 @@ breakdown.
 Implemented and covered by automated tests:
 
 - `GET /api/v1/healthcheck` (see `specs/001-healthcheck-api/`)
-- the Reference Data API for appointment titles and base locations (see [Reference data](#reference-data),
-  `specs/002-reference-data-api/` and `specs/003-base-locations-reference-data/`)
+- the Reference Data API for seven types, from appointment titles to location types (see
+  [Reference data](#reference-data) and `specs/002-reference-data-api/` to
+  `specs/008-location-types-reference-data/`)
 
 ### Quality gates
 
@@ -93,7 +94,7 @@ Two routes serve every configured reference-data type through the same code:
 | `GET /api/v1/reference_data/{attribute_name}` | `{"results": [...]}`: every record, in ascending `id` order |
 | `GET /api/v1/reference_data/{attribute_name}/{reference_id}` | One record, as a single object |
 
-Six types are configured:
+Seven types are configured:
 
 | Type | Records | Deprecated alias served |
 |------|---------|-------------------------|
@@ -103,19 +104,28 @@ Six types are configured:
 | `genders` | 4 | none: `gender` returns `400` |
 | `judiciary_roles` | 164 | none: `judiciary_role` returns `400` |
 | `locations` | 2,000, one per source row (1,523 distinct names) | none: `location` returns `400` |
+| `location_types` | 16, one per source row (13 distinct names) | none: `location_type` returns `400` |
 
 Base-location records also carry `type_id`, `parent_id` and `jurisdiction_id`, after `name`:
 the E-Links ids of each location's type, parent location and jurisdiction (30 Courts, 34 Tribunals,
 84 Magistrates, 86 Coroners), copied from the source data. Every `parent_id` is the id of a served
-location. `type_id` and `jurisdiction_id` refer to `location_types` and `jurisdictions`, which
-aren't served yet; the features that add those types must make every reference resolve
-(constitution, Principle IV). Appointment-title records don't have these fields.
+location, and every `type_id` the id of a served location type in the same jurisdiction. Only
+`jurisdiction_id` still refers to a type that isn't served yet, `jurisdictions`; the feature that
+adds it must make every reference resolve (constitution, Principle IV). Appointment-title records
+don't have these fields.
 
 Location records carry the same three fields, after `name`. Unlike every other type, locations
 keep the E-Links ids (1 to 2433, with gaps), so that parent references resolve: every non-null
 `parent_id` is the id of another served location. The 142 top-level locations have
-`"parent_id": null`; the field is never left out. Base-location ids are not location ids: the
-two types are not linked by id.
+`"parent_id": null`; the field is never left out. Every `type_id` is the id of a served location
+type with the same `jurisdiction_id`. Base-location ids are not location ids: the two types are
+not linked by id.
+
+Location-type records also keep the E-Links ids (1 to 16), so that every location's and base
+location's `type_id` resolves. Each carries `jurisdiction_id` and then `integration_code` (E-Links'
+code for the type, e.g. `MAGS_AC_LJA`), after `name`. Names repeat: "Region" three times and "AC"
+twice, told apart by jurisdiction and integration code. Ids 7 and 14 are ended by the synthetic
+date rule, although open locations still use them.
 
 Contract-type records also carry `salaried`, after `name`: a JSON boolean, `true` for "Salaried"
 and the ten salaried part-time working ("SPTW-…%") types, `false` for "Fee-paid", "Unknown" and
@@ -155,7 +165,8 @@ No Java changes are needed, as long as the type's fields are among those below. 
 
 1. **A fixture**: `src/main/resources/reference-data/<attribute_name>.json`, a JSON array of records
    with the fields `id`, `name`, `created_at`, `updated_at`, `start_date` and `end_date`, plus any
-   reference fields and then any boolean fields the type declares (see below), after `name`. The rules
+   reference fields, then any text fields and then any boolean fields the type declares (see below),
+   after `name`. The rules
    (unique positive ids, unique trimmed names unless the type allows repeats, whole-second UTC timestamps,
    dates in order) are in [data-model.md §2](specs/002-reference-data-api/data-model.md), as amended
    by [003 FR-017](specs/003-base-locations-reference-data/spec.md). The application refuses to
@@ -171,6 +182,7 @@ No Java changes are needed, as long as the type's fields are among those below. 
            fixture: classpath:reference-data/<attribute_name>.json
            reference-fields: [type_id, parent_id, jurisdiction_id]   # optional: any of the three
            boolean-fields: [salaried]        # optional
+           text-fields: [integration_code]   # optional
            unique-names: false               # optional: allow repeated names (default true)
            nullable-reference-fields: [parent_id]   # optional: declared reference fields that may be null
    ```
@@ -188,9 +200,15 @@ No Java changes are needed, as long as the type's fields are among those below. 
    field as a JSON `true` or `false` (not `null`, `0`/`1` or a string), and no record may have an
    undeclared one.
 
-   `reference-fields` and `boolean-fields` choose from fixed sets (the `ReferenceField` and
-   `BooleanField` enums). A type that needs a field outside them needs a small, type-agnostic code
-   change (a new enum constant and a record and response property), as 003 and 004 made.
+   `text-fields` works the same way for text: every record must have each declared field as a
+   non-empty JSON string with no leading or trailing whitespace (not `null`, a number or a
+   boolean), and no record may have an undeclared one. Responses write text fields after the
+   reference fields.
+
+   `reference-fields`, `boolean-fields` and `text-fields` choose from fixed sets (the
+   `ReferenceField`, `BooleanField` and `TextField` enums). A type that needs a field outside them
+   needs a small, type-agnostic code change (a new enum constant and a record and response
+   property), as 003, 004 and 008 made.
 
 The new type is then served by both routes, with the same authentication, validation and errors,
 and appears in the OpenAPI `attribute_name` enum. `ReferenceDataExtensionIntegrationTest` shows
@@ -198,9 +216,10 @@ this working for a type declared only in test properties.
 
 Tests to update for a new type:
 
-- `NoTypeSpecificCodeTest`: add the type's forbidden fragment.
+- `NoTypeSpecificCodeTest`: add the type's forbidden fragment, unless an existing one already covers its
+  name (as `location` covers `location_types`).
 - `ReferenceDataFixtureRulesTest`: add the fixture with its record count, distinct-name count,
-  whether it has reference or boolean fields, and reference points.
+  whether it has reference, text or boolean fields, and reference points.
 - `ReferenceDataOpenApiContractTest`: update the `attribute_name` enum and description.
 - `ReferenceDataFunctionalTest`: remove the names the type serves from the unsupported list.
 - Add a functional test class, a smoke-test path and a Postman sub-folder for the type. The design is in
