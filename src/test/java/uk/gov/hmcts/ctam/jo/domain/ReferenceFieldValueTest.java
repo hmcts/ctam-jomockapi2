@@ -10,6 +10,7 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.UPDATED_AT;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.fullResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.nullableParentResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.response;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.value;
 
 /**
  * A reference field has three serialised forms: left out (no value object), {@code null} (a value object holding
@@ -32,7 +33,8 @@ class ReferenceFieldValueTest {
     @Test
     void writesAValueAsANumber() {
         ReferenceDataResponse response = new ReferenceDataResponse(10, "Typed", new ReferenceFieldValue(8L), null, null,
-                                                                   null, CREATED_AT, UPDATED_AT, START_DATE, null);
+                                                                   null, null, CREATED_AT, UPDATED_AT, START_DATE,
+                                                                   null);
 
         assertThat(mapper.writeValueAsString(response))
                 .isEqualTo("{\"id\":10,\"name\":\"Typed\",\"type_id\":8," + DATES);
@@ -50,5 +52,19 @@ class ReferenceFieldValueTest {
         assertThat(mapper.writeValueAsString(fullResponse(10, "Full", 8, 1722, 84, true)))
                 .isEqualTo("{\"id\":10,\"name\":\"Full\",\"type_id\":8,\"parent_id\":1722,\"jurisdiction_id\":84,"
                            + "\"salaried\":true," + DATES);
+    }
+
+    /**
+     * No type declares both a text field and a boolean field, but the order holds for every field together.
+     */
+    @Test
+    void keepsTheFieldOrderWithEveryField() {
+        ReferenceDataResponse response = new ReferenceDataResponse(10, "Every", value(8), value(1722), value(84),
+                                                                   "WIDGET_A", true, CREATED_AT, UPDATED_AT,
+                                                                   START_DATE, null);
+
+        assertThat(mapper.writeValueAsString(response))
+                .isEqualTo("{\"id\":10,\"name\":\"Every\",\"type_id\":8,\"parent_id\":1722,\"jurisdiction_id\":84,"
+                           + "\"integration_code\":\"WIDGET_A\",\"salaried\":true," + DATES);
     }
 }

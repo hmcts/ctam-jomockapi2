@@ -25,6 +25,7 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.CONTRACT_TYPES;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.GENDERS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.JUDICIARY_ROLES;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.LOCATIONS;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.LOCATION_TYPES;
 import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.TOKEN;
 
 /**
@@ -48,7 +49,7 @@ class ReferenceDataSmokeTest {
 
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {APPOINTMENT_TITLES, BASE_LOCATIONS, CONTRACT_TYPES, GENDERS, JUDICIARY_ROLES,
-        LOCATIONS})
+        LOCATIONS, LOCATION_TYPES})
     void collectionP95LatencyIsWithinBound(String path, TestReporter reporter) {
         for (int i = 0; i < WARM_UP_CALLS; i++) {
             get(path);

@@ -59,6 +59,14 @@ public class ReferenceDataRecord {
     @JsonSetter(nulls = Nulls.FAIL)
     Boolean salaried;
 
+    /**
+     * Null unless the type declares {@link TextField#INTEGRATION_CODE}. An explicit {@code null} fails, as for every
+     * text field.
+     */
+    @JsonProperty("integration_code")
+    @JsonSetter(nulls = Nulls.FAIL)
+    String integrationCode;
+
     @JsonProperty("created_at")
     Instant createdAt;
 

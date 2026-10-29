@@ -34,6 +34,8 @@ class FixtureReferenceDataRepositoryTest {
 
     private static final List<String> BOOLEAN_FIELDS = List.of("salaried");
 
+    private static final List<String> TEXT_FIELDS = List.of("integration_code");
+
     @Test
     void loadsRecordsAndReturnsThemInAscendingIdOrder() {
         ReferenceDataTypeRegistry registry = registry("widgets", "valid-unsorted.json");
@@ -71,7 +73,8 @@ class FixtureReferenceDataRepositoryTest {
     void loadsRecordsThatShareANameWhenTheTypeAllowsIt() {
         // Different real locations can share a name, so such a type allows repeats; ids still may not repeat.
         ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(new TypeProperties(
-                "widgets", List.of(), FIXTURES + "valid-repeated-names.json", List.of(), List.of(), false, List.of()));
+                "widgets", List.of(), FIXTURES + "valid-repeated-names.json", List.of(), List.of(), false, List.of(),
+                List.of()));
         ReferenceDataRepository repository = repository(registry);
         ReferenceDataType widgets = registry.resolve("widgets");
 
@@ -86,7 +89,7 @@ class FixtureReferenceDataRepositoryTest {
     void loadsTheReferenceFieldsTheTypeDeclares() {
         ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(new TypeProperties(
                 "widgets", List.of(), FIXTURES + "valid-reference-fields.json", ALL_REFERENCE_FIELDS, List.of(),
-                null, List.of()));
+                null, List.of(), List.of()));
 
         assertThat(repository(registry).findAll(registry.resolve("widgets")))
                 .extracting(ReferenceDataRecord::getId, ReferenceDataRecord::getTypeId,
@@ -113,7 +116,8 @@ class FixtureReferenceDataRepositoryTest {
     void failsStartupWhenADeclaredReferenceFieldIsInvalid(String fixture, String expectedProblem) {
         String path = FIXTURES + "invalid/" + fixture + ".json";
         ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(
-                new TypeProperties("widgets", List.of(), path, ALL_REFERENCE_FIELDS, List.of(), null, List.of()));
+                new TypeProperties("widgets", List.of(), path, ALL_REFERENCE_FIELDS, List.of(), null, List.of(),
+                                   List.of()));
 
         assertThatIllegalStateException()
                 .isThrownBy(() -> repository(registry))
@@ -125,7 +129,8 @@ class FixtureReferenceDataRepositoryTest {
         // Valid for a type that declares every reference field; this one declares only type_id.
         String path = FIXTURES + "valid-reference-fields.json";
         ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(
-                new TypeProperties("widgets", List.of(), path, List.of("type_id"), List.of(), null, List.of()));
+                new TypeProperties("widgets", List.of(), path, List.of("type_id"), List.of(), null, List.of(),
+                                   List.of()));
 
         assertThatIllegalStateException()
                 .isThrownBy(() -> repository(registry))
@@ -177,7 +182,8 @@ class FixtureReferenceDataRepositoryTest {
     void failsStartupWhenADeclaredReferenceFieldThatIsNotNullableIsNull() {
         String path = FIXTURES + "invalid/non-nullable-reference-field-explicit-null.json";
         ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(
-                new TypeProperties("widgets", List.of(), path, ALL_REFERENCE_FIELDS, List.of(), null, List.of()));
+                new TypeProperties("widgets", List.of(), path, ALL_REFERENCE_FIELDS, List.of(), null, List.of(),
+                                   List.of()));
 
         assertThatIllegalStateException()
                 .isThrownBy(() -> repository(registry))
@@ -188,7 +194,7 @@ class FixtureReferenceDataRepositoryTest {
     void loadsTheBooleanFieldsTheTypeDeclares() {
         ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(new TypeProperties(
                 "widgets", List.of(), FIXTURES + "valid-boolean-fields.json", List.of(), BOOLEAN_FIELDS, null,
-                List.of()));
+                List.of(), List.of()));
 
         assertThat(repository(registry).findAll(registry.resolve("widgets")))
                 .extracting(ReferenceDataRecord::getId, ReferenceDataRecord::getSalaried)
@@ -207,7 +213,7 @@ class FixtureReferenceDataRepositoryTest {
     void failsStartupWhenADeclaredBooleanFieldIsMissing() {
         String path = FIXTURES + "invalid/boolean-field-missing.json";
         ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(
-                new TypeProperties("widgets", List.of(), path, List.of(), BOOLEAN_FIELDS, null, List.of()));
+                new TypeProperties("widgets", List.of(), path, List.of(), BOOLEAN_FIELDS, null, List.of(), List.of()));
 
         assertThatIllegalStateException()
                 .isThrownBy(() -> repository(registry))
@@ -221,7 +227,7 @@ class FixtureReferenceDataRepositoryTest {
     void failsStartupWhenADeclaredBooleanFieldIsNotAJsonBoolean(String fixture) {
         String path = FIXTURES + "invalid/" + fixture + ".json";
         ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(
-                new TypeProperties("widgets", List.of(), path, List.of(), BOOLEAN_FIELDS, null, List.of()));
+                new TypeProperties("widgets", List.of(), path, List.of(), BOOLEAN_FIELDS, null, List.of(), List.of()));
 
         assertThatIllegalStateException()
                 .isThrownBy(() -> repository(registry))
@@ -240,6 +246,70 @@ class FixtureReferenceDataRepositoryTest {
     }
 
     @Test
+    void loadsTheTextFieldsTheTypeDeclares() {
+        ReferenceDataTypeRegistry registry =
+                ReferenceDataFixtures.registry(declaringText(FIXTURES + "valid-text-fields.json"));
+
+        assertThat(repository(registry).findAll(registry.resolve("widgets")))
+                .extracting(ReferenceDataRecord::getId, ReferenceDataRecord::getIntegrationCode)
+                .containsExactly(tuple(10L, "WIDGET_A"), tuple(20L, "WIDGET_B"));
+    }
+
+    @Test
+    void recordsOfATypeWithoutTextFieldsCarryNone() {
+        ReferenceDataTypeRegistry registry = registry("widgets", "valid-unsorted.json");
+
+        assertThat(repository(registry).findAll(registry.resolve("widgets")))
+                .allSatisfy(record -> assertThat(record.getIntegrationCode()).isNull());
+    }
+
+    /**
+     * A declared text field must be present in every record, as a non-empty string with no leading or trailing
+     * whitespace, as for names (008 FR-019).
+     */
+    @ParameterizedTest(name = "{0}")
+    @CsvSource(delimiter = '|', textBlock = """
+            text-field-missing   | record id 5: integration_code is required
+            text-field-empty     | record id 5: integration_code must not be blank
+            text-field-blank     | record id 5: integration_code must not be blank
+            text-field-untrimmed | record id 5: integration_code must be trimmed
+            """)
+    void failsStartupWhenADeclaredTextFieldIsInvalid(String fixture, String expectedProblem) {
+        String path = FIXTURES + "invalid/" + fixture + ".json";
+        ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(declaringText(path));
+
+        assertThatIllegalStateException()
+                .isThrownBy(() -> repository(registry))
+                .withMessage("Invalid reference-data fixture " + path + ": " + expectedProblem);
+    }
+
+    // Only JSON strings are text: no null, number, boolean or object. These fail while the JSON is read, whether or
+    // not the type declares the field; failsStartupOnUnparseableFixtures covers a type that doesn't (008 FR-019).
+    @ParameterizedTest
+    @ValueSource(strings = {"text-field-explicit-null", "text-field-number", "text-field-boolean", "text-field-object"})
+    void failsStartupWhenADeclaredTextFieldIsNotAJsonString(String fixture) {
+        String path = FIXTURES + "invalid/" + fixture + ".json";
+        ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(declaringText(path));
+
+        assertThatIllegalStateException()
+                .isThrownBy(() -> repository(registry))
+                .withMessageStartingWith("Invalid reference-data fixture " + path + ": ")
+                .withMessageContaining("integration_code")
+                // Jackson names the record by its index in the array: the first record is [0].
+                .withMessageContaining("[0]");
+    }
+
+    @Test
+    void failsStartupWhenARecordCarriesATextFieldItsTypeDoesNotDeclare() {
+        String path = FIXTURES + "valid-text-fields.json";
+
+        assertThatIllegalStateException()
+                .isThrownBy(() -> repository(registry("widgets", "valid-text-fields.json")))
+                .withMessage("Invalid reference-data fixture " + path
+                             + ": record id 20: integration_code is not a text field of widgets");
+    }
+
+    @Test
     void anEmptyArrayGivesAnEmptyList() {
         ReferenceDataTypeRegistry registry = registry("widgets", "empty.json");
 
@@ -253,7 +323,7 @@ class FixtureReferenceDataRepositoryTest {
 
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> repository.findAll(
-                        new ReferenceDataType("widgets", Set.of(), "x", Set.of(), Set.of(), true, Set.of())));
+                        new ReferenceDataType("widgets", Set.of(), "x", Set.of(), Set.of(), true, Set.of(), null)));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -290,7 +360,9 @@ class FixtureReferenceDataRepositoryTest {
     @CsvSource({"unknown-property, colour", "not-an-array, ''", "malformed, ''",
                 "reference-field-fractional, type_id", "reference-field-string, jurisdiction_id",
                 "reference-field-empty-string, parent_id", "id-string, id",
-                "name-number, name", "name-boolean, name"})
+                "name-number, name", "name-boolean, name", "text-field-explicit-null, integration_code",
+                "text-field-number, integration_code", "text-field-boolean, integration_code",
+                "text-field-object, integration_code"})
     void failsStartupOnUnparseableFixtures(String fixture, String expectedFragment) {
         assertThatIllegalStateException()
                 .isThrownBy(() -> repository(registry("widgets", "invalid/" + fixture + ".json")))
@@ -323,7 +395,14 @@ class FixtureReferenceDataRepositoryTest {
      */
     private static TypeProperties nullableParent(String fixture) {
         return new TypeProperties("widgets", List.of(), fixture, ALL_REFERENCE_FIELDS, List.of(), null,
-                                  List.of("parent_id"));
+                                  List.of("parent_id"), List.of());
+    }
+
+    /**
+     * A type declaring the text field {@code integration_code} and nothing else.
+     */
+    private static TypeProperties declaringText(String fixture) {
+        return new TypeProperties("widgets", List.of(), fixture, List.of(), List.of(), null, List.of(), TEXT_FIELDS);
     }
 
     private static FixtureReferenceDataRepository repository(ReferenceDataTypeRegistry registry) {
