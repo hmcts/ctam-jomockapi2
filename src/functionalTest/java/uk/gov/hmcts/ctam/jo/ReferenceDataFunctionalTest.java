@@ -183,7 +183,7 @@ class ReferenceDataFunctionalTest {
         @ParameterizedTest
         @CsvSource({
             "GET, " + APPOINTMENT_TITLES, "GET, " + APPOINTMENT_TITLES + "/70",
-            "GET, /api/v1/reference_data/tickets", "GET, " + APPOINTMENT_TITLES + "/abc",
+            "GET, /api/v1/reference_data/ticket_categories", "GET, " + APPOINTMENT_TITLES + "/abc",
             "GET, " + APPOINTMENT_TITLES + "?page=2", "GET, " + APPOINTMENT_TITLES + "/",
             "POST, " + APPOINTMENT_TITLES
         })
@@ -289,14 +289,15 @@ class ReferenceDataFunctionalTest {
         // (specs/005-genders-reference-data), 006 AC-016 and EC-011
         // (specs/006-judiciary-roles-reference-data), 007 AC-019 and EC-010
         // (specs/007-locations-reference-data), 008 AC-019 and EC-008
-        // (specs/008-location-types-reference-data), and 009 AC-018 and EC-008
-        // (specs/009-jurisdictions-reference-data).
+        // (specs/008-location-types-reference-data), 009 AC-018 and EC-008
+        // (specs/009-jurisdictions-reference-data), and 010 AC-019 and EC-008
+        // (specs/010-tickets-reference-data).
         @ParameterizedTest
         @ValueSource(strings = {
-            // The other 13 E-Links attribute names: three canonical types, their three deprecated aliases, and
-            // base_location, contract_type, gender, judiciary_role, jurisdiction, location and location_type, which
-            // 003–009 don't serve.
-            "ticket_categories", "ticket_category_types", "tickets",
+            // The other 12 E-Links attribute names: two canonical types, their two deprecated aliases, and
+            // base_location, contract_type, gender, judiciary_role, jurisdiction, location, location_type and ticket,
+            // which 003–010 don't serve.
+            "ticket_categories", "ticket_category_types",
             "base_location", "contract_type", "gender", "judiciary_role", "jurisdiction", "location_type",
             "location", "ticket_category", "ticket_category_type", "ticket",
             // Unknown names and case variants (EC-001).
@@ -307,7 +308,8 @@ class ReferenceDataFunctionalTest {
             "Judiciary_roles", "JUDICIARY_ROLES", "judiciary-roles", "judiciaryRoles", "judiciary_roles_",
             "Locations", "LOCATIONS", "locations_", "Location",
             "Location_Types", "LOCATION_TYPES", "location-types", "locationTypes", "location_types_",
-            "Jurisdictions", "JURISDICTIONS", "jurisdictions_"
+            "Jurisdictions", "JURISDICTIONS", "jurisdictions_",
+            "Tickets", "TICKETS", "tickets_"
         })
         void ac007Ac014UnsupportedNamesAreRejectedOnBothRoutes(String name) {
             String collection = "/api/v1/reference_data/" + name;

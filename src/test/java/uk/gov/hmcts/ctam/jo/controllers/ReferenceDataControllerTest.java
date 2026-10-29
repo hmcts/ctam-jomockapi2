@@ -38,6 +38,7 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.response;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.referencingTextResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.salariedResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.textResponse;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.ticketCategoryResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.BEARER_TOKEN;
 import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.TOKEN;
 
@@ -118,8 +119,23 @@ class ReferenceDataControllerTest {
                 .andExpect(jsonPath("$.type_id").doesNotExist())
                 .andExpect(jsonPath("$.parent_id").doesNotExist())
                 .andExpect(jsonPath("$.jurisdiction_id").doesNotExist())
+                .andExpect(jsonPath("$.ticket_category_id").doesNotExist())
                 .andExpect(jsonPath("$.salaried").doesNotExist())
                 .andExpect(jsonPath("$.integration_code").doesNotExist());
+    }
+
+    @Test
+    void ticketCategoryFieldIsWrittenAfterNameOnlyWhenTheRecordCarriesIt() throws Exception {
+        given(service.getById("widgets", "10")).willReturn(ticketCategoryResponse(10, "Categorised", 31));
+
+        String body = mockMvc.perform(get("/api/v1/reference_data/widgets/10").header("Authorization", BEARER_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.*", hasSize(7)))
+                .andExpect(jsonPath("$.ticket_category_id").value(31))
+                .andExpect(jsonPath("$.type_id").doesNotExist())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(body).startsWith("{\"id\":10,\"name\":\"Categorised\",\"ticket_category_id\":31,\"created_at\":");
     }
 
     @Test

@@ -21,6 +21,8 @@ public final class ContractPaths {
 
     public static final String JURISDICTIONS = "/api/v1/reference_data/jurisdictions";
 
+    public static final String TICKETS = "/api/v1/reference_data/tickets";
+
     private ContractPaths() {
     }
 }

@@ -37,9 +37,9 @@ breakdown.
 Implemented and covered by automated tests:
 
 - `GET /api/v1/healthcheck` (see `specs/001-healthcheck-api/`)
-- the Reference Data API for eight types, from appointment titles to jurisdictions (see
+- the Reference Data API for nine types, from appointment titles to tickets (see
   [Reference data](#reference-data) and `specs/002-reference-data-api/` to
-  `specs/009-jurisdictions-reference-data/`)
+  `specs/010-tickets-reference-data/`)
 
 ### Quality gates
 
@@ -94,7 +94,7 @@ Two routes serve every configured reference-data type through the same code:
 | `GET /api/v1/reference_data/{attribute_name}` | `{"results": [...]}`: every record, in ascending `id` order |
 | `GET /api/v1/reference_data/{attribute_name}/{reference_id}` | One record, as a single object |
 
-Eight types are configured:
+Nine types are configured:
 
 | Type | Records | Deprecated alias served |
 |------|---------|-------------------------|
@@ -106,6 +106,7 @@ Eight types are configured:
 | `locations` | 2,000, one per source row (1,523 distinct names) | none: `location` returns `400` |
 | `location_types` | 16, one per source row (13 distinct names) | none: `location_type` returns `400` |
 | `jurisdictions` | 5, one per source entry | none: `jurisdiction` returns `400` |
+| `tickets` | 159, one per source row (152 distinct names) | none: `ticket` returns `400` |
 
 Base-location records also carry `type_id`, `parent_id` and `jurisdiction_id`, after `name`:
 the E-Links ids of each location's type, parent location and jurisdiction (30 Courts, 34 Tribunals,
@@ -132,6 +133,12 @@ Jurisdiction records keep the E-Links ids too (30 Courts, 34 Tribunals, 84 Magis
 86 Coroners, 87 Skills), so that every location's, base location's and location type's
 `jurisdiction_id` resolves. They carry no reference, boolean or text field, and none is ended.
 Skills (87) is served although no shipped record refers to it.
+
+Ticket records also keep the E-Links ids (289 to 1709, with gaps), so that People authorisations'
+`ticket_id` values can refer to them later. Each carries `ticket_category_id`, after `name`: the
+E-Links id of the ticket's category. Ticket categories aren't served yet, so this is a forward
+reference: the feature that serves them must make every value resolve (constitution, Principle IV).
+Seven names repeat, each in two categories.
 
 Contract-type records also carry `salaried`, after `name`: a JSON boolean, `true` for "Salaried"
 and the ten salaried part-time working ("SPTW-…%") types, `false` for "Fee-paid", "Unknown" and
@@ -186,7 +193,7 @@ No Java changes are needed, as long as the type's fields are among those below. 
          - name: <attribute_name>            # lower-case letters and underscores
            aliases: [<deprecated_name>]      # optional
            fixture: classpath:reference-data/<attribute_name>.json
-           reference-fields: [type_id, parent_id, jurisdiction_id]   # optional: any of the three
+           reference-fields: [type_id, parent_id, jurisdiction_id, ticket_category_id]   # optional: any of the four
            boolean-fields: [salaried]        # optional
            text-fields: [integration_code]   # optional
            unique-names: false               # optional: allow repeated names (default true)
@@ -224,7 +231,7 @@ Tests to update for a new type:
 
 - `NoTypeSpecificCodeTest`: add the type's forbidden fragment, unless an existing one already covers its
   name (as `location` covers `location_types`); if a generic field name contains the singular, use the
-  plural instead (as `jurisdictions` does, because of `jurisdiction_id`).
+  plural instead (as `jurisdictions` and `tickets` do, because of `jurisdiction_id` and `ticket_category_id`).
 - `ReferenceDataFixtureRulesTest`: add the fixture with its record count, distinct-name count,
   whether it has reference, text or boolean fields, and reference points.
 - `ReferenceDataOpenApiContractTest`: update the `attribute_name` enum and description.

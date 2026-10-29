@@ -23,6 +23,8 @@ public interface ReferenceDataMapper {
     @Mapping(target = "parentId", expression = "java(referenceField(record, ReferenceField.PARENT_ID, type))")
     @Mapping(target = "jurisdictionId",
              expression = "java(referenceField(record, ReferenceField.JURISDICTION_ID, type))")
+    @Mapping(target = "ticketCategoryId",
+             expression = "java(referenceField(record, ReferenceField.TICKET_CATEGORY_ID, type))")
     ReferenceDataResponse toResponse(ReferenceDataRecord record, @Context ReferenceDataType type);
 
     List<ReferenceDataResponse> toResponses(List<ReferenceDataRecord> records, @Context ReferenceDataType type);

@@ -4228,7 +4228,561 @@
           ]
         },
         {
-          "name": "GET /api/v1/reference_data/tickets - unsupported (contract-valid, out of scope)",
+          "name": "Tickets",
+          "item": [
+            {
+              "name": "GET /api/v1/reference_data/tickets - success",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/tickets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "tickets"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('results is an array of 159 records', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body)).to.eql(['results']);",
+                      "    pm.expect(body.results).to.be.an('array').with.lengthOf(159);",
+                      "});",
+                      "",
+                      "pm.test('Each record has the contract fields and ticket_category_id, in order', function () {",
+                      "    pm.response.json().results.forEach(function (record) {",
+                      "        pm.expect(Object.keys(record)).to.eql(['id', 'name', 'ticket_category_id', 'created_at', 'updated_at', 'start_date', 'end_date']);",
+                      "    });",
+                      "});",
+                      "",
+                      "pm.test('ids are ascending', function () {",
+                      "    const ids = pm.response.json().results.map(function (record) { return record.id; });",
+                      "    pm.expect(ids).to.eql(ids.slice().sort(function (a, b) { return a - b; }));",
+                      "});",
+                      "",
+                      "pm.test('Exactly 22 records are ended', function () {",
+                      "    const ended = pm.response.json().results.filter(function (record) { return record.end_date !== null; });",
+                      "    pm.expect(ended).to.have.lengthOf(22);",
+                      "});",
+                      "",
+                      "pm.test('First and last records are the reference points', function () {",
+                      "    const results = pm.response.json().results;",
+                      "    pm.expect([results[0].id, results[0].name, results[0].ticket_category_id]).to.eql([289, 'Welsh Language', 88]);",
+                      "    const last = results[results.length - 1];",
+                      "    pm.expect([last.id, last.name, last.ticket_category_id]).to.eql([1709, 'Valuation Tribunal Wales', 83]);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/tickets/294 - success",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/tickets/294",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "tickets",
+                    "294"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('A single record with the contract fields and ticket_category_id', function () {",
+                      "    pm.expect(Object.keys(pm.response.json())).to.eql(['id', 'name', 'ticket_category_id', 'created_at', 'updated_at', 'start_date', 'end_date']);",
+                      "});",
+                      "",
+                      "pm.test('Record 294 is Civil Authorisation, in category 31, not ended', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.id).to.eql(294);",
+                      "    pm.expect(body.name).to.eql('Civil Authorisation');",
+                      "    pm.expect(body.ticket_category_id).to.eql(31);",
+                      "    pm.expect(body.end_date).to.eql(null);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/tickets/367 - ended record",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/tickets/367",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "tickets",
+                    "367"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('A single record with the contract fields and ticket_category_id', function () {",
+                      "    pm.expect(Object.keys(pm.response.json())).to.eql(['id', 'name', 'ticket_category_id', 'created_at', 'updated_at', 'start_date', 'end_date']);",
+                      "});",
+                      "",
+                      "pm.test('Record 367 is 05 - Industrial Injuries, in category 36, ended on 2025-03-31', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.id).to.eql(367);",
+                      "    pm.expect(body.name).to.eql('05 - Industrial Injuries');",
+                      "    pm.expect(body.ticket_category_id).to.eql(36);",
+                      "    pm.expect(body.end_date).to.eql('2025-03-31');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/tickets/297 - unknown id",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/tickets/297",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "tickets",
+                    "297"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 404', function () {",
+                      "    pm.response.to.have.status(404);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('Reference data record not found.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/tickets/abc - malformed id",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/tickets/abc",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "tickets",
+                    "abc"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 400', function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('reference_id must be a non-negative whole number.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/tickets?ticket_category_id=31 - query parameter rejected",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/tickets?ticket_category_id=31",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "tickets"
+                  ],
+                  "query": [
+                    {
+                      "key": "ticket_category_id",
+                      "value": "31"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 400', function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('Query parameters are not supported on this endpoint.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/tickets/ - trailing slash",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/tickets/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "tickets",
+                    ""
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 404', function () {",
+                      "    pm.response.to.have.status(404);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('Resource not found.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/tickets - missing token",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/tickets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "tickets"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 401', function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "",
+                      "pm.test('WWW-Authenticate is Bearer', function () {",
+                      "    pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer');",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('Unauthorized. Invalid or missing token.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/tickets - invalid token",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{invalidBearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/tickets",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "tickets"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 401', function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "",
+                      "pm.test('WWW-Authenticate is Bearer', function () {",
+                      "    pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer');",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('Unauthorized. Invalid or missing token.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /api/v1/reference_data/ticket - singular name not served",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reference_data/ticket",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reference_data",
+                    "ticket"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 400', function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test('Content-Type is application/json', function () {",
+                      "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                      "});",
+                      "",
+                      "pm.test('Body is the shared error shape with the contract message', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(Object.keys(body).sort()).to.eql(['error', 'timestamp', 'traceId']);",
+                      "    pm.expect(body.error).to.eql('Unsupported reference data attribute_name.');",
+                      "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                      "});",
+                      "",
+                      "pm.test('No reference data is returned', function () {",
+                      "    pm.expect(pm.response.json()).to.not.have.property('results');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "GET /api/v1/reference_data/ticket_categories - unsupported (contract-valid, out of scope)",
           "request": {
             "method": "GET",
             "header": [
@@ -4239,9 +4793,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/reference_data/tickets",
+              "raw": "{{baseUrl}}/api/v1/reference_data/ticket_categories",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "reference_data", "tickets"]
+              "path": ["api", "v1", "reference_data", "ticket_categories"]
             }
           },
           "event": [

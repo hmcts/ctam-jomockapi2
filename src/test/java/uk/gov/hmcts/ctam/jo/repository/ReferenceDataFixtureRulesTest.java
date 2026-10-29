@@ -63,6 +63,21 @@ class ReferenceDataFixtureRulesTest {
     private static final Set<Long> JURISDICTION_IDS = Set.of(30L, 34L, 84L, 86L);
 
     /**
+     * The ticket-category ids the shipped tickets refer to, pinned until ticket_categories is served (010 DF-8).
+     */
+    private static final Set<Long> TICKET_CATEGORY_IDS = Set.of(31L, 32L, 33L, 36L, 37L, 38L, 39L, 40L, 41L, 42L, 44L,
+            45L, 46L, 47L, 49L, 50L, 52L, 54L, 55L, 56L, 57L, 58L, 59L, 62L, 67L, 68L, 69L, 70L, 71L, 72L, 73L, 74L,
+            75L, 76L, 77L, 78L, 80L, 82L, 83L, 85L, 88L);
+
+    /**
+     * Reference fields whose values are pinned: every value a fixture holds must be in the set, and together the
+     * fixture's values must use the whole set.
+     */
+    private static final Map<String, Set<Long>> PINNED_REFERENCE_VALUES = Map.of(
+            ReferenceField.JURISDICTION_ID.fieldName(), JURISDICTION_IDS,
+            ReferenceField.TICKET_CATEGORY_ID.fieldName(), TICKET_CATEGORY_IDS);
+
+    /**
      * The format each text field's values take in the shipped data, where one is known (008 EC-004).
      */
     private static final Map<String, Pattern> TEXT_FORMATS =
@@ -218,7 +233,18 @@ class ReferenceDataFixtureRulesTest {
                         point(34, "Tribunals", null),
                         point(84, "Magistrates", null),
                         point(86, "Coroners", null),
-                        point(87, "Skills", null))));
+                        point(87, "Skills", null))),
+                // 010 data-model.md § 4: the extract's ids, with gaps; seven names repeat.
+                new Fixture("tickets.json", 159, 152, Map.of(), IdRule.SOURCE, List.of(
+                        point(289, "Welsh Language", null).withReferences(88L),
+                        point(290, "Administrative Court", null).withReferences(31L),
+                        point(294, "Civil Authorisation", null).withReferences(31L),
+                        point(295, "Commercial", END_DATE).withReferences(31L),
+                        point(365, "03 - Disability Living Allowance", null).withReferences(36L),
+                        point(367, "05 - Industrial Injuries", END_DATE).withReferences(36L),
+                        point(409, "Financial Remedy", END_DATE).withReferences(31L),
+                        point(410, "Financial Remedy", null).withReferences(33L),
+                        point(1709, "Valuation Tribunal Wales", null).withReferences(83L))));
     }
 
     @Test
@@ -250,6 +276,7 @@ class ReferenceDataFixtureRulesTest {
         }
         Set<String> names = new HashSet<>();
         Map<String, Integer> trueCounts = new HashMap<>();
+        Map<String, Set<Long>> usedReferenceValues = new HashMap<>();
         booleanFields.forEach(field -> trueCounts.put(field, 0));
         String previous = null;
         long previousId = 0;
@@ -299,9 +326,13 @@ class ReferenceDataFixtureRulesTest {
                     trueCounts.merge(field, 1, Integer::sum);
                 }
             }
-            if (referenceFields.contains(ReferenceField.JURISDICTION_ID.fieldName())) {
-                assertThat(JURISDICTION_IDS).as("jurisdiction_id at position %d", position)
-                        .contains(record.get("jurisdiction_id").asLong());
+            for (String field : referenceFields) {
+                Set<Long> pinned = PINNED_REFERENCE_VALUES.get(field);
+                if (pinned != null) {
+                    long value = record.get(field).asLong();
+                    assertThat(pinned).as("%s at position %d", field, position).contains(value);
+                    usedReferenceValues.computeIfAbsent(field, key -> new HashSet<>()).add(value);
+                }
             }
             names.add(name);
             previous = name;
@@ -309,6 +340,12 @@ class ReferenceDataFixtureRulesTest {
         }
         assertThat(names).hasSize(fixture.distinctNames());
         assertThat(trueCounts).as("true records per boolean field").isEqualTo(fixture.trueCounts());
+        for (String field : referenceFields) {
+            if (PINNED_REFERENCE_VALUES.containsKey(field)) {
+                assertThat(usedReferenceValues.get(field)).as("%s values used", field)
+                        .isEqualTo(PINNED_REFERENCE_VALUES.get(field));
+            }
+        }
     }
 
     @ParameterizedTest(name = "{0}")

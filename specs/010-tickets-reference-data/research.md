@@ -122,6 +122,7 @@ The plan's implementation notes record the result.
 - **New row**: `new Fixture("tickets.json", 159, 152, Map.of(), IdRule.SOURCE, …)`, with the declaration taken from `application.yml` (`reference-fields: [ticket_category_id]`, `unique-names: false`) and reference points 289, 290, 294, 295, 365, 367, 409, 410 and 1709 from the spec's table, each `withReferences(categoryId)`.
 - **`TICKET_CATEGORY_IDS`**: a new constant holding the 41 values (31, 32, 33, 36, 37, 38, 39, 40, 41, 42, 44, 45, 46, 47, 49, 50, 52, 54, 55, 56, 57, 58, 59, 62, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 80, 82, 83, 85, 88), with Javadoc saying they are the ticket-category ids the shipped tickets refer to, pinned until `ticket_categories` is served (DF-8). As `JURISDICTION_IDS` is for `jurisdiction_id`, every `ticket_category_id` in a fixture that declares the field must be one of them; in addition, the values `tickets.json` uses must be exactly this set, so a dropped category is caught too.
 - The `SOURCE` id rule, the date rule by position, the field order and the literal-character check apply unchanged.
+- After code review, both pinned sets sit in one map, `PINNED_REFERENCE_VALUES`, checked generically for every declared reference field (plan.md § Implementation notes).
 
 **Rationale**: `JURISDICTION_IDS` did this job for `jurisdiction_id` before 009 served jurisdictions. Without it, a stray category id in the fixture would pass every build until DF-8 is closed.
 

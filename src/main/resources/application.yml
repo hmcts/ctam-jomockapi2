@@ -62,3 +62,10 @@ jo:
       - name: jurisdictions
         # Keeps the extract's E-Links ids, so every jurisdiction_id resolves (009 DR-1).
         fixture: classpath:reference-data/jurisdictions.json
+      - name: tickets
+        # Keeps the extract's E-Links ids, so People authorisations' ticket_id values can resolve (010 DR-1).
+        fixture: classpath:reference-data/tickets.json
+        # ticket_category_id is a forward reference to ticket categories, not served yet (010 DF-8).
+        reference-fields: [ticket_category_id]
+        # Different categories share ticket names (010 EC-002).
+        unique-names: false
