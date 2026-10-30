@@ -31,6 +31,8 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.GENDERS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.JURISDICTIONS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.LOCATIONS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.LOCATION_TYPES;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.TICKET_CATEGORIES;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.TICKET_CATEGORY_TYPES;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertError;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertUnauthorized;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.byId;
@@ -169,10 +171,11 @@ class JurisdictionsFunctionalTest {
     // US3: every jurisdiction reference resolves. AC-010 is ReferenceDataReferencesTest's completeness check.
 
     @ParameterizedTest
-    @ValueSource(strings = {LOCATIONS, BASE_LOCATIONS, LOCATION_TYPES})
+    @ValueSource(strings = {LOCATIONS, BASE_LOCATIONS, LOCATION_TYPES, TICKET_CATEGORIES, TICKET_CATEGORY_TYPES})
     void ac009EveryJurisdictionIdResolves(String path) {
         Set<Long> jurisdictionIds = byId(json(http.get(JURISDICTIONS)).get("results")).keySet();
-        Map<String, Integer> counts = Map.of(LOCATIONS, 2000, BASE_LOCATIONS, 1462, LOCATION_TYPES, 16);
+        Map<String, Integer> counts = Map.of(LOCATIONS, 2000, BASE_LOCATIONS, 1462, LOCATION_TYPES, 16,
+                                             TICKET_CATEGORIES, 54, TICKET_CATEGORY_TYPES, 5);
 
         JsonNode results = json(http.get(path)).get("results");
 
@@ -181,7 +184,7 @@ class JurisdictionsFunctionalTest {
         results.forEach(record -> assertThat(integralField(path, record, "jurisdiction_id")).isIn(jurisdictionIds));
     }
 
-    // Ticket category 88 refers to Skills (011); the location data doesn't.
+    // Ticket category 88 (011) and ticket category type 5 (012) refer to Skills; the location data doesn't.
     @Test
     void ac011SkillsIsServedAndUnreferencedByTheLocationData() {
         assertThat(http.nameOf(JURISDICTIONS + "/87")).isEqualTo("Skills");

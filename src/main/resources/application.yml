@@ -72,11 +72,19 @@ jo:
       - name: ticket_categories
         # Keeps the extract's E-Links ids, so every ticket_category_id and parent_category_id resolves (011 DR-1).
         fixture: classpath:reference-data/ticket_categories.json
-        # type_id is a forward reference to ticket category types, not served yet (011 DF-10); jurisdiction_id and
-        # parent_category_id are ids of jurisdictions and other ticket categories, checked by
-        # ReferenceDataReferencesTest.
+        # type_id, jurisdiction_id and parent_category_id are ids of a ticket category type, a jurisdiction and another
+        # ticket category, checked by ReferenceDataReferencesTest (012).
         reference-fields: [type_id, jurisdiction_id, parent_category_id]
         # Null for the 8 top-level categories (011 FR-005).
         nullable-reference-fields: [parent_category_id]
         # "Immigration and Asylum Chamber" is in two tiers (011 EC-002).
+        unique-names: false
+      - name: ticket_category_types
+        # Keeps the extract's E-Links ids, so every ticket category's type_id resolves (012 DR-1).
+        fixture: classpath:reference-data/ticket_category_types.json
+        # The id of a jurisdiction, checked by ReferenceDataReferencesTest.
+        reference-fields: [jurisdiction_id]
+        # The extract's integration code (008 D-4).
+        text-fields: [integration_code]
+        # "Court Type" is both a Courts and a Magistrates type (012 EC-002).
         unique-names: false

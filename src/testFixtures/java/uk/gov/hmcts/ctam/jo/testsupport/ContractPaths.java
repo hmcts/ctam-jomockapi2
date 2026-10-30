@@ -25,6 +25,8 @@ public final class ContractPaths {
 
     public static final String TICKET_CATEGORIES = "/api/v1/reference_data/ticket_categories";
 
+    public static final String TICKET_CATEGORY_TYPES = "/api/v1/reference_data/ticket_category_types";
+
     private ContractPaths() {
     }
 }

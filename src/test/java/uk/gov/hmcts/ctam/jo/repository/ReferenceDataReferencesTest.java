@@ -91,7 +91,10 @@ class ReferenceDataReferencesTest {
                 // Closes 010 DF-8.
                 new Reference("tickets", "ticket_category_id", "ticket_categories"),
                 new Reference("ticket_categories", "parent_category_id", "ticket_categories"),
-                new Reference("ticket_categories", "jurisdiction_id", "jurisdictions"));
+                new Reference("ticket_categories", "jurisdiction_id", "jurisdictions"),
+                // Closes 011 DF-10.
+                new Reference("ticket_categories", "type_id", "ticket_category_types"),
+                new Reference("ticket_category_types", "jurisdiction_id", "jurisdictions"));
     }
 
     /**
@@ -112,7 +115,8 @@ class ReferenceDataReferencesTest {
         return Stream.of(
                 new Agreement("locations", "type_id", "location_types", "jurisdiction_id"),
                 new Agreement("base_locations", "type_id", "location_types", "jurisdiction_id"),
-                new Agreement("ticket_categories", "parent_category_id", "ticket_categories", "jurisdiction_id"));
+                new Agreement("ticket_categories", "parent_category_id", "ticket_categories", "jurisdiction_id"),
+                new Agreement("ticket_categories", "type_id", "ticket_category_types", "jurisdiction_id"));
     }
 
     @ParameterizedTest(name = "{0}")
