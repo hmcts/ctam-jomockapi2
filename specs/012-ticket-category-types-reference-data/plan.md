@@ -209,3 +209,14 @@ JaCoCo: lines 538/538 (100%), branches 239/240 (99.6%), unchanged, as no main co
   - `ac010` to `ac012` repeating the build-time checks over HTTP: US3 requires them to be observable to integrators, as 009 kept after its review.
 
 `./gradlew check -PskipOwasp` green after the fixes: `test` 507, `integrationTest` 33, `functionalTest` 632, `smokeTest` 13.
+
+**Second code-review round (2026-10-30)**: no correctness bugs. Two findings were fixed:
+- `TicketCategoryTypesFunctionalTest.ac012EveryTypeJurisdictionResolves` repeated the check the first round added to `JurisdictionsFunctionalTest.ac009`; it is now `ac012SkillsCategoryRefersToSkills`, which keeps only what it adds (type 5 refers to 87 Skills, AC-013), and T022 says so.
+- `ac003NoTicketCategoryTypeIsEnded` counts `"end_date":null` against `RECORDS.size() + 1` instead of a literal 6.
+
+Six were kept:
+- 011's quickstart still expects `ticket_category_types` to return `400`: earlier features' quickstarts record their own state, as 009 left 005's and 006's; only 002's living runbook is updated (row 5).
+- The duplicate Postman request, the reference targets in test code (011 Clarifications), `ac010`/`ac011` over HTTP and the `TICKET_CATEGORY_TYPE_IDS` pin: as recorded after the first round.
+- The missing-token example's move to `ticket_category_type`: it checks that authentication comes before the attribute-name check, which still holds; with every canonical name served, no contract-valid unserved name is left to use.
+
+`./gradlew check -PskipOwasp` green with unchanged counts: `test` 507, `integrationTest` 33, `functionalTest` 632, `smokeTest` 13.

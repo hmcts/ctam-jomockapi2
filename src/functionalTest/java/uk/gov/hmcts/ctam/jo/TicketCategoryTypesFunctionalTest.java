@@ -116,7 +116,7 @@ class TicketCategoryTypesFunctionalTest {
         ResponseEntity<String> response = http.get(TICKET_CATEGORY_TYPES);
 
         // Counted on the raw body, so a formatting change fails here instead of passing silently.
-        assertThat(response.getBody().split("\"end_date\":null", -1)).hasSize(6);
+        assertThat(response.getBody().split("\"end_date\":null", -1)).hasSize(RECORDS.size() + 1);
         assertThat(json(response).get("results")).allSatisfy(record -> {
             assertThat(record.get("end_date").isNull()).isTrue();
             assertThat(record.get("updated_at").asString()).isEqualTo(OPEN_UPDATED_AT);
@@ -222,16 +222,12 @@ class TicketCategoryTypesFunctionalTest {
         });
     }
 
+    // That every type's jurisdiction_id resolves is JurisdictionsFunctionalTest.ac009's check, run for every type
+    // that declares the field; this adds only that type 5 refers to Skills, as ticket category 88 does (AC-013).
     @Test
-    void ac012EveryTypeJurisdictionResolves() {
-        Set<Long> jurisdictionIds = byId(json(http.get(JURISDICTIONS)).get("results")).keySet();
-        Map<Long, JsonNode> types = byId(json(http.get(TICKET_CATEGORY_TYPES)).get("results"));
-
-        assertThat(types).hasSize(5);
-        types.values().forEach(record -> assertThat(integralField("type", record, "jurisdiction_id"))
-                .isIn(jurisdictionIds));
-        // Skills (87) is referenced here as well as by ticket category 88 (AC-013).
-        assertThat(integralField("type", types.get(5L), "jurisdiction_id")).isEqualTo(87L);
+    void ac012SkillsCategoryRefersToSkills() {
+        assertThat(integralField("type", json(http.get(TICKET_CATEGORY_TYPES + "/5")), "jurisdiction_id"))
+                .isEqualTo(87L);
         assertThat(http.nameOf(JURISDICTIONS + "/87")).isEqualTo("Skills");
     }
 
