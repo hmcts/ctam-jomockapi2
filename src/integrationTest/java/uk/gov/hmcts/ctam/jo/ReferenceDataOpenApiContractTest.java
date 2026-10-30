@@ -10,6 +10,7 @@ import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
@@ -32,7 +33,8 @@ class ReferenceDataOpenApiContractTest {
      */
     private static final List<String> ATTRIBUTE_NAMES =
             List.of("appointment_titles", "base_locations", "contract_types", "genders", "judiciary_roles",
-                    "locations", "location_types", "jurisdictions", "tickets", "appointment_title");
+                    "locations", "location_types", "jurisdictions", "tickets", "ticket_categories",
+                    "appointment_title");
 
     @LocalServerPort
     private int port;
@@ -78,8 +80,8 @@ class ReferenceDataOpenApiContractTest {
                 .containsExactlyElementsOf(ATTRIBUTE_NAMES);
         assertThat(parameter.path("description").asString())
                 .isEqualTo("Can be one of: appointment_titles, base_locations, contract_types, genders, "
-                         + "judiciary_roles, locations, location_types, jurisdictions, tickets. Also supports "
-                         + "deprecated values: appointment_title");
+                         + "judiciary_roles, locations, location_types, jurisdictions, tickets, ticket_categories. "
+                         + "Also supports deprecated values: appointment_title");
     }
 
     @Test
@@ -106,16 +108,18 @@ class ReferenceDataOpenApiContractTest {
         JsonNode properties = schema("ReferenceDataResponse").path("properties");
 
         assertThat(properties.propertyNames()).containsExactly("id", "name", "type_id", "parent_id",
-                "jurisdiction_id", "ticket_category_id", "integration_code", "salaried", "created_at", "updated_at",
-                "start_date", "end_date");
+                "jurisdiction_id", "ticket_category_id", "parent_category_id", "integration_code", "salaried",
+                "created_at", "updated_at", "start_date", "end_date");
         assertThat(texts(schema("ReferenceDataResponse").path("required"))).containsExactlyInAnyOrder(
                 "id", "name", "created_at", "updated_at", "start_date", "end_date");
-        for (String reference : List.of("type_id", "parent_id", "jurisdiction_id", "ticket_category_id")) {
+        Map<String, String> deviations = Map.of("type_id", "D-2", "parent_id", "D-2", "jurisdiction_id", "D-2",
+                                                "ticket_category_id", "D-5", "parent_category_id", "D-6");
+        for (String reference : deviations.keySet()) {
             assertThat(typesOf(properties.path(reference))).as(reference).contains("integer");
             assertThat(properties.path(reference).path("format").asString()).as(reference).isEqualTo("int64");
             assertThat(properties.path(reference).has("$ref")).as(reference + " inline").isFalse();
             assertThat(properties.path(reference).path("description").asString()).as(reference)
-                    .contains(reference.equals("ticket_category_id") ? "deviation D-5" : "deviation D-2");
+                    .contains("deviation " + deviations.get(reference));
         }
         // 007 FR-013: parent_id may be null, for a top-level record of a type that declares it nullable.
         assertThat(isNullable(properties.path("parent_id"))).as("parent_id nullable").isTrue();
@@ -124,6 +128,9 @@ class ReferenceDataOpenApiContractTest {
         assertThat(isNullable(properties.path("jurisdiction_id"))).as("jurisdiction_id not nullable").isFalse();
         // 010 FR-013: ticket_category_id is an optional integer, not nullable.
         assertThat(isNullable(properties.path("ticket_category_id"))).as("ticket_category_id not nullable").isFalse();
+        // 011 FR-015: parent_category_id may be null, for a top-level record of a type that declares it nullable.
+        assertThat(isNullable(properties.path("parent_category_id"))).as("parent_category_id nullable").isTrue();
+        assertThat(properties.path("parent_category_id").path("description").asString()).contains("top-level record");
         assertThat(root.path("components").path("schemas").has("ReferenceFieldValue"))
                 .as("no ReferenceFieldValue schema").isFalse();
         // 008 FR-013: integration_code is an optional string, never null when present.

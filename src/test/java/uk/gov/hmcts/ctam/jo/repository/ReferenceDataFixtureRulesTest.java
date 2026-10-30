@@ -57,13 +57,15 @@ class ReferenceDataFixtureRulesTest {
     private static final Path MAIN_CONFIGURATION = Path.of("src/main/resources/application.yml");
 
     /**
-     * The jurisdictions the shipped location data refers to: 30 Courts, 34 Tribunals, 84 Magistrates, 86 Coroners.
-     * Skills (87) is served but unreferenced (009 EC-003).
+     * The jurisdictions the shipped data refers to: 30 Courts, 34 Tribunals, 84 Magistrates, 86 Coroners, 87 Skills
+     * (by ticket category 88 only, 011).
      */
-    private static final Set<Long> JURISDICTION_IDS = Set.of(30L, 34L, 84L, 86L);
+    private static final Set<Long> JURISDICTION_IDS = Set.of(30L, 34L, 84L, 86L, 87L);
 
     /**
-     * The ticket-category ids the shipped tickets refer to, pinned until ticket_categories is served (010 DF-8).
+     * The ticket-category ids the shipped tickets refer to. Kept after 011 served ticket_categories, as
+     * {@link #JURISDICTION_IDS} was after 009: ReferenceDataReferencesTest checks that the ids resolve, and this pins
+     * which ones the tickets use.
      */
     private static final Set<Long> TICKET_CATEGORY_IDS = Set.of(31L, 32L, 33L, 36L, 37L, 38L, 39L, 40L, 41L, 42L, 44L,
             45L, 46L, 47L, 49L, 50L, 52L, 54L, 55L, 56L, 57L, 58L, 59L, 62L, 67L, 68L, 69L, 70L, 71L, 72L, 73L, 74L,
@@ -76,6 +78,19 @@ class ReferenceDataFixtureRulesTest {
     private static final Map<String, Set<Long>> PINNED_REFERENCE_VALUES = Map.of(
             ReferenceField.JURISDICTION_ID.fieldName(), JURISDICTION_IDS,
             ReferenceField.TICKET_CATEGORY_ID.fieldName(), TICKET_CATEGORY_IDS);
+
+    /**
+     * The ticket-category-type ids the shipped ticket categories refer to, pinned until ticket_category_types is
+     * served (011 DF-10).
+     */
+    private static final Set<Long> TICKET_CATEGORY_TYPE_IDS = Set.of(1L, 2L, 3L, 4L, 5L);
+
+    /**
+     * Pins for one type's reference field where the field's pin for every type would be wrong: ticket categories'
+     * {@code type_id} names a ticket category type, while the location data's names a location type (011 FR-020).
+     */
+    private static final Map<String, Map<String, Set<Long>>> PINNED_TYPE_REFERENCE_VALUES = Map.of(
+            "ticket_categories", Map.of(ReferenceField.TYPE_ID.fieldName(), TICKET_CATEGORY_TYPE_IDS));
 
     /**
      * The format each text field's values take in the shipped data, where one is known (008 EC-004).
@@ -151,10 +166,10 @@ class ReferenceDataFixtureRulesTest {
     }
 
     /**
-     * A type's declared reference, boolean and text fields, each in response field order, whether its names must be
-     * unique, and which reference fields may be null.
+     * A type's name, its declared reference, boolean and text fields, each in response field order, whether its names
+     * must be unique, and which reference fields may be null.
      */
-    record Declaration(List<String> referenceFields, List<String> booleanFields, boolean uniqueNames,
+    record Declaration(String type, List<String> referenceFields, List<String> booleanFields, boolean uniqueNames,
                        List<String> nullableReferenceFields, List<String> textFields) {
     }
 
@@ -244,7 +259,19 @@ class ReferenceDataFixtureRulesTest {
                         point(367, "05 - Industrial Injuries", END_DATE).withReferences(36L),
                         point(409, "Financial Remedy", END_DATE).withReferences(31L),
                         point(410, "Financial Remedy", null).withReferences(33L),
-                        point(1709, "Valuation Tribunal Wales", null).withReferences(83L))));
+                        point(1709, "Valuation Tribunal Wales", null).withReferences(83L))),
+                // 011 data-model.md § 4: the extract's ids, with gaps; one name repeats; 8 top-level categories.
+                new Fixture("ticket_categories.json", 54, 53, Map.of(), IdRule.SOURCE, List.of(
+                        point(31, "Civil", null).withReferences(1L, 30L, null),
+                        point(35, "First tier Tribunal", null).withReferences(2L, 34L, null),
+                        point(38, "Immigration and Asylum Chamber", END_DATE).withReferences(3L, 34L, 35L),
+                        point(44, "Administrative Appeals Chamber", null).withReferences(3L, 34L, 43L),
+                        point(45, "Immigration and Asylum Chamber", END_DATE).withReferences(3L, 34L, 43L),
+                        point(48, "Other Tribunal", null).withReferences(2L, 34L, null),
+                        point(56, "Employment Tribunal (England & Wales)", null).withReferences(3L, 34L, 48L),
+                        point(81, "Transport Tribunal", null).withReferences(3L, 34L, 48L),
+                        point(85, "Court Type", null).withReferences(4L, 84L, null),
+                        point(88, "Languages", null).withReferences(5L, 87L, null))));
     }
 
     @Test
@@ -326,9 +353,10 @@ class ReferenceDataFixtureRulesTest {
                 }
             }
             for (String field : referenceFields) {
-                Set<Long> pinned = PINNED_REFERENCE_VALUES.get(field);
-                if (pinned != null && !record.get(field).isNull()) {
-                    assertThat(pinned).as("%s at position %d", field, position).contains(record.get(field).asLong());
+                Pin pin = pinOf(declaration.type(), field);
+                if (pin != null && !record.get(field).isNull()) {
+                    assertThat(pin.values()).as("%s at position %d", field, position)
+                            .contains(record.get(field).asLong());
                 }
             }
             names.add(name);
@@ -348,17 +376,40 @@ class ReferenceDataFixtureRulesTest {
         Map<String, Set<Long>> used = new HashMap<>();
         for (Fixture fixture : fixtures().toList()) {
             for (String field : fixture.declaration().referenceFields()) {
-                if (PINNED_REFERENCE_VALUES.containsKey(field)) {
+                Pin pin = pinOf(fixture.declaration().type(), field);
+                if (pin != null) {
                     for (JsonNode record : read(fixture.file())) {
                         if (!record.get(field).isNull()) {
-                            used.computeIfAbsent(field, key -> new HashSet<>()).add(record.get(field).asLong());
+                            used.computeIfAbsent(pin.key(), key -> new HashSet<>()).add(record.get(field).asLong());
                         }
                     }
                 }
             }
         }
 
-        assertThat(used).isEqualTo(PINNED_REFERENCE_VALUES);
+        Map<String, Set<Long>> pins = new HashMap<>(PINNED_REFERENCE_VALUES);
+        PINNED_TYPE_REFERENCE_VALUES.forEach((type, fields) -> fields.forEach(
+                (field, values) -> pins.put(pinOf(type, field).key(), values)));
+        assertThat(used).isEqualTo(pins);
+    }
+
+    /**
+     * The pin on one type's reference field, under a key naming what it pins.
+     */
+    record Pin(String key, Set<Long> values) {
+    }
+
+    /**
+     * The type's own pin on the field if it has one (keyed {@code type.field}), else the field's pin for every type
+     * (keyed by the field), else none.
+     */
+    private static Pin pinOf(String type, String field) {
+        Set<Long> perType = PINNED_TYPE_REFERENCE_VALUES.getOrDefault(type, Map.of()).get(field);
+        if (perType != null) {
+            return new Pin(type + "." + field, perType);
+        }
+        Set<Long> perField = PINNED_REFERENCE_VALUES.get(field);
+        return perField == null ? null : new Pin(field, perField);
     }
 
     @ParameterizedTest(name = "{0}")
@@ -457,7 +508,7 @@ class ReferenceDataFixtureRulesTest {
                                          + type.fixture());
             }
             String file = type.fixture().substring(FIXTURE_PREFIX.length());
-            if (byFixture.put(file, new Declaration(
+            if (byFixture.put(file, new Declaration(type.name(),
                     inResponseOrder(ReferenceField.values(), type.referenceFields()),
                     inResponseOrder(BooleanField.values(), type.booleanFields()), type.uniqueNames(),
                     inResponseOrder(ReferenceField.values(), type.nullableReferenceFields()),

@@ -52,7 +52,7 @@ AUTH='Authorization: Bearer local-dev-token'
 | 2 | `diff <(curl -s -H "$AUTH" $BASE/appointment_titles) <(curl -s -H "$AUTH" $BASE/appointment_title)` | No differences | AC-002, AC-003 |
 | 3 | `curl -s -H "$AUTH" $BASE/appointment_titles/70` | The `Area Coroner` record, with `end_date` `2025-03-31` | AC-004 |
 | 4 | `diff <(curl -s -H "$AUTH" $BASE/appointment_titles/10) <(curl -s -H "$AUTH" $BASE/appointment_title/10)` | No differences | AC-005, AC-006 |
-| 5 | `curl -si -H "$AUTH" $BASE/ticket_categories` | `400`, unsupported attribute message | AC-007 |
+| 5 | `curl -si -H "$AUTH" $BASE/ticket_category_types` | `400`, unsupported attribute message | AC-007 |
 | 6 | `curl -si -H "$AUTH" $BASE/appointment_titles/abc` | `400`, malformed id message | AC-008 |
 | 7 | `curl -si -H "$AUTH" $BASE/appointment_titles/15` | `404`, record not found | AC-009 |
 | 8 | `curl -si $BASE/appointment_titles` | `401` and `WWW-Authenticate: Bearer` | AC-010 |

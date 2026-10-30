@@ -33,6 +33,7 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_ATTR
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.endedResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.fullResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.nullableParentResponse;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.parentCategoryResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.referencingResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.response;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.referencingTextResponse;
@@ -120,6 +121,7 @@ class ReferenceDataControllerTest {
                 .andExpect(jsonPath("$.parent_id").doesNotExist())
                 .andExpect(jsonPath("$.jurisdiction_id").doesNotExist())
                 .andExpect(jsonPath("$.ticket_category_id").doesNotExist())
+                .andExpect(jsonPath("$.parent_category_id").doesNotExist())
                 .andExpect(jsonPath("$.salaried").doesNotExist())
                 .andExpect(jsonPath("$.integration_code").doesNotExist());
     }
@@ -136,6 +138,32 @@ class ReferenceDataControllerTest {
                 .andReturn().getResponse().getContentAsString();
 
         assertThat(body).startsWith("{\"id\":10,\"name\":\"Categorised\",\"ticket_category_id\":31,\"created_at\":");
+    }
+
+    @Test
+    void parentCategoryFieldIsWrittenOnlyWhenTheRecordCarriesIt() throws Exception {
+        given(service.getById("widgets", "10")).willReturn(parentCategoryResponse(10, "Child", 48L));
+
+        String body = mockMvc.perform(get("/api/v1/reference_data/widgets/10").header("Authorization", BEARER_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.*", hasSize(7)))
+                .andExpect(jsonPath("$.parent_category_id").value(48))
+                .andExpect(jsonPath("$.parent_id").doesNotExist())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(body).startsWith("{\"id\":10,\"name\":\"Child\",\"parent_category_id\":48,\"created_at\":");
+    }
+
+    @Test
+    void nullParentCategoryIsWrittenAsNull() throws Exception {
+        given(service.getById("widgets", "10")).willReturn(parentCategoryResponse(10, "Top", null));
+
+        String body = mockMvc.perform(get("/api/v1/reference_data/widgets/10").header("Authorization", BEARER_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.*", hasSize(7)))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(body).startsWith("{\"id\":10,\"name\":\"Top\",\"parent_category_id\":null,\"created_at\":");
     }
 
     @Test

@@ -65,7 +65,18 @@ jo:
       - name: tickets
         # Keeps the extract's E-Links ids, so People authorisations' ticket_id values can resolve (010 DR-1).
         fixture: classpath:reference-data/tickets.json
-        # ticket_category_id is a forward reference to ticket categories, not served yet (010 DF-8).
+        # ticket_category_id is the id of a ticket category, checked by ReferenceDataReferencesTest (011).
         reference-fields: [ticket_category_id]
         # Different categories share ticket names (010 EC-002).
+        unique-names: false
+      - name: ticket_categories
+        # Keeps the extract's E-Links ids, so every ticket_category_id and parent_category_id resolves (011 DR-1).
+        fixture: classpath:reference-data/ticket_categories.json
+        # type_id is a forward reference to ticket category types, not served yet (011 DF-10); jurisdiction_id and
+        # parent_category_id are ids of jurisdictions and other ticket categories, checked by
+        # ReferenceDataReferencesTest.
+        reference-fields: [type_id, jurisdiction_id, parent_category_id]
+        # Null for the 8 top-level categories (011 FR-005).
+        nullable-reference-fields: [parent_category_id]
+        # "Immigration and Asylum Chamber" is in two tiers (011 EC-002).
         unique-names: false

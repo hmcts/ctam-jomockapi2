@@ -60,13 +60,13 @@ public final class ReferenceDataFixtures {
     }
 
     public static ReferenceDataResponse response(long id, String name) {
-        return new ReferenceDataResponse(id, name, null, null, null, null, null, null, CREATED_AT, UPDATED_AT,
+        return new ReferenceDataResponse(id, name, null, null, null, null, null, null, null, CREATED_AT, UPDATED_AT,
                                          START_DATE, null);
     }
 
     public static ReferenceDataResponse endedResponse(long id, String name) {
-        return new ReferenceDataResponse(id, name, null, null, null, null, null, null, CREATED_AT, ENDED_UPDATED_AT,
-                                         START_DATE, END_DATE);
+        return new ReferenceDataResponse(id, name, null, null, null, null, null, null, null, CREATED_AT,
+                                         ENDED_UPDATED_AT, START_DATE, END_DATE);
     }
 
     /**
@@ -75,7 +75,7 @@ public final class ReferenceDataFixtures {
     public static ReferenceDataResponse referencingResponse(long id, String name, long typeId, long parentId,
                                                             long jurisdictionId) {
         return new ReferenceDataResponse(id, name, value(typeId), value(parentId), value(jurisdictionId), null, null,
-                                         null, CREATED_AT, UPDATED_AT, START_DATE, null);
+                                         null, null, CREATED_AT, UPDATED_AT, START_DATE, null);
     }
 
     /**
@@ -85,14 +85,14 @@ public final class ReferenceDataFixtures {
     public static ReferenceDataResponse nullableParentResponse(long id, String name, long typeId,
                                                                long jurisdictionId) {
         return new ReferenceDataResponse(id, name, value(typeId), new ReferenceFieldValue(null), value(jurisdictionId),
-                                         null, null, null, CREATED_AT, UPDATED_AT, START_DATE, null);
+                                         null, null, null, null, CREATED_AT, UPDATED_AT, START_DATE, null);
     }
 
     /**
      * A current record that carries the boolean field {@code salaried} and no reference fields.
      */
     public static ReferenceDataResponse salariedResponse(long id, String name, boolean salaried) {
-        return new ReferenceDataResponse(id, name, null, null, null, null, null, salaried, CREATED_AT, UPDATED_AT,
+        return new ReferenceDataResponse(id, name, null, null, null, null, null, null, salaried, CREATED_AT, UPDATED_AT,
                                          START_DATE, null);
     }
 
@@ -100,16 +100,25 @@ public final class ReferenceDataFixtures {
      * A current record that carries the text field {@code integration_code} and no reference fields.
      */
     public static ReferenceDataResponse textResponse(long id, String name, String integrationCode) {
-        return new ReferenceDataResponse(id, name, null, null, null, null, integrationCode, null, CREATED_AT,
+        return new ReferenceDataResponse(id, name, null, null, null, null, null, integrationCode, null, CREATED_AT,
                                          UPDATED_AT, START_DATE, null);
+    }
+
+    /**
+     * A current record that carries only the reference field {@code parent_category_id}; a null value is a present
+     * null, as for a top-level record.
+     */
+    public static ReferenceDataResponse parentCategoryResponse(long id, String name, Long parentCategoryId) {
+        return new ReferenceDataResponse(id, name, null, null, null, null, new ReferenceFieldValue(parentCategoryId),
+                                         null, null, CREATED_AT, UPDATED_AT, START_DATE, null);
     }
 
     /**
      * A current record that carries only the reference field {@code ticket_category_id}.
      */
     public static ReferenceDataResponse ticketCategoryResponse(long id, String name, long ticketCategoryId) {
-        return new ReferenceDataResponse(id, name, null, null, null, value(ticketCategoryId), null, null, CREATED_AT,
-                                         UPDATED_AT, START_DATE, null);
+        return new ReferenceDataResponse(id, name, null, null, null, value(ticketCategoryId), null, null, null,
+                                         CREATED_AT, UPDATED_AT, START_DATE, null);
     }
 
     /**
@@ -118,7 +127,7 @@ public final class ReferenceDataFixtures {
     public static ReferenceDataResponse fullResponse(long id, String name, long typeId, long parentId,
                                                      long jurisdictionId, boolean salaried) {
         return new ReferenceDataResponse(id, name, value(typeId), value(parentId), value(jurisdictionId), null, null,
-                                         salaried, CREATED_AT, UPDATED_AT, START_DATE, null);
+                                         null, salaried, CREATED_AT, UPDATED_AT, START_DATE, null);
     }
 
     /**
@@ -126,7 +135,7 @@ public final class ReferenceDataFixtures {
      */
     public static ReferenceDataResponse referencingTextResponse(long id, String name, long typeId, long parentId,
                                                                 long jurisdictionId, String integrationCode) {
-        return new ReferenceDataResponse(id, name, value(typeId), value(parentId), value(jurisdictionId), null,
+        return new ReferenceDataResponse(id, name, value(typeId), value(parentId), value(jurisdictionId), null, null,
                                          integrationCode, null, CREATED_AT, UPDATED_AT, START_DATE, null);
     }
 
@@ -174,6 +183,14 @@ public final class ReferenceDataFixtures {
      */
     public static ReferenceDataType everyReferenceType() {
         return resolvedType(EnumSet.allOf(ReferenceField.class), Set.of(), Set.of(), Set.of());
+    }
+
+    /**
+     * A resolved type declaring only the reference field {@code parent_category_id}, nullable.
+     */
+    public static ReferenceDataType parentCategoryType() {
+        return resolvedType(EnumSet.of(ReferenceField.PARENT_CATEGORY_ID),
+                            EnumSet.of(ReferenceField.PARENT_CATEGORY_ID), Set.of(), Set.of());
     }
 
     /**

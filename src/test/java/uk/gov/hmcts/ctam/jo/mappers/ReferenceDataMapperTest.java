@@ -15,6 +15,8 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.UPDATED_AT;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.everyReferenceType;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.nullableParentResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.nullableParentType;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.parentCategoryResponse;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.parentCategoryType;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.plainType;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.record;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.recordBuilder;
@@ -37,7 +39,7 @@ class ReferenceDataMapperTest {
         ReferenceDataResponse response = mapper.toResponse(record(70, "Ended", END_DATE), plainType());
 
         assertThat(response).isEqualTo(
-                new ReferenceDataResponse(70, "Ended", null, null, null, null, null, null, CREATED_AT, UPDATED_AT,
+                new ReferenceDataResponse(70, "Ended", null, null, null, null, null, null, null, CREATED_AT, UPDATED_AT,
                                           START_DATE, END_DATE));
     }
 
@@ -76,18 +78,30 @@ class ReferenceDataMapperTest {
         assertThat(response.parentId()).isNull();
         assertThat(response.jurisdictionId()).isNull();
         assertThat(response.ticketCategoryId()).isNull();
+        assertThat(response.parentCategoryId()).isNull();
     }
 
     @Test
     void mapsEveryReferenceFieldTogether() {
         ReferenceDataResponse response = mapper.toResponse(
                 recordBuilder(10, "Every").typeId(8L).parentId(1722L).jurisdictionId(84L).ticketCategoryId(31L)
-                        .build(),
+                        .parentCategoryId(48L).build(),
                 everyReferenceType());
 
         assertThat(response).isEqualTo(new ReferenceDataResponse(10, "Every", value(8), value(1722), value(84),
-                                                                  value(31), null, null, CREATED_AT, UPDATED_AT,
-                                                                  START_DATE, null));
+                                                                  value(31), value(48), null, null, CREATED_AT,
+                                                                  UPDATED_AT, START_DATE, null));
+    }
+
+    @Test
+    void mapsTheParentCategoryFieldIncludingAPresentNull() {
+        ReferenceDataResponse child = mapper.toResponse(
+                recordBuilder(10, "Child").parentCategoryId(48L).build(), parentCategoryType());
+        ReferenceDataResponse top = mapper.toResponse(recordBuilder(20, "Top").build(), parentCategoryType());
+
+        assertThat(child).isEqualTo(parentCategoryResponse(10, "Child", 48L));
+        assertThat(top).isEqualTo(parentCategoryResponse(20, "Top", null));
+        assertThat(top.parentCategoryId()).isEqualTo(new ReferenceFieldValue(null));
     }
 
     @Test

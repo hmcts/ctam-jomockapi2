@@ -118,6 +118,17 @@ public final class ReferenceDataHttp {
         return byId;
     }
 
+    /**
+     * The record's {@code field}, failing with {@code context} and the record's id if it is absent or not a whole
+     * number, so a missing value can't be read as 0 and pass.
+     */
+    public static long integralField(String context, JsonNode record, String field) {
+        JsonNode value = record.path(field);
+        assertThat(value.isIntegralNumber()).as("%s %d: %s %s", context, record.get("id").asLong(), field, value)
+                .isTrue();
+        return value.asLong();
+    }
+
     public static JsonNode json(ResponseEntity<String> response) {
         return JsonTrees.parse(response.getBody());
     }
