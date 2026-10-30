@@ -46,7 +46,15 @@ class ReferenceDataReferencesTest {
             "type_id", "location_types",
             "parent_id", "locations",
             "jurisdiction_id", "jurisdictions",
-            "ticket_category_id", "ticket_categories");
+            "ticket_category_id", "ticket_categories",
+            "parent_category_id", "ticket_categories");
+
+    /**
+     * Where one type's reference field points at a different type from the field's usual target: a ticket category's
+     * {@code type_id} names a ticket category type, not a location type (011 FR-020).
+     */
+    private static final Map<String, Map<String, String>> TARGET_TYPE_OVERRIDES = Map.of(
+            "ticket_categories", Map.of("type_id", "ticket_category_types"));
 
     /**
      * One reference between served types: every non-null {@code field} in {@code source} is an id in {@code target}.
@@ -74,12 +82,18 @@ class ReferenceDataReferencesTest {
                 // Close 003 DF-1, 007 DF-5 and 008 DF-7 for jurisdiction_id.
                 new Reference("locations", "jurisdiction_id", "jurisdictions"),
                 new Reference("base_locations", "jurisdiction_id", "jurisdictions"),
-                new Reference("location_types", "jurisdiction_id", "jurisdictions"));
+                new Reference("location_types", "jurisdiction_id", "jurisdictions"),
+                // Closes 010 DF-8.
+                new Reference("tickets", "ticket_category_id", "ticket_categories"),
+                new Reference("ticket_categories", "parent_category_id", "ticket_categories"),
+                new Reference("ticket_categories", "jurisdiction_id", "jurisdictions"));
     }
 
     /**
      * Every {@code source} record's {@code field} equals the {@code field} of the {@code target} record its
-     * {@code via} reference names.
+     * {@code via} reference names. Where the source type declares {@code via} nullable, a record whose {@code via} is
+     * a present {@code null} (a top-level record) has nothing to agree with and is skipped; otherwise, and for a
+     * missing {@code via}, the check fails.
      */
     record Agreement(String source, String via, String target, String field) {
 
@@ -92,7 +106,8 @@ class ReferenceDataReferencesTest {
     static Stream<Agreement> agreements() {
         return Stream.of(
                 new Agreement("locations", "type_id", "location_types", "jurisdiction_id"),
-                new Agreement("base_locations", "type_id", "location_types", "jurisdiction_id"));
+                new Agreement("base_locations", "type_id", "location_types", "jurisdiction_id"),
+                new Agreement("ticket_categories", "parent_category_id", "ticket_categories", "jurisdiction_id"));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -148,18 +163,14 @@ class ReferenceDataReferencesTest {
      */
     @Test
     void everyReferenceBetweenServedTypesIsChecked() throws IOException {
-        List<TypeProperties> types = new Binder(ConfigurationPropertySources.from(
-                new YamlPropertySourceLoader().load("application.yml", new FileSystemResource(MAIN_CONFIGURATION))))
-                .bind("jo.reference-data", ReferenceDataProperties.class)
-                .orElseThrow(() -> new AssertionError("jo.reference-data is not configured"))
-                .types();
+        List<TypeProperties> types = configuredTypes();
         Set<String> served = new HashSet<>();
         types.forEach(type -> served.add(type.name()));
 
         List<Reference> required = new ArrayList<>();
         for (TypeProperties type : types) {
             for (String field : type.referenceFields()) {
-                String target = TARGET_TYPES.get(field);
+                String target = targetOf(type.name(), field);
                 assertThat(target).as("target type of %s", field).isNotNull();
                 if (served.contains(target)) {
                     required.add(new Reference(type.name(), field, target));
@@ -176,7 +187,14 @@ class ReferenceDataReferencesTest {
         Map<Long, JsonNode> targets = new HashMap<>();
         read(agreement.target()).forEach(record -> targets.put(record.get("id").asLong(), record));
 
+        boolean nullableVia = configuredTypes().stream()
+                .filter(type -> type.name().equals(agreement.source()))
+                .anyMatch(type -> type.nullableReferenceFields().contains(agreement.via()));
         for (JsonNode record : read(agreement.source())) {
+            JsonNode via = record.get(agreement.via());
+            if (nullableVia && via != null && via.isNull()) {
+                continue;
+            }
             String source = fixture(agreement.source()) + " record " + record.get("id").asLong();
             long targetId = integral(record, agreement.via(), source);
             JsonNode target = targets.get(targetId);
@@ -187,6 +205,26 @@ class ReferenceDataReferencesTest {
                     .isEqualTo(integral(target, agreement.field(),
                                         fixture(agreement.target()) + " record " + targetId));
         }
+    }
+
+    /**
+     * The types {@code application.yml} declares, read from the file system rather than the classpath, where test
+     * resources come first.
+     */
+    private static List<TypeProperties> configuredTypes() throws IOException {
+        return new Binder(ConfigurationPropertySources.from(
+                new YamlPropertySourceLoader().load("application.yml", new FileSystemResource(MAIN_CONFIGURATION))))
+                .bind("jo.reference-data", ReferenceDataProperties.class)
+                .orElseThrow(() -> new AssertionError("jo.reference-data is not configured"))
+                .types();
+    }
+
+    /**
+     * The type a source type's reference field points at: an override for that type if there is one, else the field's
+     * usual target.
+     */
+    private static String targetOf(String type, String field) {
+        return TARGET_TYPE_OVERRIDES.getOrDefault(type, Map.of()).getOrDefault(field, TARGET_TYPES.get(field));
     }
 
     /**

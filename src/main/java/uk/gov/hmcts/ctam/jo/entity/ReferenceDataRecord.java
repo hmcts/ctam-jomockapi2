@@ -59,6 +59,13 @@ public class ReferenceDataRecord {
     Long ticketCategoryId;
 
     /**
+     * Null unless the type declares {@link ReferenceField#PARENT_CATEGORY_ID}, or declares it nullable and the record
+     * has no value. The repository decides whether a null or a missing key is allowed.
+     */
+    @JsonProperty("parent_category_id")
+    Long parentCategoryId;
+
+    /**
      * Null unless the type declares {@link BooleanField#SALARIED}. An explicit {@code null} fails, as for every
      * boolean field.
      */

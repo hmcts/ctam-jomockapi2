@@ -33,7 +33,7 @@ class ReferenceFieldValueTest {
     @Test
     void writesAValueAsANumber() {
         ReferenceDataResponse response = new ReferenceDataResponse(10, "Typed", new ReferenceFieldValue(8L), null, null,
-                                                                   null, null, null, CREATED_AT, UPDATED_AT,
+                                                                   null, null, null, null, CREATED_AT, UPDATED_AT,
                                                                    START_DATE, null);
 
         assertThat(mapper.writeValueAsString(response))
@@ -60,11 +60,12 @@ class ReferenceFieldValueTest {
     @Test
     void keepsTheFieldOrderWithEveryField() {
         ReferenceDataResponse response = new ReferenceDataResponse(10, "Every", value(8), value(1722), value(84),
-                                                                   value(31), "WIDGET_A", true, CREATED_AT, UPDATED_AT,
-                                                                   START_DATE, null);
+                                                                   value(31), value(48), "WIDGET_A", true, CREATED_AT,
+                                                                   UPDATED_AT, START_DATE, null);
 
         assertThat(mapper.writeValueAsString(response))
                 .isEqualTo("{\"id\":10,\"name\":\"Every\",\"type_id\":8,\"parent_id\":1722,\"jurisdiction_id\":84,"
-                           + "\"ticket_category_id\":31,\"integration_code\":\"WIDGET_A\",\"salaried\":true," + DATES);
+                           + "\"ticket_category_id\":31,\"parent_category_id\":48,\"integration_code\":\"WIDGET_A\","
+                           + "\"salaried\":true," + DATES);
     }
 }

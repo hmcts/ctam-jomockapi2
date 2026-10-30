@@ -9,16 +9,16 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 /**
- * One reference-data record as returned by the API: the E-Links {@code ReferenceDataResponse} plus
- * {@code name} (deviation D-1) and, for types that declare them, the reference fields {@code type_id},
- * {@code parent_id} and {@code jurisdiction_id} (deviation D-2) and {@code ticket_category_id} (deviation D-5), the
- * text field {@code integration_code} (deviation D-4) and the boolean field {@code salaried} (deviation D-3). A
- * reference, text or boolean field is left out of the JSON when the record's type doesn't declare it. A reference
- * field is written as {@code null} when the type declares it nullable and the record has no value.
+ * One reference-data record as returned by the API: the E-Links {@code ReferenceDataResponse} plus {@code name}
+ * (deviation D-1) and, for types that declare them, the reference fields {@code type_id}, {@code parent_id} and
+ * {@code jurisdiction_id} (deviation D-2), {@code ticket_category_id} (deviation D-5) and {@code parent_category_id}
+ * (deviation D-6), the text field {@code integration_code} (deviation D-4) and the boolean field {@code salaried}
+ * (deviation D-3). A reference, text or boolean field is left out of the JSON when the record's type doesn't declare
+ * it. A reference field is written as {@code null} when the type declares it nullable and the record has no value.
  */
 @Schema(description = "One reference-data record.")
-@JsonPropertyOrder({"id", "name", "type_id", "parent_id", "jurisdiction_id", "ticket_category_id", "integration_code",
-    "salaried", "created_at", "updated_at", "start_date", "end_date"})
+@JsonPropertyOrder({"id", "name", "type_id", "parent_id", "jurisdiction_id", "ticket_category_id", "parent_category_id",
+    "integration_code", "salaried", "created_at", "updated_at", "start_date", "end_date"})
 public record ReferenceDataResponse(
         @Schema(description = "Stable reference-data identifier.", format = "int64",
                 requiredMode = Schema.RequiredMode.REQUIRED, example = "10")
@@ -62,6 +62,15 @@ public record ReferenceDataResponse(
         @JsonProperty("ticket_category_id")
         @JsonInclude(JsonInclude.Include.NON_NULL)
         ReferenceFieldValue ticketCategoryId,
+
+        @Schema(description = "Id of the record's parent category, in E-Links' numbering. Present only for types "
+                              + "whose records carry it (deviation D-6 from the E-Links schema). Null for a top-level "
+                              + "record of a type that declares it nullable.",
+                implementation = Long.class, format = "int64", requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+                nullable = true, example = "48")
+        @JsonProperty("parent_category_id")
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        ReferenceFieldValue parentCategoryId,
 
         @Schema(description = "E-Links' code for the record's type, e.g. MAGS_AC_LJA. Present only for types whose "
                               + "records carry it (deviation D-4 from the E-Links schema).",

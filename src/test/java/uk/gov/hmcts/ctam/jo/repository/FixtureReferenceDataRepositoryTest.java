@@ -37,6 +37,8 @@ class FixtureReferenceDataRepositoryTest {
 
     private static final List<String> TICKET_CATEGORY = List.of("ticket_category_id");
 
+    private static final List<String> PARENT_CATEGORY = List.of("parent_category_id");
+
     private static final List<String> BOOLEAN_FIELDS = List.of("salaried");
 
     private static final List<String> TEXT_FIELDS = List.of("integration_code");
@@ -111,7 +113,53 @@ class FixtureReferenceDataRepositoryTest {
             assertThat(record.getParentId()).isNull();
             assertThat(record.getJurisdictionId()).isNull();
             assertThat(record.getTicketCategoryId()).isNull();
+            assertThat(record.getParentCategoryId()).isNull();
         });
+    }
+
+    @Test
+    void loadsTheParentCategoryReferenceField() {
+        ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(new TypeProperties(
+                "widgets", List.of(), FIXTURES + "valid-parent-category-reference-field.json", PARENT_CATEGORY,
+                List.of(), null, PARENT_CATEGORY, List.of()));
+
+        assertThat(repository(registry).findAll(registry.resolve("widgets")))
+                .extracting(ReferenceDataRecord::getId, ReferenceDataRecord::getParentCategoryId,
+                            ReferenceDataRecord::getTicketCategoryId, ReferenceDataRecord::getTypeId,
+                            ReferenceDataRecord::getParentId, ReferenceDataRecord::getJurisdictionId)
+                .containsExactly(tuple(10L, null, null, null, null, null), tuple(20L, 10L, null, null, null, null));
+    }
+
+    /**
+     * The fifth reference field follows the same start-up rules as the others (011 FR-019).
+     */
+    @ParameterizedTest(name = "{0}")
+    @CsvSource(delimiter = '|', textBlock = """
+            parent-category-id-missing       | record id 5: parent_category_id is required
+            parent-category-id-not-positive  | record id 5: parent_category_id must be greater than 0
+            parent-category-id-explicit-null | record id 5: parent_category_id is required
+            """)
+    void failsStartupWhenTheParentCategoryReferenceFieldIsInvalid(String fixture, String expectedProblem) {
+        String path = FIXTURES + "invalid/" + fixture + ".json";
+        ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(
+                new TypeProperties("widgets", List.of(), path, PARENT_CATEGORY, List.of(), null, List.of(),
+                                   List.of()));
+
+        assertThatIllegalStateException()
+                .isThrownBy(() -> repository(registry))
+                .withMessage("Invalid reference-data fixture " + path + ": " + expectedProblem);
+    }
+
+    @Test
+    void failsStartupWhenARecordCarriesTheParentCategoryFieldItsTypeDoesNotDeclare() {
+        // Valid for a type that declares parent_category_id; this one declares no reference field.
+        String path = FIXTURES + "valid-parent-category-reference-field.json";
+        ReferenceDataTypeRegistry registry = registry("widgets", "valid-parent-category-reference-field.json");
+
+        assertThatIllegalStateException()
+                .isThrownBy(() -> repository(registry))
+                .withMessage("Invalid reference-data fixture " + path
+                             + ": record id 20: parent_category_id is not a reference field of widgets");
     }
 
     @Test
@@ -423,6 +471,8 @@ class FixtureReferenceDataRepositoryTest {
                 "reference-field-fractional, type_id", "reference-field-string, jurisdiction_id",
                 "reference-field-empty-string, parent_id", "ticket-category-id-fractional, ticket_category_id",
                 "ticket-category-id-string, ticket_category_id", "ticket-category-id-empty-string, ticket_category_id",
+                "parent-category-id-fractional, parent_category_id", "parent-category-id-string, parent_category_id",
+                "parent-category-id-empty-string, parent_category_id",
                 "id-string, id",
                 "name-number, name", "name-boolean, name", "text-field-explicit-null, integration_code",
                 "text-field-number, integration_code", "text-field-boolean, integration_code",

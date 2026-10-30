@@ -176,12 +176,30 @@ class ReferenceDataTypeRegistryTest {
     @Test
     void resolvesTheDeclaredReferenceFields() {
         ReferenceDataTypeRegistry declaring = registry(new TypeProperties("widgets", List.of(), "classpath:x.json",
-                List.of("ticket_category_id", "jurisdiction_id", "type_id", "parent_id"), List.of(), null, List.of(),
-                List.of()));
+                List.of("parent_category_id", "ticket_category_id", "jurisdiction_id", "type_id", "parent_id"),
+                List.of(), null, List.of(), List.of()));
 
         assertThat(declaring.resolve("widgets").getReferenceFields())
                 .containsExactly(ReferenceField.TYPE_ID, ReferenceField.PARENT_ID, ReferenceField.JURISDICTION_ID,
-                                 ReferenceField.TICKET_CATEGORY_ID);
+                                 ReferenceField.TICKET_CATEGORY_ID, ReferenceField.PARENT_CATEGORY_ID);
+    }
+
+    @Test
+    void resolvesTheParentCategoryReferenceField() {
+        ReferenceDataTypeRegistry declaring = registry(new TypeProperties("widgets", List.of(), "classpath:x.json",
+                List.of("parent_category_id"), List.of(), null, List.of(), List.of()));
+
+        assertThat(declaring.resolve("widgets").getReferenceFields())
+                .containsExactly(ReferenceField.PARENT_CATEGORY_ID);
+    }
+
+    @Test
+    void resolvesParentCategoryAsANullableReferenceField() {
+        ReferenceDataTypeRegistry declaring =
+                registry(nullable(List.of("parent_category_id"), List.of("parent_category_id")));
+
+        assertThat(declaring.resolve("widgets").getNullableReferenceFields())
+                .isEqualTo(EnumSet.of(ReferenceField.PARENT_CATEGORY_ID));
     }
 
     @Test

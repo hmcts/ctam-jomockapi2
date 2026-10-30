@@ -173,3 +173,57 @@ The design adds one enum value and its plumbing, a configuration entry, a fixtur
 The quickstart's expected values were checked against a collection simulated from the extract by the data-model rules: 54 records; ids from 31 to 88; first `[31,"Civil",1,30,null]` and last `[88,"Languages",5,87,null]`; 7 ended ids; 53 distinct names; 8 top-level records; 0 child categories whose jurisdiction differs from their parent's; every ticket's category id among the served ids; every `type_id` an id in the type extract. The real fixture is generated during implementation and checked again then.
 
 Every principle stays **Pass**. Open item: the inherited Sonar deferral.
+
+## Implementation notes
+
+**Baseline (T001, before any change)**: `./gradlew check -PskipOwasp` green. Tests per suite: `test` 450, `integrationTest` 33, `functionalTest` 505, `smokeTest` 11. JaCoCo: lines 536/536 (100%), branches 239/240 (99.6%; the missed branch is MapStruct's generated null check on the boxed `id`).
+
+**Generic field (T002–T009)**: built test-first. With only the T002–T005 test changes, `compileTestJava` failed on the missing `PARENT_CATEGORY_ID`, `getParentCategoryId`, `parentCategoryId` and the 13-argument `ReferenceDataResponse` constructor, as intended. After T006–T008, `./gradlew check -PskipOwasp` passed (`test` 463, +13: registry 2, repository 8, mapper 1, controller 2; `integrationTest` 33; `functionalTest` 505; `smokeTest` 11), Checkstyle clean, and every existing golden file matched byte for byte. springdoc publishes `parent_category_id` as an optional, nullable `int64`, as asserted by the contract test. The 13 positional `ReferenceDataResponse` calls were updated by a small parser inserting the argument after the sixth, then re-wrapped where a line passed 120 characters; both edited class Javadocs were re-wrapped whole, with every `{@code …}` tag kept on one line.
+
+**Fixture (T010)**: generated once from the gitignored `REF_TicketCategory.csv` by a throwaway script in the session scratchpad (never committed). Before the file was kept, the script confirmed every item of research R6:
+- no BOM; the exact 9-column header; 54 data rows; ids unique and ascending, 31 to 88; names trimmed, 53 distinct;
+- the five copied values equal the extract's, row for row (SC-003); the ended ids are exactly 38, 45, 52, 59, 66, 73 and 80;
+- the 8 top-level ids; every parent is a top-level id in the file with the same `jurisdiction_id`;
+- every `jurisdiction_id` is an id in `jurisdictions.json`; the `type_id` values are exactly 1 to 5, each an id in the local `REF_TicketCategoryType.csv` (5 types) (SC-004);
+- every `ticket_category_id` in `tickets.json` (159) is an id in the new file;
+- every reference point of data-model.md § 4.
+
+UTF-8 without BOM, two-space indent, trailing newline, 15,062 bytes, no `\u`.
+
+**Extension test (T017)**: `ReferenceDataExtensionIntegrationTest` passed unchanged (6 tests).
+
+**Golden file (T024)**: the instance from 010 was stopped first. `golden/ticket_categories.json` was captured from `./gradlew bootRun` with `curl -o` (compact, no trailing newline, 11,832 bytes); its 54 records equal the fixture's, field for field and in key order. The nine existing golden files are unchanged (AC-020, SC-008).
+
+**AC-014 (T032)**: the build-time half is met by T016: `everyReferenceBetweenServedTypesIsChecked` resolves `ticket_categories.type_id` through `TARGET_TYPE_OVERRIDES` to the unserved `ticket_category_types`, so it requires no row, while `locations.type_id` and `base_locations.type_id` still require theirs; `ReferenceDataFixtureRulesTest` pins the type ids to 1–5 through `PINNED_TYPE_REFERENCE_VALUES`, separately from the location data.
+
+**AC-023 / SC-009 (T039)**: `git diff --stat origin/main -- src/main/java` lists exactly `ReferenceField`, `ReferenceDataRecord`, `ReferenceDataResponse`, `ReferenceDataMapper` and `ReferenceDataProperties` (Javadoc only; 36 insertions, 17 deletions). Under `src/main/resources`, only `application.yml` (the type entry and the `tickets` comment) and the new `reference-data/ticket_categories.json`. `git grep -n -i -E 'ticket_categories|ticket categories|TicketCategories' -- src/main/java` prints nothing. AC-024 is covered by T002–T005 (registry, repository, mapper, controller) and AC-025 by T008 and T013.
+
+**Postman (T041)**: newman ran 102 requests (+11 in Reference Data › Ticket Categories) with 391 assertions (+43), 0 failures. The folder was inserted as text after Tickets, in the collection's own layout (checked by round-tripping the Tickets folder first); the only other change is the "unsupported" example renamed from `ticket_categories` to `ticket_category_types`. The diff is 620 insertions and those 3 changed lines.
+
+**Final (T046)**: `./gradlew check -PskipOwasp` green. Tests per suite:
+- `test` 486 (+36): the new field's unit cases (+13); one fixture-rules row, which adds three cases; `ReferenceDataReferencesTest` (+7: three reference rows, each run by the resolution and cycle tests, and one agreement row); and `NoTypeSpecificCodeTest` (+13: the `ticket_categories` fragment, six recognised spellings and six ignored field spellings).
+- `integrationTest` 33 (the contract test's `enum`, description and `parent_category_id` schema changed).
+- `functionalTest` 573 (+68): 64 in `TicketCategoriesFunctionalTest`; 002's unsupported-name list lost `ticket_categories` and gained four case variants (+3); and 010's `ac012` gained `TICKET_CATEGORIES` (+1).
+- `smokeTest` 12 (+1: the ticket-categories collection).
+
+JaCoCo: lines 538/538 (100%), branches 239/240 (99.6%). The two new lines are covered; the one missed branch is still MapStruct's generated null check on the boxed `id`.
+
+**Strict latency (T046, `./gradlew smokeTest -Dperf.strict=true`)**: collection p95: `appointment_titles` 3 ms, `base_locations` 8 ms, `contract_types` 1 ms, `genders` 1 ms, `judiciary_roles` 1 ms, `locations` 3 ms, `location_types` 1 ms, `jurisdictions` 1 ms, `tickets` 1 ms, `ticket_categories` 1 ms (bound 100 ms).
+
+**Quickstart (T047)**: §§ 1–5 walked through against `./gradlew bootRun`. Every expected result matched: § 2's scope checks, § 3 rows 1–21 (including 0 unresolved ticket categories, 0 parents that are not top-level or in another jurisdiction, and 0 records carrying `parent_category_id` in each of the other nine collections), § 4's `enum` (`ticket_categories` listed, `ticket_category` not) and `parent_category_id` schema (`["integer","null"]`), and § 5's newman run.
+
+**Differences from the planned design**:
+- As in 006–010, `TicketCategoriesFunctionalTest` was written in one pass (T018 and the story tasks), and the golden file was captured before the first full gate, so T019's gate already ran every story's functional test. T038's guard cases and T042's smoke path were also added before T019.
+- The pin key for a per-type override is `type.field` (`ticket_categories.type_id`), and `everyPinnedReferenceValueIsUsed` compares the used values with the union of both pin tables under those keys.
+- `JurisdictionsFunctionalTest.ac011`'s comment sits above `@Test`, matching the class's style.
+
+**Code-review follow-ups (2026-10-30)**: one `/code-review` round found no correctness bugs in the served data. Six findings were fixed and one kept.
+- **Fixed, stale Javadoc**: `TICKET_CATEGORY_IDS` no longer says it is pinned "until ticket_categories is served"; it says it is kept, as `JURISDICTION_IDS` was after 009, because `ReferenceDataReferencesTest` checks resolution while the pin fixes which ids the tickets use.
+- **Fixed, the agreement skip is gated**: `everyAgreementHolds` skips a present `null` `via` only when the source type declares that field nullable (read from `application.yml` through a shared `configuredTypes()`, also used by the completeness check); a null in a non-nullable `via`, such as a location's `type_id`, fails here again, as 008 intended.
+- **Fixed, the type comes from configuration**: `ReferenceDataFixtureRulesTest.Declaration` carries the type's name from `application.yml`, replacing the file-name-based `typeOf`, so a fixture whose file name differs from its type can't silently miss its per-type pin.
+- **Fixed, one pin lookup**: `pinOf(type, field)` returns a `Pin(key, values)` (the type's own pin, keyed `type.field`, else the field's), replacing `pinnedValues` and `pinKey`; `everyPinnedReferenceValueIsUsed` uses it for both the values it collects and the expected union.
+- **Fixed, no null-pointer failures**: `TicketCategoriesFunctionalTest` looks up a parent through `parentOf`, which fails naming the category if the parent isn't served.
+- **Fixed, one shared helper**: `ReferenceDataHttp.integralField(context, record, field)` replaces `TicketCategoriesFunctionalTest.integral` and `JurisdictionsFunctionalTest.jurisdictionIdOf`.
+- **Kept**: the per-type target override (`ReferenceDataReferencesTest`) and the per-type pin (`ReferenceDataFixtureRulesTest`) stay in their own tests. They do different jobs, and declaring targets in configuration is the option spec Clarifications Q1 declined.
+
+`./gradlew check -PskipOwasp` green after the fixes, with unchanged counts: `test` 486, `integrationTest` 33, `functionalTest` 573, `smokeTest` 12. JaCoCo: lines 538/538, branches 239/240.

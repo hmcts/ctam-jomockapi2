@@ -39,12 +39,12 @@ class NoTypeSpecificCodeTest {
 
     // One fragment per configured type; each type's feature adds its own. Checks code, comments and Javadoc alike,
     // in any spelling: snake_case, spaced or wrapped words, camelCase or upper case ("base_location",
-    // "base location", "BaseLocation", "XBASE_LOCATION"). Jurisdictions' and tickets' fragments are the plural, because
-    // the generic reference fields jurisdiction_id (003) and ticket_category_id (010) contain the singular (009 and 010
-    // Clarifications).
+    // "base location", "BaseLocation", "XBASE_LOCATION"). Jurisdictions', tickets' and ticket categories' fragments are
+    // the plural, because the generic reference fields jurisdiction_id (003) and ticket_category_id (010) contain the
+    // singular (009, 010 and 011).
     @ParameterizedTest
     @ValueSource(strings = {"appointment", "base_location", "contract_type", "gender", "judiciary_role", "location",
-        "jurisdictions", "tickets"})
+        "jurisdictions", "tickets", "ticket_categories"})
     void noMainSourceFileNamesASpecificReferenceDataType(String fragment) {
         Pattern spellings = spellingsOf(fragment);
         assertThat(sources)
@@ -164,6 +164,22 @@ class NoTypeSpecificCodeTest {
         "Id of the record's ticket category"})
     void theGuardIgnoresTheGenericTicketCategoryField(String text) {
         assertThat(spellingsOf("tickets").matcher(text).find()).isFalse();
+    }
+
+    // No exemption: the plural matches no main source.
+    @ParameterizedTest
+    @ValueSource(strings = {"ticket_categories", "TicketCategories", "TICKET_CATEGORIES", "ticket categories",
+        "myTicketCategories", "XTICKET_CATEGORIES"})
+    void theGuardRecognisesEveryTicketCategoriesSpelling(String text) {
+        assertThat(spellingsOf("ticket_categories").matcher(text).find()).isTrue();
+    }
+
+    // The generic reference fields and their OpenAPI description, which name the singular only.
+    @ParameterizedTest
+    @ValueSource(strings = {"ticket_category_id", "ticketCategoryId", "TICKET_CATEGORY_ID", "parent_category_id",
+        "parentCategoryId", "Id of the record's ticket category"})
+    void theGuardIgnoresTheGenericTicketCategoryFields(String text) {
+        assertThat(spellingsOf("ticket_categories").matcher(text).find()).isFalse();
     }
 
     /**

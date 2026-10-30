@@ -35,6 +35,7 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertError;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertUnauthorized;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.byId;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.golden;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.integralField;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.json;
 
 /**
@@ -177,17 +178,18 @@ class JurisdictionsFunctionalTest {
 
         // So an empty response can't pass.
         assertThat(results.size()).isEqualTo(counts.get(path));
-        results.forEach(record -> assertThat(jurisdictionIdOf(path, record)).isIn(jurisdictionIds));
+        results.forEach(record -> assertThat(integralField(path, record, "jurisdiction_id")).isIn(jurisdictionIds));
     }
 
+    // Ticket category 88 refers to Skills (011); the location data doesn't.
     @Test
-    void ac011SkillsIsServedButUnreferenced() {
+    void ac011SkillsIsServedAndUnreferencedByTheLocationData() {
         assertThat(http.nameOf(JURISDICTIONS + "/87")).isEqualTo("Skills");
 
         for (String path : List.of(LOCATIONS, BASE_LOCATIONS, LOCATION_TYPES)) {
             JsonNode results = json(http.get(path)).get("results");
             assertThat(results).isNotEmpty();
-            results.forEach(record -> assertThat(jurisdictionIdOf(path, record)).isNotEqualTo(87L));
+            results.forEach(record -> assertThat(integralField(path, record, "jurisdiction_id")).isNotEqualTo(87L));
         }
     }
 
@@ -271,16 +273,6 @@ class JurisdictionsFunctionalTest {
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(json(response).get("id").asLong()).isEqualTo(84);
         assertError(http.get(JURISDICTIONS + "/99999999999999999999"), 404, RECORD_NOT_FOUND);
-    }
-
-    /**
-     * The record's {@code jurisdiction_id}, failing with the record named if it is absent or not a whole number.
-     */
-    private static long jurisdictionIdOf(String path, JsonNode record) {
-        JsonNode value = record.path("jurisdiction_id");
-        assertThat(value.isIntegralNumber()).as("%s %d: jurisdiction_id %s", path, record.get("id").asLong(), value)
-                .isTrue();
-        return value.asLong();
     }
 
     private static void assertRecord(JsonNode record, Row row) {
