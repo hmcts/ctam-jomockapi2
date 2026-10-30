@@ -173,7 +173,8 @@ class TicketCategoriesFunctionalTest {
         results.forEach(record -> {
             names.add(record.get("name").asString());
             if (record.get("name").asString().equals("Immigration and Asylum Chamber")) {
-                immigration.add(List.of(record.get("id").asLong(), record.get("parent_category_id").asLong()));
+                immigration.add(List.of(record.get("id").asLong(),
+                                        integralField("category", record, "parent_category_id")));
             }
         });
         assertThat(names).hasSize(53);

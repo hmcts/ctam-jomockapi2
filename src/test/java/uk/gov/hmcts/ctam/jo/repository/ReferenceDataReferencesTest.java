@@ -40,6 +40,11 @@ class ReferenceDataReferencesTest {
     private static final Path MAIN_CONFIGURATION = Path.of("src/main/resources/application.yml");
 
     /**
+     * {@code application.yml}'s types, read once ({@link #configuredTypes()}).
+     */
+    private static List<TypeProperties> configuredTypes;
+
+    /**
      * The type each reference field points at, in E-Links' numbering.
      */
     private static final Map<String, String> TARGET_TYPES = Map.of(
@@ -190,11 +195,13 @@ class ReferenceDataReferencesTest {
         boolean nullableVia = configuredTypes().stream()
                 .filter(type -> type.name().equals(agreement.source()))
                 .anyMatch(type -> type.nullableReferenceFields().contains(agreement.via()));
+        int compared = 0;
         for (JsonNode record : read(agreement.source())) {
             JsonNode via = record.get(agreement.via());
             if (nullableVia && via != null && via.isNull()) {
                 continue;
             }
+            compared++;
             String source = fixture(agreement.source()) + " record " + record.get("id").asLong();
             long targetId = integral(record, agreement.via(), source);
             JsonNode target = targets.get(targetId);
@@ -205,6 +212,8 @@ class ReferenceDataReferencesTest {
                     .isEqualTo(integral(target, agreement.field(),
                                         fixture(agreement.target()) + " record " + targetId));
         }
+        // So a fixture whose via values are all null can't pass by comparing nothing.
+        assertThat(compared).as("%s records compared", agreement).isPositive();
     }
 
     /**
@@ -212,11 +221,14 @@ class ReferenceDataReferencesTest {
      * resources come first.
      */
     private static List<TypeProperties> configuredTypes() throws IOException {
-        return new Binder(ConfigurationPropertySources.from(
-                new YamlPropertySourceLoader().load("application.yml", new FileSystemResource(MAIN_CONFIGURATION))))
-                .bind("jo.reference-data", ReferenceDataProperties.class)
-                .orElseThrow(() -> new AssertionError("jo.reference-data is not configured"))
-                .types();
+        if (configuredTypes == null) {
+            configuredTypes = new Binder(ConfigurationPropertySources.from(
+                    new YamlPropertySourceLoader().load("application.yml", new FileSystemResource(MAIN_CONFIGURATION))))
+                    .bind("jo.reference-data", ReferenceDataProperties.class)
+                    .orElseThrow(() -> new AssertionError("jo.reference-data is not configured"))
+                    .types();
+        }
+        return configuredTypes;
     }
 
     /**

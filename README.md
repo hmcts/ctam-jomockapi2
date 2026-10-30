@@ -242,6 +242,13 @@ Tests to update for a new type:
   `ticket_category_id`).
 - `ReferenceDataFixtureRulesTest`: add the fixture with its record count, distinct-name count,
   whether it has reference, text or boolean fields, and reference points.
+- `ReferenceDataReferencesTest`: add a row for every reference field whose target type is served (the
+  completeness check lists the missing ones), and an agreement row where a record and the record it
+  refers to both hold a field that must match. If the type's field points at a different type from the
+  field's usual target (as `ticket_categories`' `type_id` names a ticket category type, not a location
+  type), add an entry to `TARGET_TYPE_OVERRIDES`, and a matching per-type pin to
+  `ReferenceDataFixtureRulesTest`'s `PINNED_TYPE_REFERENCE_VALUES` while the target isn't served:
+  overlapping ids can otherwise make a wrong reference pass.
 - `ReferenceDataOpenApiContractTest`: update the `attribute_name` enum and description.
 - `ReferenceDataFunctionalTest`: remove the names the type serves from the unsupported list.
 - Add a functional test class, a smoke-test path and a Postman sub-folder for the type. The design is in

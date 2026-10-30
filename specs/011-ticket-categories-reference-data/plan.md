@@ -227,3 +227,12 @@ JaCoCo: lines 538/538 (100%), branches 239/240 (99.6%). The two new lines are co
 - **Kept**: the per-type target override (`ReferenceDataReferencesTest`) and the per-type pin (`ReferenceDataFixtureRulesTest`) stay in their own tests. They do different jobs, and declaring targets in configuration is the option spec Clarifications Q1 declined.
 
 `./gradlew check -PskipOwasp` green after the fixes, with unchanged counts: `test` 486, `integrationTest` 33, `functionalTest` 573, `smokeTest` 12. JaCoCo: lines 538/538, branches 239/240.
+
+**Second code-review round (2026-10-30)**: no correctness bugs. Four findings were fixed and two kept.
+- **Fixed**: `TicketCategoriesFunctionalTest.ac004` reads `parent_category_id` through `integralField`, so a missing or null parent fails naming the category instead of reading as 0.
+- **Fixed**: `everyAgreementHolds` asserts that it compared at least one record, so a fixture whose `via` values were all null couldn't pass by skipping everything.
+- **Fixed**: `ReferenceDataReferencesTest.configuredTypes()` reads `application.yml` once and caches it, instead of once per agreement row.
+- **Fixed**: the README's "Tests to update for a new type" list gains a `ReferenceDataReferencesTest` bullet: the reference and agreement rows, and when a type needs a `TARGET_TYPE_OVERRIDES` entry and a matching per-type pin.
+- **Kept**: the per-type rule stays in two tables, one per test (spec Clarifications Q1), and pins stay after their target is served (as `JURISDICTION_IDS` and `TICKET_CATEGORY_IDS` did); a per-type pin taking over a type's values from a field pin is what an override means, and no such overlap exists.
+
+`./gradlew check -PskipOwasp` green after the fixes, with unchanged counts: `test` 486, `integrationTest` 33, `functionalTest` 573, `smokeTest` 12.
