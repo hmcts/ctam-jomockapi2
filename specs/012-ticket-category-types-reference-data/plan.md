@@ -19,7 +19,7 @@ There is **no main-code change**, as for Jurisdiction (009): one type entry in `
   - new `TicketCategoryTypesFunctionalTest` with its golden file (R7);
   - `ReferenceDataReferencesTest`: two resolution rows and one agreement row (R4);
   - fixture-rules test: a `ticket_category_types` row, and Javadoc on the jurisdiction and type pins (R3);
-  - `NoTypeSpecificCodeTest`: the plural fragment `ticket_category_types`, with spelling and non-match cases (R5);
+  - `NoTypeSpecificCodeTest`: the fragment `ticket_category_type` (singular, which also matches the plural), with spelling and non-match cases (R5);
   - OpenAPI contract assertions, the unsupported-name list and its missing-token example (now `ticket_category_type`), the "other types don't carry the field" lists of 010 and 011, a Skills comment, and a smoke guard (R6).
 - **Documentation and examples**: a "Ticket Category Types" Postman sub-folder, and the "unsupported" example moved to `ticket_category_type`; README (eleven types, every E-Links name served); CLAUDE.md; the contract delta; a pointer from 002's contract and 002's quickstart row 5; a closing note on 011 DF-10 (R8).
 
@@ -61,7 +61,7 @@ Checked against constitution v1.13.0.
 | III. Reuse Before Duplication | **Pass.** Everything the type needs already exists: declared reference and text fields, repeated names, the extract-id rule, the per-type target override, the references and agreement tables, `ReferenceDataHttp`, and the fixture-rules table. |
 | IV. Synthetic Data Only | **Pass.** Only public names, ids, jurisdiction ids and integration codes come from the extract; dates are synthetic. Both references touching the type (TicketCategory `type_id` → TicketCategoryType; TicketCategoryType `jurisdiction_id` → Jurisdiction) resolve, verified by `ReferenceDataReferencesTest`, which closes 011 DF-10. No forward reference remains between served types. |
 | V. Deterministic Behaviour | **Pass.** A fixed fixture in fixed order; the golden file and repeated-call test check it. |
-| VII. Generic Reference-Data Handling | **Pass.** Configuration and data only. `ticket_category_type` is not served and has no `aliases` entry. The guard gains the plural fragment `ticket_category_types`, which matches no main source today. |
+| VII. Generic Reference-Data Handling | **Pass.** Configuration and data only. `ticket_category_type` is not served and has no `aliases` entry. The guard gains the fragment `ticket_category_type`, which matches no main source today. |
 | VIII. Typed API Models | **Pass.** No model change. |
 | IX. Centralised Validation and Error Handling | **Pass.** The fixture is validated by the existing start-up rules; API errors are unchanged. |
 | X. Configuration Over Hard-Coding | **Pass.** The type is declared in `application.yml`. |
@@ -106,7 +106,7 @@ src/main/resources/
 src/test/java/uk/gov/hmcts/ctam/jo/
 ├── repository/ReferenceDataFixtureRulesTest.java         # new row; JURISDICTION_IDS and TICKET_CATEGORY_TYPE_IDS Javadoc (R3)
 ├── repository/ReferenceDataReferencesTest.java           # two reference rows, one agreement row (R4)
-└── architecture/NoTypeSpecificCodeTest.java              # + "ticket_category_types" fragment and its cases (R5)
+└── architecture/NoTypeSpecificCodeTest.java              # + "ticket_category_type" fragment and its cases (R5)
 
 src/testFixtures/java/uk/gov/hmcts/ctam/jo/testsupport/
 └── ContractPaths.java                                    # + TICKET_CATEGORY_TYPES
@@ -149,8 +149,63 @@ Re-run after Phase 1 (research.md, data-model.md, contracts/reference-data-api-t
 The design adds a configuration entry, a fixture and tests, with no new dependency, layer, endpoint or main class. Three details strengthen the assessments:
 - **Byte-identical responses (V, VII)**: no main code changes and no existing fixture changes, so the existing golden files prove the other types are unaffected.
 - **Reference checks (IV)**: `ReferenceDataReferencesTest`'s completeness check demands both new rows as soon as `ticket_category_types` is configured, because 011's per-type override already names it as `ticket_categories.type_id`'s target; with every target served, it requires a row for every reference field of every served type.
-- **Guard coverage (VII)**: the plural fragment was checked against today's main sources: `git grep -i -E 'ticket.?category.?types?' -- src/main/java` finds 0 matches, so the guard passes without an exemption.
+- **Guard coverage (VII)**: the fragment was checked against today's main sources: `git grep -i -E 'ticket.?category.?types?' -- src/main/java` finds 0 matches, so the guard passes without an exemption.
 
 The quickstart's expected values were checked against the local extract and the checked-in fixtures: 5 records; 4 distinct names; 5 distinct integration codes; 0 ticket categories (of 54) whose `jurisdiction_id` differs from their type's; every type `jurisdiction_id` a served jurisdiction; `location_types/1` is "Region" on the running service. The real fixture is generated during implementation and checked again then.
 
 Every principle stays **Pass**. Open item: the inherited Sonar deferral.
+
+## Implementation notes
+
+**Baseline (T001, before any change)**: `./gradlew check -PskipOwasp` green. Tests per suite: `test` 486, `integrationTest` 33, `functionalTest` 573, `smokeTest` 12. JaCoCo: lines 538/538 (100%), branches 239/240 (99.6%; the missed branch is MapStruct's generated null check on the boxed `id`, as recorded since 003).
+
+**Fixture (T002)**: generated once from the gitignored `REF_TicketCategoryType.csv` by a throwaway script in the session scratchpad (never committed). Before the file was kept, the script confirmed:
+- no BOM; the header is exactly `id,name,jurisdiction_id,integration_code,start_date,end_date,created_at,updated_at`; 5 rows of 8 columns;
+- ids are the integers 1 to 5; names non-blank and trimmed (4 distinct); `jurisdiction_id` positive; integration codes trimmed, `[A-Z_]+` and distinct;
+- the written `id`, `name`, `jurisdiction_id` and `integration_code` equal the extract's, row for row (SC-003); no record is ended;
+- every `jurisdiction_id` is an id in the checked-in `jurisdictions.json`;
+- every `type_id` in the checked-in `ticket_categories.json` (54 records) is a written id, and every category's `jurisdiction_id` equals its type's (0 mismatches);
+- every row of data-model.md § 3's Records table.
+
+UTF-8 without BOM, two-space indent, trailing newline, 1,281 bytes, no `\u`.
+
+**Extension test (T009)**: `ReferenceDataExtensionIntegrationTest` passed unchanged (6 tests).
+
+**Golden file (T016)**: `golden/ticket_category_types.json` was captured from `./gradlew bootRun` with `curl -o` (compact, no trailing newline, 1,021 bytes). Its 5 records equal the fixture's, field for field and in key order. The existing ten golden files are unchanged (`git diff --quiet origin/main -- src/functionalTest/resources/golden/` succeeds; AC-019, SC-008).
+
+**AC-013 (T024)**: the completeness half is met by T008. `everyReferenceBetweenServedTypesIsChecked` passes with the two new rows; 011's per-type override names `ticket_category_types` as `ticket_categories.type_id`'s target, and that type is now served, so the check demands the row. With every target served, it requires a row for every reference field of every served type. The type-jurisdiction agreement compares all 54 categories.
+
+**AC-022 / SC-009 (T033)**: `git diff --stat origin/main -- src/main/java` prints nothing. Under `src/main/resources`, only `application.yml` (the type entry and the reworded `ticket_categories` comment; 11 insertions, 3 deletions) and the new `reference-data/ticket_category_types.json`.
+
+**AC-024 (T034)**: covered by `ReferenceDataOpenApiContractTest` (T005): both operations' `enum` lists `ticket_category_types` after `ticket_categories` and before `appointment_title`, the description names it, `ticket_category_type` is absent, and the `ReferenceDataResponse` assertions are unchanged.
+
+**Postman (T036)**: newman ran 112 requests (+10 in Reference Data › Ticket Category Types) with 430 assertions (+39), 0 failures. The folder was generated from the Jurisdictions folder (checked by round-tripping it first) and inserted as text after Ticket Categories; the only other change is the "unsupported" example renamed from `ticket_category_types` to `ticket_category_type` (name, `raw` and `path`, tests unchanged). The diff is 563 insertions and those 3 changed lines.
+
+**Final (T042)**: `./gradlew check -PskipOwasp` green. Tests per suite:
+- `test` 506 (+20): the fixture-rules row (+3 cases); `ReferenceDataReferencesTest` (+5: two rows, each run by the resolution and cycle tests, and one agreement row); `NoTypeSpecificCodeTest` (+12, later +13: the fragment, six (later seven) recognised spellings and five ignored names).
+- `integrationTest` 33 (the contract test's `enum` and description changed).
+- `functionalTest` 627 (+54): 49 in `TicketCategoryTypesFunctionalTest`; 002's unsupported-name list lost `ticket_category_types` and gained four case variants (+3); and the 010 and 011 "other types don't carry the field" checks gained the new type (+2).
+- `smokeTest` 13 (+1: the ticket-category-types collection).
+
+JaCoCo: lines 538/538 (100%), branches 239/240 (99.6%), unchanged, as no main code changed.
+
+**Strict latency (T042, `./gradlew smokeTest -Dperf.strict=true`)**: collection p95: `appointment_titles` 2 ms, `base_locations` 5 ms, `contract_types` 1 ms, `genders` 1 ms, `judiciary_roles` 1 ms, `locations` 4 ms, `location_types` 1 ms, `jurisdictions` 0 ms, `tickets` 1 ms, `ticket_categories` 1 ms, `ticket_category_types` 1 ms (bound 100 ms).
+
+**Quickstart (T043)**: §§ 1–5 walked through against `./gradlew bootRun`. Every expected result matched: § 2's scope checks (no `src/main/java` diff; the guard's pattern finds nothing), § 3 rows 1–19 (including 0 categories disagreeing with their type's jurisdiction, `[88] [5]` for Skills, and `400` for all ten unserved singular names), the § 4 `enum` (`ticket_category_types` listed, `ticket_category_type` not) and § 5's newman run.
+
+**Differences from the planned design**:
+- As in 006–011, `TicketCategoryTypesFunctionalTest` was written in one pass (T010 and the story tasks), and the golden file was captured before the first gate run, so T011's gate already ran every story's functional test. T023, T029, T032 and T037 were also done before T011, since they touch files the gate runs.
+- The guard fragment became the singular `ticket_category_type` after code review (see below).
+
+**Code-review follow-ups (2026-10-30)**: one `/code-review` round found no correctness bugs. Three findings were fixed and four kept.
+- **Fixed**:
+  - **The guard fragment is the singular `ticket_category_type`** (spec FR-020, AC-023, Assumptions; research R5; T032). 009 to 011 used the plural only because a generic field contains their singular; none contains `ticket_category_type`, and the singular also matches the plural, so it catches names such as `TicketCategoryTypeMapper` the plural would miss. The recognised-spelling cases are now seven (singular and plural); the guard comment, README bullet and CLAUDE.md line say why. `test` 507 (+1).
+  - **`LocationTypesFunctionalTest.ec004OtherTypesDoNotCarryIntegrationCode`** also covers `jurisdictions`, `tickets` and `ticket_categories`, so every type that doesn't declare `integration_code` is checked now that two types do (+3).
+  - **`JurisdictionsFunctionalTest.ac009EveryJurisdictionIdResolves`** also covers `ticket_categories` (54) and `ticket_category_types` (5), so jurisdictions resolve over HTTP for every type that declares `jurisdiction_id` (+2). `functionalTest` 632.
+- **Kept**:
+  - The OpenAPI description of `integration_code` ("E-Links' code for the record's type"): a ticket category type record is itself a type, as a location type is, and rewording it would be a main-code change, which FR-003 and SC-009 rule out.
+  - The two Postman requests for `ticket_category_type`: the duplication accepted in analyze (A1), since the top-level request stays the general unsupported-name example (spec Clarifications).
+  - `TICKET_CATEGORY_TYPE_IDS`: kept as 009 and 011 kept their pins (spec FR-019; research R3); it pins which ids the categories use, while ReferenceDataReferencesTest checks that they resolve.
+  - `ac010` to `ac012` repeating the build-time checks over HTTP: US3 requires them to be observable to integrators, as 009 kept after its review.
+
+`./gradlew check -PskipOwasp` green after the fixes: `test` 507, `integrationTest` 33, `functionalTest` 632, `smokeTest` 13.

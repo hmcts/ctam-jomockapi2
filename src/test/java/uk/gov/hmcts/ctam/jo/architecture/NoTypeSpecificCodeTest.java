@@ -41,10 +41,10 @@ class NoTypeSpecificCodeTest {
     // in any spelling: snake_case, spaced or wrapped words, camelCase or upper case ("base_location",
     // "base location", "BaseLocation", "XBASE_LOCATION"). Jurisdictions', tickets' and ticket categories' fragments are
     // the plural, because the generic reference fields jurisdiction_id (003) and ticket_category_id (010) contain the
-    // singular (009, 010 and 011).
+    // singular (009, 010 and 011). No field contains ticket_category_type, so that fragment is the singular (012).
     @ParameterizedTest
     @ValueSource(strings = {"appointment", "base_location", "contract_type", "gender", "judiciary_role", "location",
-        "jurisdictions", "tickets", "ticket_categories"})
+        "jurisdictions", "tickets", "ticket_categories", "ticket_category_type"})
     void noMainSourceFileNamesASpecificReferenceDataType(String fragment) {
         Pattern spellings = spellingsOf(fragment);
         assertThat(sources)
@@ -180,6 +180,22 @@ class NoTypeSpecificCodeTest {
         "parentCategoryId", "Id of the record's ticket category"})
     void theGuardIgnoresTheGenericTicketCategoryFields(String text) {
         assertThat(spellingsOf("ticket_categories").matcher(text).find()).isFalse();
+    }
+
+    // No exemption: the singular, which also covers the plural, matches no main source.
+    @ParameterizedTest
+    @ValueSource(strings = {"ticket_category_type", "ticket_category_types", "TicketCategoryTypeMapper",
+        "ticketCategoryType", "TICKET_CATEGORY_TYPES", "ticket category type", "XTICKET_CATEGORY_TYPE"})
+    void theGuardRecognisesEveryTicketCategoryTypeSpelling(String text) {
+        assertThat(spellingsOf("ticket_category_type").matcher(text).find()).isTrue();
+    }
+
+    // The other ticket-category names, which aren't this type's.
+    @ParameterizedTest
+    @ValueSource(strings = {"ticket_category_id", "ticketCategoryId", "ticket_categories", "TicketCategories",
+        "the record's ticket category"})
+    void theGuardIgnoresOtherTicketCategoryNames(String text) {
+        assertThat(spellingsOf("ticket_category_type").matcher(text).find()).isFalse();
     }
 
     /**

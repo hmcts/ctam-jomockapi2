@@ -38,6 +38,7 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.LOCATIONS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.LOCATION_TYPES;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.TICKETS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.TICKET_CATEGORIES;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.TICKET_CATEGORY_TYPES;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertError;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertUnauthorized;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.byId;
@@ -247,7 +248,7 @@ class TicketsFunctionalTest {
      */
     @ParameterizedTest
     @ValueSource(strings = {APPOINTMENT_TITLES, BASE_LOCATIONS, CONTRACT_TYPES, GENDERS, JUDICIARY_ROLES, LOCATIONS,
-        LOCATION_TYPES, JURISDICTIONS, TICKET_CATEGORIES})
+        LOCATION_TYPES, JURISDICTIONS, TICKET_CATEGORIES, TICKET_CATEGORY_TYPES})
     void ac012OtherTypesDoNotCarryTheTicketCategoryField(String path) {
         ResponseEntity<String> response = http.get(path);
 

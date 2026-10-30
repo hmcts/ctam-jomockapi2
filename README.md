@@ -37,9 +37,9 @@ breakdown.
 Implemented and covered by automated tests:
 
 - `GET /api/v1/healthcheck` (see `specs/001-healthcheck-api/`)
-- the Reference Data API for ten types, from appointment titles to ticket categories (see
-  [Reference data](#reference-data) and `specs/002-reference-data-api/` to
-  `specs/011-ticket-categories-reference-data/`)
+- the Reference Data API for all eleven E-Links types, from appointment titles to ticket category
+  types (see [Reference data](#reference-data) and `specs/002-reference-data-api/` to
+  `specs/012-ticket-category-types-reference-data/`)
 
 ### Quality gates
 
@@ -94,7 +94,7 @@ Two routes serve every configured reference-data type through the same code:
 | `GET /api/v1/reference_data/{attribute_name}` | `{"results": [...]}`: every record, in ascending `id` order |
 | `GET /api/v1/reference_data/{attribute_name}/{reference_id}` | One record, as a single object |
 
-Ten types are configured:
+Eleven types are configured, one for every E-Links canonical name:
 
 | Type | Records | Deprecated alias served |
 |------|---------|-------------------------|
@@ -108,6 +108,7 @@ Ten types are configured:
 | `jurisdictions` | 5, one per source entry | none: `jurisdiction` returns `400` |
 | `tickets` | 159, one per source row (152 distinct names) | none: `ticket` returns `400` |
 | `ticket_categories` | 54, one per source row (53 distinct names) | none: `ticket_category` returns `400` |
+| `ticket_category_types` | 5, one per source row (4 distinct names) | none: `ticket_category_type` returns `400` |
 
 Base-location records also carry `type_id`, `parent_id` and `jurisdiction_id`, after `name`:
 the E-Links ids of each location's type, parent location and jurisdiction (30 Courts, 34 Tribunals,
@@ -133,7 +134,8 @@ date rule, although open locations still use them.
 Jurisdiction records keep the E-Links ids too (30 Courts, 34 Tribunals, 84 Magistrates,
 86 Coroners, 87 Skills), so that every location's, base location's and location type's
 `jurisdiction_id` resolves. They carry no reference, boolean or text field, and none is ended.
-Skills (87) is referenced only by the ticket category Languages.
+Skills (87) is referenced by the ticket category Languages and the ticket category type Skills
+Category.
 
 Ticket records also keep the E-Links ids (289 to 1709, with gaps), so that People authorisations'
 `ticket_id` values can refer to them later. Each carries `ticket_category_id`, after `name`: the
@@ -143,9 +145,13 @@ category. Seven names repeat, each in two categories.
 Ticket-category records keep the E-Links ids too (31 to 88, with gaps). Each carries `type_id`,
 `jurisdiction_id` and `parent_category_id`, after `name`. Categories form two levels: the 8
 top-level categories have `"parent_category_id": null`, and every other category's parent is
-top-level, in the same jurisdiction. `type_id` is the id of a ticket category type; those aren't
-served yet, so it is a forward reference that the feature serving them must make resolve
-(constitution, Principle IV). "Immigration and Asylum Chamber" is in both tiers.
+top-level, in the same jurisdiction. Every `type_id` is the id of a served ticket category type in
+the same jurisdiction. "Immigration and Asylum Chamber" is in both tiers.
+
+Ticket-category-type records keep the E-Links ids too (1 to 5), so that every ticket category's
+`type_id` resolves. Like location types, each carries `jurisdiction_id` and then `integration_code`
+(e.g. `TRIBS_NAME`), after `name`; every `jurisdiction_id` is the id of a served jurisdiction.
+"Court Type" appears twice, for Courts and for Magistrates. None is ended.
 
 Contract-type records also carry `salaried`, after `name`: a JSON boolean, `true` for "Salaried"
 and the ten salaried part-time working ("SPTW-…%") types, `false` for "Fee-paid", "Unknown" and
@@ -239,7 +245,8 @@ Tests to update for a new type:
 - `NoTypeSpecificCodeTest`: add the type's forbidden fragment, unless an existing one already covers its
   name (as `location` covers `location_types`); if a generic field name contains the singular, use the
   plural instead (as `jurisdictions`, `tickets` and `ticket_categories` do, because of `jurisdiction_id` and
-  `ticket_category_id`).
+  `ticket_category_id`). Otherwise use the singular, which also matches the plural (as `ticket_category_type`
+  does).
 - `ReferenceDataFixtureRulesTest`: add the fixture with its record count, distinct-name count,
   whether it has reference, text or boolean fields, and reference points.
 - `ReferenceDataReferencesTest`: add a row for every reference field whose target type is served (the

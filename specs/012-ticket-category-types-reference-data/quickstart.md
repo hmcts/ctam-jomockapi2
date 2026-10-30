@@ -12,7 +12,7 @@ This guide checks the feature end to end. Building, running and setting up a tok
 ```
 
 **Expected**: `BUILD SUCCESSFUL`. In particular:
-- `NoTypeSpecificCodeTest` passes with the new `ticket_category_types` fragment, and its new cases show it matches the plural spellings but not `ticket_category_id`, `ticket_categories` or "ticket category" (FR-020).
+- `NoTypeSpecificCodeTest` passes with the new `ticket_category_type` fragment, and its new cases show it matches the singular and plural spellings but not `ticket_category_id`, `ticket_categories` or "ticket category" (FR-020).
 - `ReferenceDataFixtureRulesTest` passes for all eleven fixtures, with every ticket-category-type record checked as a reference point and its `integration_code` format checked (FR-013, FR-019).
 - `ReferenceDataReferencesTest` passes: the two new rows resolve, every ticket category agrees with its type's jurisdiction, and the completeness check demands both rows (AC-010 to AC-013).
 - The existing golden files match byte for byte (AC-019).

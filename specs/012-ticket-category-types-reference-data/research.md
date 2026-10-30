@@ -82,11 +82,13 @@ The `ticket_categories` entry's comment changes from "type_id is a forward refer
 
 ## R5. The guard
 
-**Decision**: `NoTypeSpecificCodeTest`'s fragments gain `ticket_category_types`, and the comment on the plural fragments names it. New cases:
-- `theGuardRecognisesEveryTicketCategoryTypesSpelling` over `ticket_category_types`, `TicketCategoryTypes`, `TICKET_CATEGORY_TYPES`, `ticket category types`, `myTicketCategoryTypes` and `XTICKET_CATEGORY_TYPES`;
+**Decision**: `NoTypeSpecificCodeTest`'s fragments gain the singular `ticket_category_type`, which also matches the plural, and the comment says why it isn't plural like the three before it. New cases:
+- `theGuardRecognisesEveryTicketCategoryTypeSpelling` over `ticket_category_type`, `ticket_category_types`, `TicketCategoryTypeMapper`, `ticketCategoryType`, `TICKET_CATEGORY_TYPES`, `ticket category type` and `XTICKET_CATEGORY_TYPE`;
 - `theGuardIgnoresOtherTicketCategoryNames` over `ticket_category_id`, `ticketCategoryId`, `ticket_categories`, `TicketCategories` and `the record's ticket category`, each not matched by the new fragment.
 
-**Rationale**: As 009 to 011 (spec FR-020). `git grep -i -E 'ticket.?category.?types?'` over `src/main/java` finds nothing today, so the guard passes with no exemption.
+**Rationale**: 009 to 011 chose the plural only because a generic field contains their singular; no field contains `ticket_category_type`, so the singular is the stronger guard and catches names such as `TicketCategoryTypeMapper` that the plural would miss (spec FR-020). `git grep -i -E 'ticket.?category.?types?'` over `src/main/java` finds nothing today, so the guard passes with no exemption.
+
+**Alternatives considered**: the plural `ticket_category_types`, as first planned. Replaced after code review, since nothing requires the weaker fragment.
 
 ---
 
