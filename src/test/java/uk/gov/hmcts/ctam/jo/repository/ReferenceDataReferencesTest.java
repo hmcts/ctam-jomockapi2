@@ -45,7 +45,8 @@ class ReferenceDataReferencesTest {
     private static final Map<String, String> TARGET_TYPES = Map.of(
             "type_id", "location_types",
             "parent_id", "locations",
-            "jurisdiction_id", "jurisdictions");
+            "jurisdiction_id", "jurisdictions",
+            "ticket_category_id", "ticket_categories");
 
     /**
      * One reference between served types: every non-null {@code field} in {@code source} is an id in {@code target}.

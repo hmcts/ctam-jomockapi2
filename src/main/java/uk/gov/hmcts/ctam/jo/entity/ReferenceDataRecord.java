@@ -52,6 +52,13 @@ public class ReferenceDataRecord {
     Long jurisdictionId;
 
     /**
+     * Null unless the type declares {@link ReferenceField#TICKET_CATEGORY_ID}. The repository decides whether a null
+     * or a missing key is allowed.
+     */
+    @JsonProperty("ticket_category_id")
+    Long ticketCategoryId;
+
+    /**
      * Null unless the type declares {@link BooleanField#SALARIED}. An explicit {@code null} fails, as for every
      * boolean field.
      */

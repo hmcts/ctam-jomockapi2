@@ -30,7 +30,12 @@ class FixtureReferenceDataRepositoryTest {
 
     private static final String FIXTURES = "classpath:reference-data/";
 
-    private static final List<String> ALL_REFERENCE_FIELDS = List.of("type_id", "parent_id", "jurisdiction_id");
+    /**
+     * The three reference fields 003 added; their fixtures carry no ticket_category_id.
+     */
+    private static final List<String> FIRST_REFERENCE_FIELDS = List.of("type_id", "parent_id", "jurisdiction_id");
+
+    private static final List<String> TICKET_CATEGORY = List.of("ticket_category_id");
 
     private static final List<String> BOOLEAN_FIELDS = List.of("salaried");
 
@@ -88,7 +93,7 @@ class FixtureReferenceDataRepositoryTest {
     @Test
     void loadsTheReferenceFieldsTheTypeDeclares() {
         ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(new TypeProperties(
-                "widgets", List.of(), FIXTURES + "valid-reference-fields.json", ALL_REFERENCE_FIELDS, List.of(),
+                "widgets", List.of(), FIXTURES + "valid-reference-fields.json", FIRST_REFERENCE_FIELDS, List.of(),
                 null, List.of(), List.of()));
 
         assertThat(repository(registry).findAll(registry.resolve("widgets")))
@@ -105,7 +110,64 @@ class FixtureReferenceDataRepositoryTest {
             assertThat(record.getTypeId()).isNull();
             assertThat(record.getParentId()).isNull();
             assertThat(record.getJurisdictionId()).isNull();
+            assertThat(record.getTicketCategoryId()).isNull();
         });
+    }
+
+    @Test
+    void loadsTheTicketCategoryReferenceField() {
+        ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(new TypeProperties(
+                "widgets", List.of(), FIXTURES + "valid-ticket-category-reference-field.json", TICKET_CATEGORY,
+                List.of(), null, List.of(), List.of()));
+
+        assertThat(repository(registry).findAll(registry.resolve("widgets")))
+                .extracting(ReferenceDataRecord::getId, ReferenceDataRecord::getTicketCategoryId,
+                            ReferenceDataRecord::getTypeId, ReferenceDataRecord::getParentId,
+                            ReferenceDataRecord::getJurisdictionId)
+                .containsExactly(tuple(10L, 31L, null, null, null), tuple(20L, 33L, null, null, null));
+    }
+
+    @Test
+    void loadsANullTicketCategoryWhenTheTypeDeclaresItNullable() {
+        ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(new TypeProperties(
+                "widgets", List.of(), FIXTURES + "valid-nullable-ticket-category-reference-field.json",
+                TICKET_CATEGORY, List.of(), null, TICKET_CATEGORY, List.of()));
+
+        assertThat(repository(registry).findAll(registry.resolve("widgets")))
+                .extracting(ReferenceDataRecord::getId, ReferenceDataRecord::getTicketCategoryId)
+                .containsExactly(tuple(10L, null));
+    }
+
+    /**
+     * The fourth reference field follows the same start-up rules as the first three (010 FR-019).
+     */
+    @ParameterizedTest(name = "{0}")
+    @CsvSource(delimiter = '|', textBlock = """
+            ticket-category-id-missing       | record id 5: ticket_category_id is required
+            ticket-category-id-not-positive  | record id 5: ticket_category_id must be greater than 0
+            ticket-category-id-explicit-null | record id 5: ticket_category_id is required
+            """)
+    void failsStartupWhenTheTicketCategoryReferenceFieldIsInvalid(String fixture, String expectedProblem) {
+        String path = FIXTURES + "invalid/" + fixture + ".json";
+        ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(
+                new TypeProperties("widgets", List.of(), path, TICKET_CATEGORY, List.of(), null, List.of(),
+                                   List.of()));
+
+        assertThatIllegalStateException()
+                .isThrownBy(() -> repository(registry))
+                .withMessage("Invalid reference-data fixture " + path + ": " + expectedProblem);
+    }
+
+    @Test
+    void failsStartupWhenARecordCarriesTheTicketCategoryFieldItsTypeDoesNotDeclare() {
+        // Valid for a type that declares ticket_category_id; this one declares no reference field.
+        String path = FIXTURES + "valid-ticket-category-reference-field.json";
+        ReferenceDataTypeRegistry registry = registry("widgets", "valid-ticket-category-reference-field.json");
+
+        assertThatIllegalStateException()
+                .isThrownBy(() -> repository(registry))
+                .withMessage("Invalid reference-data fixture " + path
+                             + ": record id 20: ticket_category_id is not a reference field of widgets");
     }
 
     @ParameterizedTest(name = "{0}")
@@ -116,7 +178,7 @@ class FixtureReferenceDataRepositoryTest {
     void failsStartupWhenADeclaredReferenceFieldIsInvalid(String fixture, String expectedProblem) {
         String path = FIXTURES + "invalid/" + fixture + ".json";
         ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(
-                new TypeProperties("widgets", List.of(), path, ALL_REFERENCE_FIELDS, List.of(), null, List.of(),
+                new TypeProperties("widgets", List.of(), path, FIRST_REFERENCE_FIELDS, List.of(), null, List.of(),
                                    List.of()));
 
         assertThatIllegalStateException()
@@ -182,7 +244,7 @@ class FixtureReferenceDataRepositoryTest {
     void failsStartupWhenADeclaredReferenceFieldThatIsNotNullableIsNull() {
         String path = FIXTURES + "invalid/non-nullable-reference-field-explicit-null.json";
         ReferenceDataTypeRegistry registry = ReferenceDataFixtures.registry(
-                new TypeProperties("widgets", List.of(), path, ALL_REFERENCE_FIELDS, List.of(), null, List.of(),
+                new TypeProperties("widgets", List.of(), path, FIRST_REFERENCE_FIELDS, List.of(), null, List.of(),
                                    List.of()));
 
         assertThatIllegalStateException()
@@ -359,7 +421,9 @@ class FixtureReferenceDataRepositoryTest {
     @ParameterizedTest
     @CsvSource({"unknown-property, colour", "not-an-array, ''", "malformed, ''",
                 "reference-field-fractional, type_id", "reference-field-string, jurisdiction_id",
-                "reference-field-empty-string, parent_id", "id-string, id",
+                "reference-field-empty-string, parent_id", "ticket-category-id-fractional, ticket_category_id",
+                "ticket-category-id-string, ticket_category_id", "ticket-category-id-empty-string, ticket_category_id",
+                "id-string, id",
                 "name-number, name", "name-boolean, name", "text-field-explicit-null, integration_code",
                 "text-field-number, integration_code", "text-field-boolean, integration_code",
                 "text-field-object, integration_code"})
@@ -394,7 +458,7 @@ class FixtureReferenceDataRepositoryTest {
      * A type declaring every reference field, with {@code parent_id} nullable.
      */
     private static TypeProperties nullableParent(String fixture) {
-        return new TypeProperties("widgets", List.of(), fixture, ALL_REFERENCE_FIELDS, List.of(), null,
+        return new TypeProperties("widgets", List.of(), fixture, FIRST_REFERENCE_FIELDS, List.of(), null,
                                   List.of("parent_id"), List.of());
     }
 

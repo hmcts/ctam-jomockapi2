@@ -10,7 +10,8 @@ public enum ReferenceField implements DeclaredField<Long> {
 
     TYPE_ID("type_id", ReferenceDataRecord::getTypeId),
     PARENT_ID("parent_id", ReferenceDataRecord::getParentId),
-    JURISDICTION_ID("jurisdiction_id", ReferenceDataRecord::getJurisdictionId);
+    JURISDICTION_ID("jurisdiction_id", ReferenceDataRecord::getJurisdictionId),
+    TICKET_CATEGORY_ID("ticket_category_id", ReferenceDataRecord::getTicketCategoryId);
 
     private final String fieldName;
 

@@ -12,6 +12,7 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.CREATED_AT;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.END_DATE;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.START_DATE;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.UPDATED_AT;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.everyReferenceType;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.nullableParentResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.nullableParentType;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.plainType;
@@ -23,6 +24,9 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.salariedRes
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.salariedType;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.textResponse;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.textType;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.ticketCategoryResponse;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.ticketCategoryType;
+import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataFixtures.value;
 
 class ReferenceDataMapperTest {
 
@@ -33,8 +37,8 @@ class ReferenceDataMapperTest {
         ReferenceDataResponse response = mapper.toResponse(record(70, "Ended", END_DATE), plainType());
 
         assertThat(response).isEqualTo(
-                new ReferenceDataResponse(70, "Ended", null, null, null, null, null, CREATED_AT, UPDATED_AT, START_DATE,
-                                          END_DATE));
+                new ReferenceDataResponse(70, "Ended", null, null, null, null, null, null, CREATED_AT, UPDATED_AT,
+                                          START_DATE, END_DATE));
     }
 
     @Test
@@ -71,6 +75,27 @@ class ReferenceDataMapperTest {
         assertThat(response.typeId()).isNull();
         assertThat(response.parentId()).isNull();
         assertThat(response.jurisdictionId()).isNull();
+        assertThat(response.ticketCategoryId()).isNull();
+    }
+
+    @Test
+    void mapsEveryReferenceFieldTogether() {
+        ReferenceDataResponse response = mapper.toResponse(
+                recordBuilder(10, "Every").typeId(8L).parentId(1722L).jurisdictionId(84L).ticketCategoryId(31L)
+                        .build(),
+                everyReferenceType());
+
+        assertThat(response).isEqualTo(new ReferenceDataResponse(10, "Every", value(8), value(1722), value(84),
+                                                                  value(31), null, null, CREATED_AT, UPDATED_AT,
+                                                                  START_DATE, null));
+    }
+
+    @Test
+    void mapsTheTicketCategoryField() {
+        ReferenceDataResponse response = mapper.toResponse(
+                recordBuilder(10, "Categorised").ticketCategoryId(31L).build(), ticketCategoryType());
+
+        assertThat(response).isEqualTo(ticketCategoryResponse(10, "Categorised", 31));
     }
 
     @Test

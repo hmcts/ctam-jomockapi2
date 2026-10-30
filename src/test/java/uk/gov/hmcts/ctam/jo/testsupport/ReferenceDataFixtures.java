@@ -60,12 +60,12 @@ public final class ReferenceDataFixtures {
     }
 
     public static ReferenceDataResponse response(long id, String name) {
-        return new ReferenceDataResponse(id, name, null, null, null, null, null, CREATED_AT, UPDATED_AT, START_DATE,
-                                         null);
+        return new ReferenceDataResponse(id, name, null, null, null, null, null, null, CREATED_AT, UPDATED_AT,
+                                         START_DATE, null);
     }
 
     public static ReferenceDataResponse endedResponse(long id, String name) {
-        return new ReferenceDataResponse(id, name, null, null, null, null, null, CREATED_AT, ENDED_UPDATED_AT,
+        return new ReferenceDataResponse(id, name, null, null, null, null, null, null, CREATED_AT, ENDED_UPDATED_AT,
                                          START_DATE, END_DATE);
     }
 
@@ -75,7 +75,7 @@ public final class ReferenceDataFixtures {
     public static ReferenceDataResponse referencingResponse(long id, String name, long typeId, long parentId,
                                                             long jurisdictionId) {
         return new ReferenceDataResponse(id, name, value(typeId), value(parentId), value(jurisdictionId), null, null,
-                                         CREATED_AT, UPDATED_AT, START_DATE, null);
+                                         null, CREATED_AT, UPDATED_AT, START_DATE, null);
     }
 
     /**
@@ -85,14 +85,14 @@ public final class ReferenceDataFixtures {
     public static ReferenceDataResponse nullableParentResponse(long id, String name, long typeId,
                                                                long jurisdictionId) {
         return new ReferenceDataResponse(id, name, value(typeId), new ReferenceFieldValue(null), value(jurisdictionId),
-                                         null, null, CREATED_AT, UPDATED_AT, START_DATE, null);
+                                         null, null, null, CREATED_AT, UPDATED_AT, START_DATE, null);
     }
 
     /**
      * A current record that carries the boolean field {@code salaried} and no reference fields.
      */
     public static ReferenceDataResponse salariedResponse(long id, String name, boolean salaried) {
-        return new ReferenceDataResponse(id, name, null, null, null, null, salaried, CREATED_AT, UPDATED_AT,
+        return new ReferenceDataResponse(id, name, null, null, null, null, null, salaried, CREATED_AT, UPDATED_AT,
                                          START_DATE, null);
     }
 
@@ -100,8 +100,16 @@ public final class ReferenceDataFixtures {
      * A current record that carries the text field {@code integration_code} and no reference fields.
      */
     public static ReferenceDataResponse textResponse(long id, String name, String integrationCode) {
-        return new ReferenceDataResponse(id, name, null, null, null, integrationCode, null, CREATED_AT, UPDATED_AT,
-                                         START_DATE, null);
+        return new ReferenceDataResponse(id, name, null, null, null, null, integrationCode, null, CREATED_AT,
+                                         UPDATED_AT, START_DATE, null);
+    }
+
+    /**
+     * A current record that carries only the reference field {@code ticket_category_id}.
+     */
+    public static ReferenceDataResponse ticketCategoryResponse(long id, String name, long ticketCategoryId) {
+        return new ReferenceDataResponse(id, name, null, null, null, value(ticketCategoryId), null, null, CREATED_AT,
+                                         UPDATED_AT, START_DATE, null);
     }
 
     /**
@@ -109,7 +117,7 @@ public final class ReferenceDataFixtures {
      */
     public static ReferenceDataResponse fullResponse(long id, String name, long typeId, long parentId,
                                                      long jurisdictionId, boolean salaried) {
-        return new ReferenceDataResponse(id, name, value(typeId), value(parentId), value(jurisdictionId), null,
+        return new ReferenceDataResponse(id, name, value(typeId), value(parentId), value(jurisdictionId), null, null,
                                          salaried, CREATED_AT, UPDATED_AT, START_DATE, null);
     }
 
@@ -118,7 +126,7 @@ public final class ReferenceDataFixtures {
      */
     public static ReferenceDataResponse referencingTextResponse(long id, String name, long typeId, long parentId,
                                                                 long jurisdictionId, String integrationCode) {
-        return new ReferenceDataResponse(id, name, value(typeId), value(parentId), value(jurisdictionId),
+        return new ReferenceDataResponse(id, name, value(typeId), value(parentId), value(jurisdictionId), null,
                                          integrationCode, null, CREATED_AT, UPDATED_AT, START_DATE, null);
     }
 
@@ -134,18 +142,17 @@ public final class ReferenceDataFixtures {
     }
 
     /**
-     * A resolved type declaring all three reference fields, none of them nullable.
+     * A resolved type declaring the three reference fields 003 added, none of them nullable.
      */
     public static ReferenceDataType referencingType() {
-        return resolvedType(EnumSet.allOf(ReferenceField.class), Set.of(), Set.of(), Set.of());
+        return resolvedType(firstReferenceFields(), Set.of(), Set.of(), Set.of());
     }
 
     /**
-     * A resolved type declaring all three reference fields, with {@code parent_id} nullable.
+     * A resolved type declaring the three reference fields 003 added, with {@code parent_id} nullable.
      */
     public static ReferenceDataType nullableParentType() {
-        return resolvedType(EnumSet.allOf(ReferenceField.class), EnumSet.of(ReferenceField.PARENT_ID), Set.of(),
-                            Set.of());
+        return resolvedType(firstReferenceFields(), EnumSet.of(ReferenceField.PARENT_ID), Set.of(), Set.of());
     }
 
     /**
@@ -156,11 +163,24 @@ public final class ReferenceDataFixtures {
     }
 
     /**
-     * A resolved type declaring all three reference fields and {@code salaried}.
+     * A resolved type declaring the three reference fields 003 added and {@code salaried}.
      */
     public static ReferenceDataType fullType() {
-        return resolvedType(EnumSet.allOf(ReferenceField.class), Set.of(), EnumSet.of(BooleanField.SALARIED),
-                            Set.of());
+        return resolvedType(firstReferenceFields(), Set.of(), EnumSet.of(BooleanField.SALARIED), Set.of());
+    }
+
+    /**
+     * A resolved type declaring every reference field, including any added later, none of them nullable.
+     */
+    public static ReferenceDataType everyReferenceType() {
+        return resolvedType(EnumSet.allOf(ReferenceField.class), Set.of(), Set.of(), Set.of());
+    }
+
+    /**
+     * A resolved type declaring only the reference field {@code ticket_category_id}.
+     */
+    public static ReferenceDataType ticketCategoryType() {
+        return resolvedType(EnumSet.of(ReferenceField.TICKET_CATEGORY_ID), Set.of(), Set.of(), Set.of());
     }
 
     /**
@@ -168,6 +188,10 @@ public final class ReferenceDataFixtures {
      */
     public static ReferenceDataType textType() {
         return resolvedType(Set.of(), Set.of(), Set.of(), EnumSet.of(TextField.INTEGRATION_CODE));
+    }
+
+    private static Set<ReferenceField> firstReferenceFields() {
+        return EnumSet.of(ReferenceField.TYPE_ID, ReferenceField.PARENT_ID, ReferenceField.JURISDICTION_ID);
     }
 
     private static ReferenceDataType resolvedType(Set<ReferenceField> referenceFields,
