@@ -34,7 +34,7 @@ class ReferenceDataOpenApiContractTest {
     private static final List<String> ATTRIBUTE_NAMES =
             List.of("appointment_titles", "base_locations", "contract_types", "genders", "judiciary_roles",
                     "locations", "location_types", "jurisdictions", "tickets", "ticket_categories",
-                    "appointment_title");
+                    "ticket_category_types", "appointment_title");
 
     @LocalServerPort
     private int port;
@@ -80,8 +80,8 @@ class ReferenceDataOpenApiContractTest {
                 .containsExactlyElementsOf(ATTRIBUTE_NAMES);
         assertThat(parameter.path("description").asString())
                 .isEqualTo("Can be one of: appointment_titles, base_locations, contract_types, genders, "
-                         + "judiciary_roles, locations, location_types, jurisdictions, tickets, ticket_categories. "
-                         + "Also supports deprecated values: appointment_title");
+                         + "judiciary_roles, locations, location_types, jurisdictions, tickets, ticket_categories, "
+                         + "ticket_category_types. Also supports deprecated values: appointment_title");
     }
 
     @Test

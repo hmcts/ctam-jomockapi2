@@ -38,6 +38,7 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.LOCATIONS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.LOCATION_TYPES;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.TICKETS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.TICKET_CATEGORIES;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.TICKET_CATEGORY_TYPES;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertError;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertUnauthorized;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.byId;
@@ -305,8 +306,8 @@ class TicketCategoriesFunctionalTest {
     }
 
     /**
-     * The values only; that they refer to the unserved ticket category types is ReferenceDataReferencesTest's
-     * concern (AC-014, DF-10).
+     * The values only; that they resolve to served ticket category types is ReferenceDataReferencesTest's
+     * concern (AC-014; DF-10, closed by 012).
      */
     @Test
     void ac014TypeIdsAreCopied() {
@@ -322,7 +323,7 @@ class TicketCategoriesFunctionalTest {
      */
     @ParameterizedTest
     @ValueSource(strings = {APPOINTMENT_TITLES, BASE_LOCATIONS, CONTRACT_TYPES, GENDERS, JUDICIARY_ROLES, LOCATIONS,
-        LOCATION_TYPES, JURISDICTIONS, TICKETS})
+        LOCATION_TYPES, JURISDICTIONS, TICKETS, TICKET_CATEGORY_TYPES})
     void fr014OtherTypesDoNotCarryTheParentCategoryField(String path) {
         ResponseEntity<String> response = http.get(path);
 

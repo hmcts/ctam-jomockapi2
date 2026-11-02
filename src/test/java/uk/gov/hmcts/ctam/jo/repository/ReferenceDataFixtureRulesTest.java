@@ -58,7 +58,7 @@ class ReferenceDataFixtureRulesTest {
 
     /**
      * The jurisdictions the shipped data refers to: 30 Courts, 34 Tribunals, 84 Magistrates, 86 Coroners, 87 Skills
-     * (by ticket category 88 only, 011).
+     * (by ticket category 88 and ticket category type 5; 011, 012).
      */
     private static final Set<Long> JURISDICTION_IDS = Set.of(30L, 34L, 84L, 86L, 87L);
 
@@ -80,8 +80,9 @@ class ReferenceDataFixtureRulesTest {
             ReferenceField.TICKET_CATEGORY_ID.fieldName(), TICKET_CATEGORY_IDS);
 
     /**
-     * The ticket-category-type ids the shipped ticket categories refer to, pinned until ticket_category_types is
-     * served (011 DF-10).
+     * The ticket-category-type ids the shipped ticket categories refer to. Kept after 012 served
+     * ticket_category_types, as {@link #TICKET_CATEGORY_IDS} was after 011: ReferenceDataReferencesTest checks that
+     * the ids resolve, and this pins which ones the categories use.
      */
     private static final Set<Long> TICKET_CATEGORY_TYPE_IDS = Set.of(1L, 2L, 3L, 4L, 5L);
 
@@ -271,7 +272,14 @@ class ReferenceDataFixtureRulesTest {
                         point(56, "Employment Tribunal (England & Wales)", null).withReferences(3L, 34L, 48L),
                         point(81, "Transport Tribunal", null).withReferences(3L, 34L, 48L),
                         point(85, "Court Type", null).withReferences(4L, 84L, null),
-                        point(88, "Languages", null).withReferences(5L, 87L, null))));
+                        point(88, "Languages", null).withReferences(5L, 87L, null))),
+                // 012 data-model.md § 3: the extract's ids, without gaps; none ended.
+                new Fixture("ticket_category_types.json", 5, 4, Map.of(), IdRule.SOURCE, List.of(
+                        point(1, "Court Type", null).withReferences(30L).withTexts("COURTS_COURT_TYPE"),
+                        point(2, "Tribunal Type", null).withReferences(34L).withTexts("TRIBS_TYPE"),
+                        point(3, "Tribunal Name", null).withReferences(34L).withTexts("TRIBS_NAME"),
+                        point(4, "Court Type", null).withReferences(84L).withTexts("MAGS_COURT_TYPE"),
+                        point(5, "Skills Category", null).withReferences(87L).withTexts("SKILLS_CATEGORY"))));
     }
 
     @Test

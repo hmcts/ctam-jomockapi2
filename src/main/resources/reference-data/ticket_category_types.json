@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "name": "Court Type",
+    "jurisdiction_id": 30,
+    "integration_code": "COURTS_COURT_TYPE",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 2,
+    "name": "Tribunal Type",
+    "jurisdiction_id": 34,
+    "integration_code": "TRIBS_TYPE",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 3,
+    "name": "Tribunal Name",
+    "jurisdiction_id": 34,
+    "integration_code": "TRIBS_NAME",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 4,
+    "name": "Court Type",
+    "jurisdiction_id": 84,
+    "integration_code": "MAGS_COURT_TYPE",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  },
+  {
+    "id": 5,
+    "name": "Skills Category",
+    "jurisdiction_id": 87,
+    "integration_code": "SKILLS_CATEGORY",
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-03T10:30:00Z",
+    "start_date": "2024-01-01",
+    "end_date": null
+  }
+]

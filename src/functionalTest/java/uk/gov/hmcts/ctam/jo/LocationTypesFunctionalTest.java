@@ -35,8 +35,11 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.BASE_LOCATIONS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.CONTRACT_TYPES;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.GENDERS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.JUDICIARY_ROLES;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.JURISDICTIONS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.LOCATIONS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.LOCATION_TYPES;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.TICKETS;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.TICKET_CATEGORIES;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertError;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.assertUnauthorized;
 import static uk.gov.hmcts.ctam.jo.testsupport.ReferenceDataHttp.byId;
@@ -339,7 +342,8 @@ class LocationTypesFunctionalTest {
      * Only a type that declares the text field carries it (FR-005, FR-019).
      */
     @ParameterizedTest
-    @ValueSource(strings = {APPOINTMENT_TITLES, BASE_LOCATIONS, CONTRACT_TYPES, GENDERS, JUDICIARY_ROLES, LOCATIONS})
+    @ValueSource(strings = {APPOINTMENT_TITLES, BASE_LOCATIONS, CONTRACT_TYPES, GENDERS, JUDICIARY_ROLES, LOCATIONS,
+        JURISDICTIONS, TICKETS, TICKET_CATEGORIES})
     void ec004OtherTypesDoNotCarryIntegrationCode(String path) {
         ResponseEntity<String> response = http.get(path);
 
