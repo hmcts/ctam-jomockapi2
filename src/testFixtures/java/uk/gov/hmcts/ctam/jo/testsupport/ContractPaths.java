@@ -1,8 +1,9 @@
 package uk.gov.hmcts.ctam.jo.testsupport;
 
 /**
- * Routes typed from contracts/reference-data-api.md. Tests call these, never main code's own route constants,
- * so a renamed route fails the build instead of changing the contract without anyone noticing.
+ * Routes typed from contracts/reference-data-api.md and 013's contracts/people-api.md. Tests call these, never main
+ * code's own route constants, so a renamed route fails the build instead of changing the contract without anyone
+ * noticing.
  */
 public final class ContractPaths {
 
@@ -26,6 +27,11 @@ public final class ContractPaths {
     public static final String TICKET_CATEGORIES = "/api/v1/reference_data/ticket_categories";
 
     public static final String TICKET_CATEGORY_TYPES = "/api/v1/reference_data/ticket_category_types";
+
+    /**
+     * The People search route; the single route is this plus {@code /{id}} (013 contracts/people-api.md).
+     */
+    public static final String PEOPLE = "/api/v1/people";
 
     private ContractPaths() {
     }

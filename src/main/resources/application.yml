@@ -88,3 +88,21 @@ jo:
         text-fields: [integration_code]
         # "Court Type" is both a Courts and a Magistrates type (012 EC-002).
         unique-names: false
+  people:
+    # The People fixture (013 FR-030). Override with JO_PEOPLE_FIXTURE, e.g. file:/path/to/office_holders.json.
+    fixture: ${JO_PEOPLE_FIXTURE:classpath:people/office_holders.json}
+    # The date that decides whether an appointment is current, never the clock (013 D-8, FR-020). The explicit
+    # placeholder is required: relaxed binding would otherwise expect JO_PEOPLE_REFERENCEDATE.
+    reference-date: ${JO_PEOPLE_REFERENCE_DATE:2026-01-01}
+    # Which served reference-data type each People reference names. Type names live here, never in Java (013 FR-052).
+    reference-types:
+      gender-id: genders
+      role-name-id: appointment_titles
+      contract-type-id: contract_types
+      base-location-id: base_locations
+      base-location-type-id: location_types
+      base-location-parent-id: locations
+      jurisdiction-id: jurisdictions
+      judiciary-role-name-id: judiciary_roles
+      ticket-id: tickets
+      ticket-category-id: ticket_categories

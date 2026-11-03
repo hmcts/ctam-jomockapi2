@@ -32,16 +32,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
         UnsupportedReferenceDataTypeException.class,
         InvalidReferenceIdException.class,
-        UnsupportedQueryParameterException.class
+        UnsupportedQueryParameterException.class,
+        InvalidQueryParameterException.class,
+        UndefinedQueryParameterException.class,
+        RepeatedQueryParameterException.class,
+        InvalidPersonIdException.class
     })
     public void handleBadRequest(ApiRequestException ex, HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         reject(request, response, HttpStatus.BAD_REQUEST, ex.getMessage(), ex.getDiagnostic());
     }
 
-    @ExceptionHandler(ReferenceDataNotFoundException.class)
-    public void handleRecordNotFound(ReferenceDataNotFoundException ex, HttpServletRequest request,
-                                     HttpServletResponse response) throws IOException {
+    @ExceptionHandler({ReferenceDataNotFoundException.class, PersonNotFoundException.class})
+    public void handleNotFound(ApiRequestException ex, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         reject(request, response, HttpStatus.NOT_FOUND, ex.getMessage(), ex.getDiagnostic());
     }
 

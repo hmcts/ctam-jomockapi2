@@ -10,6 +10,8 @@ import io.swagger.v3.oas.models.parameters.PathParameter;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import uk.gov.hmcts.ctam.jo.config.ReferenceDataProperties.TypeProperties;
 import uk.gov.hmcts.ctam.jo.filters.CorrelationIds;
 import uk.gov.hmcts.ctam.jo.services.ReferenceDataTypeRegistry;
@@ -125,6 +127,33 @@ class OpenApiConfigTest {
 
         assertThat(enumOf(attributeName)).isNull();
         assertThat(attributeName.getDescription()).isEqualTo("Can be one of: ");
+    }
+
+    // 013 research R9: both People routes get the same shared parts as reference data.
+    @ParameterizedTest
+    @ValueSource(strings = {ApiPaths.PEOPLE, ApiPaths.PEOPLE + "/{id}"})
+    void peopleOperationsGetTheCorrelationHeaderAndSharedErrors(String path) {
+        Operation operation = new Operation().addParametersItem(new PathParameter().name("id"));
+        OpenAPI openApi = document(path, operation);
+
+        customise(openApi, registry(WIDGETS));
+
+        assertThat(operation.getParameters()).extracting(Parameter::getName).containsExactly("id",
+                                                                                              CorrelationIds.HEADER);
+        assertThat(operation.getParameters().get(0).getSchema()).isNull();
+        assertThat(operation.getResponses()).containsOnlyKeys("401", "406", "500");
+        assertThat(operation.getResponses().get("401").getHeaders())
+                .containsOnlyKeys(CorrelationIds.HEADER, "WWW-Authenticate");
+    }
+
+    @Test
+    void pathThatOnlyStartsLikePeopleIsLeftAlone() {
+        Operation operation = new Operation();
+        OpenAPI openApi = document(ApiPaths.PEOPLE + "_archive", operation);
+
+        customise(openApi, registry(WIDGETS));
+
+        assertThat(operation.getResponses()).isNull();
     }
 
     private void customise(OpenAPI openApi, ReferenceDataTypeRegistry registry) {

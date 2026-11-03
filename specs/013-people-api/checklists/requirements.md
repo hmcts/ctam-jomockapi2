@@ -31,6 +31,6 @@
 
 ## Notes
 
-- Three [NEEDS CLARIFICATION] markers remain, awaiting answers: the format `updated_since` accepts (FR-010), whether `include_previous_appointments` also filters authorisations and judiciary roles (FR-021), and what an authorisation's `jurisdiction_id`/`jurisdiction` refer to (FR-042).
+- No [NEEDS CLARIFICATION] markers remain. The three raised by `/speckit-specify` (the `updated_since` format, FR-010; what `include_previous_appointments` filters, FR-021; what an authorisation's `jurisdiction_id`/`jurisdiction` refer to, FR-042) were answered in the 2026-11-02 clarification session, and the guard-scope question raised in `/speckit-plan` is recorded in Clarifications and FR-052. Implemented 2026-11-03 (plan.md § Implementation notes).
 - The description's other open points were settled with documented defaults (Assumptions): `400` for a malformed `id` and `404` for an unknown one, an inclusive `updated_since`, no `per_page` maximum, `judiciary_role_name_id` as the judiciary-role reference, `role_name_id` as the appointment-title reference, and `court_name`/`court_type`/`location`/`type` derived from the base location.
 - As in 002 to 012, the spec names the API's own routes, field names and parameters, the shared error shape, the example request collection and the generated API document. These are the contract under test and constitution requirements (Principles XVII and XVIII), not implementation choices. FR-018's "one reusable component" restates Principles III and VI.

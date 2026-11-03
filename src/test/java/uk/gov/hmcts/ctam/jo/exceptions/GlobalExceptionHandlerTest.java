@@ -1,9 +1,12 @@
 package uk.gov.hmcts.ctam.jo.exceptions;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.HttpMethod;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -17,17 +20,26 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.FLAG_INVALID;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.INTERNAL_SERVER_ERROR;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.MALFORMED_PERSON_ID;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.MALFORMED_REFERENCE_ID;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.METHOD_NOT_ALLOWED;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.NOT_ACCEPTABLE;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.PAGE_INVALID;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.PERSON_NOT_FOUND;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.QUERY_PARAMETERS_NOT_SUPPORTED;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.RECORD_NOT_FOUND;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.REPEATED_QUERY_PARAMETER;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.RESOURCE_NOT_FOUND;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_ATTRIBUTE_NAME;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNSUPPORTED_QUERY_PARAMETER;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UPDATED_SINCE_INVALID;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UPDATED_SINCE_REQUIRED;
 import static uk.gov.hmcts.ctam.jo.testsupport.ErrorResponseAssertions.assertErrorBody;
 import static uk.gov.hmcts.ctam.jo.testsupport.RequestFixtures.errorResponseFactory;
 
+@ExtendWith(OutputCaptureExtension.class)
 class GlobalExceptionHandlerTest {
 
     private static final String SECRET_DETAIL = "SECRET-internal-detail";
@@ -57,9 +69,39 @@ class GlobalExceptionHandlerTest {
         assertError(400, expectedMessage);
     }
 
+    static Stream<Arguments> peopleBadRequests() {
+        return Stream.of(
+                Arguments.of(InvalidQueryParameterException.required("updated_since"), UPDATED_SINCE_REQUIRED),
+                Arguments.of(InvalidQueryParameterException.invalidDate("updated_since"), UPDATED_SINCE_INVALID),
+                Arguments.of(InvalidQueryParameterException.notPositiveWholeNumber("page"), PAGE_INVALID),
+                Arguments.of(InvalidQueryParameterException.notBoolean("include_previous_appointments"),
+                             FLAG_INVALID),
+                Arguments.of(new UndefinedQueryParameterException(SECRET_DETAIL), UNSUPPORTED_QUERY_PARAMETER),
+                Arguments.of(new RepeatedQueryParameterException(SECRET_DETAIL), REPEATED_QUERY_PARAMETER),
+                Arguments.of(new InvalidPersonIdException(SECRET_DETAIL), MALFORMED_PERSON_ID));
+    }
+
+    @ParameterizedTest
+    @MethodSource("peopleBadRequests")
+    void peopleRequestErrorsReturn400AndLogAWarning(ApiRequestException ex, String expectedMessage,
+                                                     CapturedOutput output) throws Exception {
+        handler.handleBadRequest(ex, request, response);
+
+        assertError(400, expectedMessage);
+        assertThat(output).contains("WARN").contains("Request rejected: status=400");
+    }
+
+    @Test
+    void unknownPersonReturns404PersonNotFound(CapturedOutput output) throws Exception {
+        handler.handleNotFound(new PersonNotFoundException(SECRET_DETAIL), request, response);
+
+        assertError(404, PERSON_NOT_FOUND);
+        assertThat(output).contains("WARN").contains("Request rejected: status=404");
+    }
+
     @Test
     void unknownRecordReturns404RecordNotFound() throws Exception {
-        handler.handleRecordNotFound(new ReferenceDataNotFoundException(SECRET_DETAIL), request, response);
+        handler.handleNotFound(new ReferenceDataNotFoundException(SECRET_DETAIL), request, response);
 
         assertError(404, RECORD_NOT_FOUND);
     }
