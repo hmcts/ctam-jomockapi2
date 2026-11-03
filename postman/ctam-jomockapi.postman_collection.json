@@ -6045,6 +6045,1637 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "People",
+      "description": "013 People API: search by updated_since and single office holder (contracts/people-api.md).",
+      "item": [
+        {
+          "name": "Search — defaults",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people?updated_since=2000-01-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people"
+              ],
+              "query": [
+                {
+                  "key": "updated_since",
+                  "value": "2000-01-01"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Body is results and pagination, with the expected page', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['results', 'pagination']);",
+                  "    const p = body.pagination;",
+                  "    pm.expect(Object.keys(p)).to.eql(['results', 'pages', 'current_page', 'results_per_page', 'more_pages']);",
+                  "    ['results', 'pages', 'current_page', 'results_per_page'].forEach(function (key) {",
+                  "        pm.expect(p[key]).to.be.a('number');",
+                  "    });",
+                  "    pm.expect(p.more_pages).to.be.a('boolean');",
+                  "    pm.expect(p.results).to.eql(120);",
+                  "    pm.expect(p.pages).to.eql(3);",
+                  "    pm.expect(p.current_page).to.eql(1);",
+                  "    pm.expect(p.results_per_page).to.eql(50);",
+                  "    pm.expect(p.more_pages).to.eql(true);",
+                  "    pm.expect(body.results).to.have.lengthOf(50);",
+                  "});",
+                  "",
+                  "pm.test('Results are in ascending last_updated, then id, order', function () {",
+                  "    const keys = pm.response.json().results.map(function (h) { return h.last_updated + ' ' + h.id; });",
+                  "    for (let i = 1; i < keys.length; i++) {",
+                  "        pm.expect(keys[i] > keys[i - 1]).to.be.true;",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('Each office holder has the required fields', function () {",
+                  "    const required = ['id', 'last_updated', 'per_id', 'personal_code', 'title', 'known_as', 'surname', 'fullname', 'initials', 'post_nominals', 'email', 'sex', 'gender_id', 'work_phone', 'disability', 'retirement_date', 'leaving_on', 'appointments', 'judiciary_roles', 'authorisations', 'authorisations_current', 'authorisations_with_dates'];",
+                  "    pm.response.json().results.forEach(function (h) {",
+                  "        pm.expect(h).to.include.all.keys(required);",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Search — page 2",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people?updated_since=2000-01-01&page=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people"
+              ],
+              "query": [
+                {
+                  "key": "updated_since",
+                  "value": "2000-01-01"
+                },
+                {
+                  "key": "page",
+                  "value": "2"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Body is results and pagination, with the expected page', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['results', 'pagination']);",
+                  "    const p = body.pagination;",
+                  "    pm.expect(Object.keys(p)).to.eql(['results', 'pages', 'current_page', 'results_per_page', 'more_pages']);",
+                  "    ['results', 'pages', 'current_page', 'results_per_page'].forEach(function (key) {",
+                  "        pm.expect(p[key]).to.be.a('number');",
+                  "    });",
+                  "    pm.expect(p.more_pages).to.be.a('boolean');",
+                  "    pm.expect(p.results).to.eql(120);",
+                  "    pm.expect(p.pages).to.eql(3);",
+                  "    pm.expect(p.current_page).to.eql(2);",
+                  "    pm.expect(p.results_per_page).to.eql(50);",
+                  "    pm.expect(p.more_pages).to.eql(true);",
+                  "    pm.expect(body.results).to.have.lengthOf(50);",
+                  "});",
+                  "",
+                  "pm.test('Results are in ascending last_updated, then id, order', function () {",
+                  "    const keys = pm.response.json().results.map(function (h) { return h.last_updated + ' ' + h.id; });",
+                  "    for (let i = 1; i < keys.length; i++) {",
+                  "        pm.expect(keys[i] > keys[i - 1]).to.be.true;",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Search — last page",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people?updated_since=2000-01-01&page=3",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people"
+              ],
+              "query": [
+                {
+                  "key": "updated_since",
+                  "value": "2000-01-01"
+                },
+                {
+                  "key": "page",
+                  "value": "3"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Body is results and pagination, with the expected page', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['results', 'pagination']);",
+                  "    const p = body.pagination;",
+                  "    pm.expect(Object.keys(p)).to.eql(['results', 'pages', 'current_page', 'results_per_page', 'more_pages']);",
+                  "    ['results', 'pages', 'current_page', 'results_per_page'].forEach(function (key) {",
+                  "        pm.expect(p[key]).to.be.a('number');",
+                  "    });",
+                  "    pm.expect(p.more_pages).to.be.a('boolean');",
+                  "    pm.expect(p.results).to.eql(120);",
+                  "    pm.expect(p.pages).to.eql(3);",
+                  "    pm.expect(p.current_page).to.eql(3);",
+                  "    pm.expect(p.results_per_page).to.eql(50);",
+                  "    pm.expect(p.more_pages).to.eql(false);",
+                  "    pm.expect(body.results).to.have.lengthOf(20);",
+                  "});",
+                  "",
+                  "pm.test('Results are in ascending last_updated, then id, order', function () {",
+                  "    const keys = pm.response.json().results.map(function (h) { return h.last_updated + ' ' + h.id; });",
+                  "    for (let i = 1; i < keys.length; i++) {",
+                  "        pm.expect(keys[i] > keys[i - 1]).to.be.true;",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Search — past the last page",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people?updated_since=2000-01-01&page=4",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people"
+              ],
+              "query": [
+                {
+                  "key": "updated_since",
+                  "value": "2000-01-01"
+                },
+                {
+                  "key": "page",
+                  "value": "4"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Body is results and pagination, with the expected page', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['results', 'pagination']);",
+                  "    const p = body.pagination;",
+                  "    pm.expect(Object.keys(p)).to.eql(['results', 'pages', 'current_page', 'results_per_page', 'more_pages']);",
+                  "    ['results', 'pages', 'current_page', 'results_per_page'].forEach(function (key) {",
+                  "        pm.expect(p[key]).to.be.a('number');",
+                  "    });",
+                  "    pm.expect(p.more_pages).to.be.a('boolean');",
+                  "    pm.expect(p.results).to.eql(120);",
+                  "    pm.expect(p.pages).to.eql(3);",
+                  "    pm.expect(p.current_page).to.eql(4);",
+                  "    pm.expect(p.results_per_page).to.eql(50);",
+                  "    pm.expect(p.more_pages).to.eql(false);",
+                  "    pm.expect(body.results).to.have.lengthOf(0);",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Search — filtered",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people?updated_since={{peopleMidDate}}&per_page=120",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people"
+              ],
+              "query": [
+                {
+                  "key": "updated_since",
+                  "value": "{{peopleMidDate}}"
+                },
+                {
+                  "key": "per_page",
+                  "value": "120"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Body is results and pagination, with the expected page', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['results', 'pagination']);",
+                  "    const p = body.pagination;",
+                  "    pm.expect(Object.keys(p)).to.eql(['results', 'pages', 'current_page', 'results_per_page', 'more_pages']);",
+                  "    ['results', 'pages', 'current_page', 'results_per_page'].forEach(function (key) {",
+                  "        pm.expect(p[key]).to.be.a('number');",
+                  "    });",
+                  "    pm.expect(p.more_pages).to.be.a('boolean');",
+                  "    pm.expect(p.current_page).to.eql(1);",
+                  "    pm.expect(p.results_per_page).to.eql(120);",
+                  "    pm.expect(p.more_pages).to.eql(false);",
+                  "});",
+                  "",
+                  "pm.test('Results are in ascending last_updated, then id, order', function () {",
+                  "    const keys = pm.response.json().results.map(function (h) { return h.last_updated + ' ' + h.id; });",
+                  "    for (let i = 1; i < keys.length; i++) {",
+                  "        pm.expect(keys[i] > keys[i - 1]).to.be.true;",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('Every office holder was updated on or after peopleMidDate', function () {",
+                  "    const since = pm.environment.get('peopleMidDate') || pm.variables.get('peopleMidDate');",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.results.length).to.be.above(0).and.below(120);",
+                  "    pm.expect(body.pagination.results).to.eql(body.results.length);",
+                  "    body.results.forEach(function (h) {",
+                  "        pm.expect(h.last_updated >= since).to.be.true;",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Search — no matches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people?updated_since=2099-01-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people"
+              ],
+              "query": [
+                {
+                  "key": "updated_since",
+                  "value": "2099-01-01"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Body is results and pagination, with the expected page', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['results', 'pagination']);",
+                  "    const p = body.pagination;",
+                  "    pm.expect(Object.keys(p)).to.eql(['results', 'pages', 'current_page', 'results_per_page', 'more_pages']);",
+                  "    ['results', 'pages', 'current_page', 'results_per_page'].forEach(function (key) {",
+                  "        pm.expect(p[key]).to.be.a('number');",
+                  "    });",
+                  "    pm.expect(p.more_pages).to.be.a('boolean');",
+                  "    pm.expect(p.results).to.eql(0);",
+                  "    pm.expect(p.pages).to.eql(0);",
+                  "    pm.expect(p.current_page).to.eql(1);",
+                  "    pm.expect(p.results_per_page).to.eql(50);",
+                  "    pm.expect(p.more_pages).to.eql(false);",
+                  "    pm.expect(body.results).to.have.lengthOf(0);",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Search — whole dataset",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people?updated_since=2000-01-01&per_page=120",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people"
+              ],
+              "query": [
+                {
+                  "key": "updated_since",
+                  "value": "2000-01-01"
+                },
+                {
+                  "key": "per_page",
+                  "value": "120"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Body is results and pagination, with the expected page', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['results', 'pagination']);",
+                  "    const p = body.pagination;",
+                  "    pm.expect(Object.keys(p)).to.eql(['results', 'pages', 'current_page', 'results_per_page', 'more_pages']);",
+                  "    ['results', 'pages', 'current_page', 'results_per_page'].forEach(function (key) {",
+                  "        pm.expect(p[key]).to.be.a('number');",
+                  "    });",
+                  "    pm.expect(p.more_pages).to.be.a('boolean');",
+                  "    pm.expect(p.results).to.eql(120);",
+                  "    pm.expect(p.pages).to.eql(1);",
+                  "    pm.expect(p.current_page).to.eql(1);",
+                  "    pm.expect(p.results_per_page).to.eql(120);",
+                  "    pm.expect(p.more_pages).to.eql(false);",
+                  "    pm.expect(body.results).to.have.lengthOf(120);",
+                  "});",
+                  "",
+                  "pm.test('Results are in ascending last_updated, then id, order', function () {",
+                  "    const keys = pm.response.json().results.map(function (h) { return h.last_updated + ' ' + h.id; });",
+                  "    for (let i = 1; i < keys.length; i++) {",
+                  "        pm.expect(keys[i] > keys[i - 1]).to.be.true;",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('Each office holder has the required fields', function () {",
+                  "    const required = ['id', 'last_updated', 'per_id', 'personal_code', 'title', 'known_as', 'surname', 'fullname', 'initials', 'post_nominals', 'email', 'sex', 'gender_id', 'work_phone', 'disability', 'retirement_date', 'leaving_on', 'appointments', 'judiciary_roles', 'authorisations', 'authorisations_current', 'authorisations_with_dates'];",
+                  "    pm.response.json().results.forEach(function (h) {",
+                  "        pm.expect(h).to.include.all.keys(required);",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Search — flag false",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people?updated_since=2000-01-01&per_page=120&include_previous_appointments=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people"
+              ],
+              "query": [
+                {
+                  "key": "updated_since",
+                  "value": "2000-01-01"
+                },
+                {
+                  "key": "per_page",
+                  "value": "120"
+                },
+                {
+                  "key": "include_previous_appointments",
+                  "value": "false"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Body is results and pagination, with the expected page', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['results', 'pagination']);",
+                  "    const p = body.pagination;",
+                  "    pm.expect(Object.keys(p)).to.eql(['results', 'pages', 'current_page', 'results_per_page', 'more_pages']);",
+                  "    ['results', 'pages', 'current_page', 'results_per_page'].forEach(function (key) {",
+                  "        pm.expect(p[key]).to.be.a('number');",
+                  "    });",
+                  "    pm.expect(p.more_pages).to.be.a('boolean');",
+                  "    pm.expect(p.results).to.eql(120);",
+                  "    pm.expect(p.pages).to.eql(1);",
+                  "    pm.expect(p.current_page).to.eql(1);",
+                  "    pm.expect(p.results_per_page).to.eql(120);",
+                  "    pm.expect(p.more_pages).to.eql(false);",
+                  "    pm.expect(body.results).to.have.lengthOf(120);",
+                  "});",
+                  "",
+                  "pm.test('Every dated authorisation is under an appointment in the same response', function () {",
+                  "    const body = pm.response.json();",
+                  "    (body.results || [body]).forEach(function (h) {",
+                  "        const ids = h.appointments.map(function (a) { return a.appointment_id; });",
+                  "        h.authorisations_with_dates.forEach(function (a) {",
+                  "            pm.expect(ids).to.include(a.appointment_id);",
+                  "        });",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test('Remember each office holder\\'s appointment count and the order', function () {",
+                  "    const counts = {};",
+                  "    pm.response.json().results.forEach(function (h) { counts[h.id] = h.appointments.length; });",
+                  "    pm.collectionVariables.set('peopleFlagFalseCounts', JSON.stringify(counts));",
+                  "    pm.collectionVariables.set('peopleFlagFalseIds', JSON.stringify(pm.response.json().results.map(function (h) { return h.id; })));",
+                  "    pm.collectionVariables.set('peopleFlagFalsePagination', JSON.stringify(pm.response.json().pagination));",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Search — with previous appointments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people?updated_since=2000-01-01&per_page=120&include_previous_appointments=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people"
+              ],
+              "query": [
+                {
+                  "key": "updated_since",
+                  "value": "2000-01-01"
+                },
+                {
+                  "key": "per_page",
+                  "value": "120"
+                },
+                {
+                  "key": "include_previous_appointments",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Body is results and pagination, with the expected page', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['results', 'pagination']);",
+                  "    const p = body.pagination;",
+                  "    pm.expect(Object.keys(p)).to.eql(['results', 'pages', 'current_page', 'results_per_page', 'more_pages']);",
+                  "    ['results', 'pages', 'current_page', 'results_per_page'].forEach(function (key) {",
+                  "        pm.expect(p[key]).to.be.a('number');",
+                  "    });",
+                  "    pm.expect(p.more_pages).to.be.a('boolean');",
+                  "    pm.expect(p.results).to.eql(120);",
+                  "    pm.expect(p.pages).to.eql(1);",
+                  "    pm.expect(p.current_page).to.eql(1);",
+                  "    pm.expect(p.results_per_page).to.eql(120);",
+                  "    pm.expect(p.more_pages).to.eql(false);",
+                  "    pm.expect(body.results).to.have.lengthOf(120);",
+                  "});",
+                  "",
+                  "pm.test('Every dated authorisation is under an appointment in the same response', function () {",
+                  "    const body = pm.response.json();",
+                  "    (body.results || [body]).forEach(function (h) {",
+                  "        const ids = h.appointments.map(function (a) { return a.appointment_id; });",
+                  "        h.authorisations_with_dates.forEach(function (a) {",
+                  "            pm.expect(ids).to.include(a.appointment_id);",
+                  "        });",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test('Same people, order and pagination as with the flag false, and at least as many appointments', function () {",
+                  "    const body = pm.response.json();",
+                  "    const counts = JSON.parse(pm.collectionVariables.get('peopleFlagFalseCounts') || '{}');",
+                  "    pm.expect(body.results.map(function (h) { return h.id; })).to.eql(JSON.parse(pm.collectionVariables.get('peopleFlagFalseIds') || '[]'));",
+                  "    pm.expect(body.pagination).to.eql(JSON.parse(pm.collectionVariables.get('peopleFlagFalsePagination') || '{}'));",
+                  "    let more = 0;",
+                  "    body.results.forEach(function (h) {",
+                  "        pm.expect(h.appointments.length).to.be.at.least(counts[h.id]);",
+                  "        more += h.appointments.length - counts[h.id];",
+                  "    });",
+                  "    pm.expect(more).to.be.above(0);",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Single office holder",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people/{{personId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people",
+                "{{personId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('One office holder, not wrapped, with the required fields', function () {",
+                  "    const required = ['id', 'last_updated', 'per_id', 'personal_code', 'title', 'known_as', 'surname', 'fullname', 'initials', 'post_nominals', 'email', 'sex', 'gender_id', 'work_phone', 'disability', 'retirement_date', 'leaving_on', 'appointments', 'judiciary_roles', 'authorisations', 'authorisations_current', 'authorisations_with_dates'];",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.include.all.keys(required);",
+                  "    pm.expect(body).to.not.have.any.keys('results', 'pagination');",
+                  "    pm.expect(body.id).to.eql(pm.environment.get('personId') || pm.variables.get('personId'));",
+                  "});",
+                  "",
+                  "pm.test('Every dated authorisation is under an appointment in the same response', function () {",
+                  "    const body = pm.response.json();",
+                  "    (body.results || [body]).forEach(function (h) {",
+                  "        const ids = h.appointments.map(function (a) { return a.appointment_id; });",
+                  "        h.authorisations_with_dates.forEach(function (a) {",
+                  "            pm.expect(ids).to.include(a.appointment_id);",
+                  "        });",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Single office holder — with previous appointments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people/{{personId}}?include_previous_appointments=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people",
+                "{{personId}}"
+              ],
+              "query": [
+                {
+                  "key": "include_previous_appointments",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('The same office holder', function () {",
+                  "    pm.expect(pm.response.json().id).to.eql(pm.environment.get('personId') || pm.variables.get('personId'));",
+                  "});",
+                  "",
+                  "pm.test('Every dated authorisation is under an appointment in the same response', function () {",
+                  "    const body = pm.response.json();",
+                  "    (body.results || [body]).forEach(function (h) {",
+                  "        const ids = h.appointments.map(function (a) { return a.appointment_id; });",
+                  "        h.authorisations_with_dates.forEach(function (a) {",
+                  "            pm.expect(ids).to.include(a.appointment_id);",
+                  "        });",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Single office holder — unknown id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people/00000000-0000-0000-0000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people",
+                "00000000-0000-0000-0000-000000000000"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Error body is the shared shape with the fixed message', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['error', 'timestamp', 'traceId']);",
+                  "    pm.expect(body.error).to.eql(\"Person not found.\");",
+                  "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                  "    pm.expect(body).to.not.have.any.keys('results', 'id', 'appointments');",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Single office holder — malformed id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people/abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people",
+                "abc"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Error body is the shared shape with the fixed message', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['error', 'timestamp', 'traceId']);",
+                  "    pm.expect(body.error).to.eql(\"id must be a UUID.\");",
+                  "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                  "    pm.expect(body).to.not.have.any.keys('results', 'id', 'appointments');",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Search — missing updated_since",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Error body is the shared shape with the fixed message', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['error', 'timestamp', 'traceId']);",
+                  "    pm.expect(body.error).to.eql(\"updated_since is required.\");",
+                  "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                  "    pm.expect(body).to.not.have.any.keys('results', 'id', 'appointments');",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Search — malformed updated_since",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people?updated_since=yesterday",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people"
+              ],
+              "query": [
+                {
+                  "key": "updated_since",
+                  "value": "yesterday"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Error body is the shared shape with the fixed message', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['error', 'timestamp', 'traceId']);",
+                  "    pm.expect(body.error).to.eql(\"updated_since must be a valid date.\");",
+                  "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                  "    pm.expect(body).to.not.have.any.keys('results', 'id', 'appointments');",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Search — updated_since with a time",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people?updated_since=2025-06-01T00:00:00Z",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people"
+              ],
+              "query": [
+                {
+                  "key": "updated_since",
+                  "value": "2025-06-01T00:00:00Z"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Error body is the shared shape with the fixed message', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['error', 'timestamp', 'traceId']);",
+                  "    pm.expect(body.error).to.eql(\"updated_since must be a valid date.\");",
+                  "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                  "    pm.expect(body).to.not.have.any.keys('results', 'id', 'appointments');",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Search — bad page",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people?updated_since=2000-01-01&page=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people"
+              ],
+              "query": [
+                {
+                  "key": "updated_since",
+                  "value": "2000-01-01"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Error body is the shared shape with the fixed message', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['error', 'timestamp', 'traceId']);",
+                  "    pm.expect(body.error).to.eql(\"page must be a positive whole number.\");",
+                  "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                  "    pm.expect(body).to.not.have.any.keys('results', 'id', 'appointments');",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Search — bad per_page",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people?updated_since=2000-01-01&per_page=abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people"
+              ],
+              "query": [
+                {
+                  "key": "updated_since",
+                  "value": "2000-01-01"
+                },
+                {
+                  "key": "per_page",
+                  "value": "abc"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Error body is the shared shape with the fixed message', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['error', 'timestamp', 'traceId']);",
+                  "    pm.expect(body.error).to.eql(\"per_page must be a positive whole number.\");",
+                  "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                  "    pm.expect(body).to.not.have.any.keys('results', 'id', 'appointments');",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Search — bad flag",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people?updated_since=2000-01-01&include_previous_appointments=yes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people"
+              ],
+              "query": [
+                {
+                  "key": "updated_since",
+                  "value": "2000-01-01"
+                },
+                {
+                  "key": "include_previous_appointments",
+                  "value": "yes"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Error body is the shared shape with the fixed message', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['error', 'timestamp', 'traceId']);",
+                  "    pm.expect(body.error).to.eql(\"include_previous_appointments must be true or false.\");",
+                  "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                  "    pm.expect(body).to.not.have.any.keys('results', 'id', 'appointments');",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Search — unknown parameter",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people?updated_since=2000-01-01&foo=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people"
+              ],
+              "query": [
+                {
+                  "key": "updated_since",
+                  "value": "2000-01-01"
+                },
+                {
+                  "key": "foo",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Error body is the shared shape with the fixed message', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['error', 'timestamp', 'traceId']);",
+                  "    pm.expect(body.error).to.eql(\"Unsupported query parameter.\");",
+                  "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                  "    pm.expect(body).to.not.have.any.keys('results', 'id', 'appointments');",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Search — repeated parameter",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people?updated_since=2000-01-01&page=1&page=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people"
+              ],
+              "query": [
+                {
+                  "key": "updated_since",
+                  "value": "2000-01-01"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page",
+                  "value": "2"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Error body is the shared shape with the fixed message', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['error', 'timestamp', 'traceId']);",
+                  "    pm.expect(body.error).to.eql(\"Query parameters must not be repeated.\");",
+                  "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                  "    pm.expect(body).to.not.have.any.keys('results', 'id', 'appointments');",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Search — no token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people?updated_since=2000-01-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people"
+              ],
+              "query": [
+                {
+                  "key": "updated_since",
+                  "value": "2000-01-01"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Error body is the shared shape with the fixed message', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['error', 'timestamp', 'traceId']);",
+                  "    pm.expect(body.error).to.eql(\"Unauthorized. Invalid or missing token.\");",
+                  "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                  "    pm.expect(body).to.not.have.any.keys('results', 'id', 'appointments');",
+                  "});",
+                  "",
+                  "pm.test('WWW-Authenticate is Bearer', function () {",
+                  "    pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer');",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Single office holder — invalid token",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{invalidBearerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/people/{{personId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "people",
+                "{{personId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Error body is the shared shape with the fixed message', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['error', 'timestamp', 'traceId']);",
+                  "    pm.expect(body.error).to.eql(\"Unauthorized. Invalid or missing token.\");",
+                  "    pm.expect(body.traceId).to.eql(pm.response.headers.get('X-Correlation-Id'));",
+                  "    pm.expect(body).to.not.have.any.keys('results', 'id', 'appointments');",
+                  "});",
+                  "",
+                  "pm.test('WWW-Authenticate is Bearer', function () {",
+                  "    pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer');",
+                  "});",
+                  "",
+                  "pm.test('X-Correlation-Id response header is present', function () {",
+                  "    pm.response.to.have.header('X-Correlation-Id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "peopleFlagFalseCounts",
+      "value": ""
+    },
+    {
+      "key": "peopleFlagFalseIds",
+      "value": ""
+    },
+    {
+      "key": "peopleFlagFalsePagination",
+      "value": ""
     }
   ]
 }

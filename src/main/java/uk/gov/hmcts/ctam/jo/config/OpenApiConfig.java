@@ -30,13 +30,26 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 /**
  * OpenAPI document settings (Principle XVIII, research R10). Everything that depends on the configured
- * reference-data types, or applies to every reference-data operation, is added here in one place rather
- * than per controller method.
+ * reference-data types, or applies to every reference-data or People operation (013 research R9), is added here in
+ * one place rather than per controller method.
  */
 @Configuration
 public class OpenApiConfig {
 
     public static final String BEARER_AUTH = "bearerAuth";
+
+    private static final String EXAMPLE_TIMESTAMP = "2026-09-23T10:15:30Z";
+
+    private static final String EXAMPLE_TRACE_ID = "3f1c2a9e-8b7d-4e21-9a55-0c6d1e2f3a4b";
+
+    /**
+     * An operation's error example is {@code ERROR_EXAMPLE_START + message + ERROR_EXAMPLE_END}: the shared
+     * ErrorResponse shape with the same timestamp and traceId as the shared 401, 406 and 500 examples.
+     */
+    public static final String ERROR_EXAMPLE_START = "{\"error\":\"";
+
+    public static final String ERROR_EXAMPLE_END =
+            "\",\"timestamp\":\"" + EXAMPLE_TIMESTAMP + "\",\"traceId\":\"" + EXAMPLE_TRACE_ID + "\"}";
 
     private static final String ATTRIBUTE_NAME = "attribute_name";
 
@@ -74,11 +87,19 @@ public class OpenApiConfig {
                 return;
             }
             openApi.getPaths().forEach((path, item) -> {
-                if (path.startsWith(ApiPaths.REFERENCE_DATA + "/")) {
+                if (isDocumentedHere(path)) {
                     item.readOperations().forEach(operation -> document(operation, registry));
                 }
             });
         };
+    }
+
+    /**
+     * The business routes whose operations get the shared parts: reference data and, since 013, People.
+     */
+    private static boolean isDocumentedHere(String path) {
+        return path.startsWith(ApiPaths.REFERENCE_DATA + "/") || path.equals(ApiPaths.PEOPLE)
+               || path.startsWith(ApiPaths.PEOPLE + "/");
     }
 
     private static void document(Operation operation, ReferenceDataTypeRegistry registry) {
@@ -100,7 +121,7 @@ public class OpenApiConfig {
     }
 
     /**
-     * The errors every reference-data operation can return, whatever its route: 401 from the authentication
+     * The errors every reference-data and People operation can return, whatever its route: 401 from the authentication
      * filter, 406 from content negotiation and 500 from the catch-all handler. Operation-specific responses
      * (200, 400, 404) stay on the controller methods.
      */
@@ -114,8 +135,8 @@ public class OpenApiConfig {
     private static ApiResponse errorResponse(String description, String message) {
         Map<String, String> example = new LinkedHashMap<>();
         example.put("error", message);
-        example.put("timestamp", "2026-09-23T10:15:30Z");
-        example.put("traceId", "3f1c2a9e-8b7d-4e21-9a55-0c6d1e2f3a4b");
+        example.put("timestamp", EXAMPLE_TIMESTAMP);
+        example.put("traceId", EXAMPLE_TRACE_ID);
         return new ApiResponse()
                 .description(description)
                 .content(new Content().addMediaType(APPLICATION_JSON_VALUE, new MediaType()

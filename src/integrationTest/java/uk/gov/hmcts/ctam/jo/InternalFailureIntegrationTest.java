@@ -12,6 +12,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.JsonNode;
+import uk.gov.hmcts.ctam.jo.repository.PeopleRepository;
 import uk.gov.hmcts.ctam.jo.services.ReferenceDataService;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -20,6 +21,7 @@ import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.INTERNAL_SERVER_ERROR;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.APPOINTMENT_TITLES;
+import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.PEOPLE;
 import static uk.gov.hmcts.ctam.jo.testsupport.ErrorResponseAssertions.assertErrorBody;
 import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.BEARER_TOKEN;
 
@@ -39,6 +41,9 @@ class InternalFailureIntegrationTest {
     @MockitoBean
     private ReferenceDataService service;
 
+    @MockitoBean
+    private PeopleRepository peopleRepository;
+
     @Test
     void unexpectedExceptionReturns500WithoutInternalsAndIsLoggedAtError(CapturedOutput output) throws Exception {
         given(service.getAll(anyString())).willThrow(new IllegalStateException("boom /secret/path"));
@@ -55,5 +60,20 @@ class InternalFailureIntegrationTest {
 
         assertThat(output.getAll().lines().filter(line -> line.contains("\"correlationId\":\"int-500\"")))
                 .anySatisfy(line -> assertThat(line).contains("\"level\":\"ERROR\"", "Unhandled exception"));
+    }
+
+    // 013 EC-011: a People route fails the same way.
+    @Test
+    void anUnexpectedPeopleFailureReturns500WithoutInternals() throws Exception {
+        given(peopleRepository.findAll()).willThrow(new IllegalStateException("boom /secret/people"));
+
+        MockHttpServletResponse response = mockMvc.perform(get(PEOPLE + "?updated_since=2000-01-01")
+                .header("Authorization", BEARER_TOKEN)
+                .header("X-Correlation-Id", "int-people-500")).andReturn().getResponse();
+
+        assertThat(response.getStatus()).isEqualTo(500);
+        JsonNode body = assertErrorBody(response.getContentAsString(), INTERNAL_SERVER_ERROR);
+        assertThat(body.get("traceId").asString()).isEqualTo("int-people-500");
+        assertThat(response.getContentAsString()).doesNotContain("boom", "IllegalStateException", "/secret/people");
     }
 }

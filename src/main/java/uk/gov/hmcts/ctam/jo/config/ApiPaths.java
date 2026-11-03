@@ -17,6 +17,11 @@ public final class ApiPaths {
      */
     public static final String REFERENCE_DATA = "/api/v1/reference_data";
 
+    /**
+     * The People route prefix: the search ({@code /api/v1/people}) and the single route ({@code /api/v1/people/{id}}).
+     */
+    public static final String PEOPLE = "/api/v1/people";
+
     private ApiPaths() {
     }
 }

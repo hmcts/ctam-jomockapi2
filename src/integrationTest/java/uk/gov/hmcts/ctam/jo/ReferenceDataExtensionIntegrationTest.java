@@ -37,7 +37,9 @@ import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.BEARER_TOKEN;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+// The People fixture refers to types this test replaces, so it loads an empty one, which needs none (013 EC-013).
 @TestPropertySource(properties = {
+    "jo.people.fixture=classpath:people/empty.json",
     "jo.reference-data.types[0].name=appointment_titles",
     "jo.reference-data.types[0].aliases[0]=appointment_title",
     "jo.reference-data.types[0].fixture=classpath:reference-data/appointment_titles.json",

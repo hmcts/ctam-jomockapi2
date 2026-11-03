@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import uk.gov.hmcts.ctam.jo.filters.DeclaredQueryParametersInterceptor;
 import uk.gov.hmcts.ctam.jo.filters.NoQueryParametersInterceptor;
 
 import java.time.Clock;
@@ -14,6 +15,8 @@ import java.time.Clock;
 public class WebConfig implements WebMvcConfigurer {
 
     private final NoQueryParametersInterceptor noQueryParametersInterceptor;
+
+    private final DeclaredQueryParametersInterceptor declaredQueryParametersInterceptor;
 
     /** UTC clock for error timestamps; tests replace it with a fixed clock. */
     @Bean
@@ -25,5 +28,8 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(noQueryParametersInterceptor)
                 .addPathPatterns(ApiPaths.REFERENCE_DATA + "/**");
+        registry.addInterceptor(declaredQueryParametersInterceptor)
+                // "/**" also matches the search route itself, /api/v1/people.
+                .addPathPatterns(ApiPaths.PEOPLE + "/**");
     }
 }

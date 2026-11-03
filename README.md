@@ -40,6 +40,8 @@ Implemented and covered by automated tests:
 - the Reference Data API for all eleven E-Links types, from appointment titles to ticket category
   types (see [Reference data](#reference-data) and `specs/002-reference-data-api/` to
   `specs/012-ticket-category-types-reference-data/`)
+- the People API's search and single office holder routes (see [People](#people) and
+  `specs/013-people-api/`)
 
 ### Quality gates
 
@@ -260,3 +262,73 @@ Tests to update for a new type:
 - `ReferenceDataFunctionalTest`: remove the names the type serves from the unsupported list.
 - Add a functional test class, a smoke-test path and a Postman sub-folder for the type. The design is in
 [`specs/002-reference-data-api/`](specs/002-reference-data-api/).
+
+## People
+
+Two routes serve synthetic judicial office holders, behind the same Bearer-token authentication,
+correlation IDs and error shape as reference data (`specs/013-people-api/`,
+[contract](specs/013-people-api/contracts/people-api.md)):
+
+| Route | Parameters |
+|---|---|
+| `GET /api/v1/people` | `updated_since` (required, `YYYY-MM-DD`; returns office holders whose `last_updated` is on or after it), `page` (default 1), `per_page` (default 50), `include_previous_appointments` (`true` or `false`, default `false`) |
+| `GET /api/v1/people/{id}` | `id` (a UUID, either case), `include_previous_appointments` |
+
+A search returns `{"results": [...], "pagination": {"results", "pages", "current_page",
+"results_per_page", "more_pages"}}`, ordered by `last_updated`, then `id`. `page` and `per_page`
+accept any positive whole number up to 2^63−1; a page past the last is empty. The single route
+returns the same object a search returns for that office holder.
+
+```bash
+curl -s 'http://localhost:8080/api/v1/people?updated_since=2025-06-01&per_page=10' \
+  -H 'Authorization: Bearer local-dev-token'
+```
+
+**Previous appointments.** An appointment is current when its `end_date` is null or on or after
+the configured reference date, `2026-01-01` by default, never today's date (deviation D-8). Without
+`include_previous_appointments=true`, `appointments` holds only current appointments, and
+`authorisations_with_dates` and `authorisations` only the authorisations under them.
+`authorisations_current` and `judiciary_roles` never depend on the flag.
+
+**Configuration** (`jo.people` in `application.yml`):
+
+- `fixture`: the dataset, `classpath:people/office_holders.json` by default; override with
+  `JO_PEOPLE_FIXTURE`, e.g. `JO_PEOPLE_FIXTURE=file:/path/to/office_holders.json ./start.sh`.
+- `reference-date`: override with `JO_PEOPLE_REFERENCE_DATE`.
+- `reference-types`: which served reference-data type each People reference names (for example
+  `gender-id: genders`). Type names live here, never in Java.
+
+**Dataset.** 120 synthetic office holders, generated once and checked in
+(`src/main/resources/people/office_holders.json`; rules in
+[data-model.md § 4](specs/013-people-api/data-model.md)). Email addresses use the reserved
+`.example` domain and phone numbers the Ofcom drama range `020 7946 0000` to `020 7946 0999`. The
+fixture holds only reference ids; every name beside them (`sex`, `gender`, `role_name`,
+`contract_type`, `court_name`, `court_type`, `location`, `type`, judiciary role `name`, `ticket`,
+an authorisation's `jurisdiction`) is read from the served reference data at start-up, so it always
+agrees with it. `PeopleFixtureRulesTest` checks the generation rules and `PeopleReferencesTest` that
+every reference resolves.
+
+**Start-up validation.** Any configured fixture is validated at start-up: required keys and types,
+unique ids, reserved contact ranges, one current principal appointment, dates in order, every
+reference resolving, and each authorisation within its appointment. If a rule fails, the service
+refuses to start with a message such as `Invalid People fixture <location>: duplicate id (office
+holder <id>)`. An empty fixture (`[]`) is valid.
+
+**Errors.**
+
+| Status | When | `error` |
+|---|---|---|
+| 400 | `updated_since` missing or empty | `updated_since is required.` |
+| 400 | `updated_since` malformed, with a time part, or not a real date | `updated_since must be a valid date.` |
+| 400 | bad `page` or `per_page` | `page must be a positive whole number.` (or `per_page ...`) |
+| 400 | flag not exactly `true` or `false` | `include_previous_appointments must be true or false.` |
+| 400 | a parameter the route doesn't define | `Unsupported query parameter.` |
+| 400 | a parameter given twice | `Query parameters must not be repeated.` |
+| 400 | `id` not a UUID | `id must be a UUID.` |
+| 404 | no office holder has the `id` | `Person not found.` |
+| 401, 404, 405, 406, 500 | as for every route | the shared messages |
+
+**Deferred items.** This feature closes the reference-data features' People items: 004 DF-2
+(contract types), 005 DF-3 (genders), 006 DF-4 (judiciary roles), 007 DF-6 (locations) and 010
+DF-9 (tickets). Still open: DF-11, the leavers (`/api/v5/leavers`) and deleted (`/api/v5/deleted`)
+routes, which must reuse this feature's pagination component.

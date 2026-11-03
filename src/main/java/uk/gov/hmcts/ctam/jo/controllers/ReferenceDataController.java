@@ -26,6 +26,9 @@ import uk.gov.hmcts.ctam.jo.exceptions.UnsupportedReferenceDataTypeException;
 import uk.gov.hmcts.ctam.jo.services.ReferenceDataService;
 import uk.gov.hmcts.ctam.jo.services.ReferenceIdParser;
 
+import static uk.gov.hmcts.ctam.jo.config.OpenApiConfig.ERROR_EXAMPLE_END;
+import static uk.gov.hmcts.ctam.jo.config.OpenApiConfig.ERROR_EXAMPLE_START;
+
 /**
  * Reference-data routes. Binds the request and shapes the response only; every configured type is served
  * by the same code. Only responses specific to one operation are documented here. OpenApiConfig adds the
@@ -38,11 +41,6 @@ import uk.gov.hmcts.ctam.jo.services.ReferenceIdParser;
 @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH)
 @RequiredArgsConstructor
 public class ReferenceDataController {
-
-    private static final String ERROR_EXAMPLE_START = "{\"error\":\"";
-
-    private static final String ERROR_EXAMPLE_END =
-            "\",\"timestamp\":\"2026-09-23T10:15:30Z\",\"traceId\":\"3f1c2a9e-8b7d-4e21-9a55-0c6d1e2f3a4b\"}";
 
     private final ReferenceDataService service;
 

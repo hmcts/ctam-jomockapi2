@@ -1,0 +1,129 @@
+[
+  {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "last_updated": "2026-07-01",
+    "per_id": 900001,
+    "personal_code": "9100001",
+    "title": "District Judge",
+    "known_as": "Alex",
+    "surname": "Fenwick",
+    "fullname": "District Judge Alex Fenwick",
+    "initials": "AF",
+    "post_nominals": "KC",
+    "email": "alex.fenwick@judiciary.example",
+    "email_personal": "alex.fenwick@personal.example",
+    "gender_id": 10,
+    "show_gender": true,
+    "work_phone": "020 7946 0001",
+    "disability": true,
+    "retirement_date": "2035-01-01",
+    "leaving_on": null,
+    "appointments": [
+      {
+        "appointment_id": 700002,
+        "role_name_id": 10,
+        "base_location_id": 190,
+        "contract_type_id": 120,
+        "is_principal": true,
+        "start_date": "2020-01-01",
+        "end_date": null,
+        "circuit": "Midland",
+        "bench": null,
+        "advisory_committee_area": null
+      },
+      {
+        "appointment_id": 700001,
+        "role_name_id": 20,
+        "base_location_id": 2770,
+        "contract_type_id": 10,
+        "is_principal": false,
+        "start_date": "2010-01-01",
+        "end_date": "2019-12-31",
+        "circuit": null,
+        "bench": "North Bench",
+        "advisory_committee_area": "Kent"
+      }
+    ],
+    "judiciary_roles": [
+      {
+        "judiciary_role_id": 600002,
+        "judiciary_role_name_id": 20,
+        "start_date": "2021-01-01",
+        "end_date": null
+      },
+      {
+        "judiciary_role_id": 600001,
+        "judiciary_role_name_id": 10,
+        "start_date": "2015-01-01",
+        "end_date": "2018-12-31"
+      }
+    ],
+    "authorisations": [
+      {
+        "authorisation_id": 800003,
+        "appointment_id": 700002,
+        "ticket_id": 99999,
+        "start_date": "2021-01-01",
+        "end_date": null
+      },
+      {
+        "authorisation_id": 800001,
+        "appointment_id": 700001,
+        "ticket_id": 294,
+        "start_date": "2011-01-01",
+        "end_date": "2019-12-31"
+      },
+      {
+        "authorisation_id": 800002,
+        "appointment_id": 700002,
+        "ticket_id": 294,
+        "start_date": "2020-02-01",
+        "end_date": "2024-06-30"
+      }
+    ]
+  },
+  {
+    "id": "22222222-2222-4222-8222-222222222222",
+    "last_updated": "2026-07-01",
+    "per_id": 900002,
+    "personal_code": "9100008",
+    "title": "Recorder",
+    "known_as": "Sam",
+    "surname": "Barlow",
+    "fullname": "Recorder Sam Barlow",
+    "initials": "SB",
+    "post_nominals": null,
+    "email": "sam.barlow@judiciary.example",
+    "email_personal": null,
+    "gender_id": 20,
+    "show_gender": false,
+    "work_phone": null,
+    "disability": false,
+    "retirement_date": null,
+    "leaving_on": null,
+    "appointments": [
+      {
+        "appointment_id": 700003,
+        "role_name_id": 30,
+        "base_location_id": 200,
+        "contract_type_id": 20,
+        "is_principal": true,
+        "start_date": "2018-05-01",
+        "end_date": "2026-06-30",
+        "circuit": null,
+        "bench": null,
+        "advisory_committee_area": null
+      }
+    ],
+    "judiciary_roles": [],
+    "authorisations": [
+      {
+        "authorisation_id": 800004,
+        "appointment_id": 700003,
+        "ticket_id": 367,
+        "start_date": "2019-01-01",
+        "end_date": "2025-03-31"
+      }
+    ]
+  }
+]

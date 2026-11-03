@@ -1,5 +1,7 @@
 # Contract: Reference Data API (v1)
 
+Extended by 013: see [the People contract](../../013-people-api/contracts/people-api.md).
+
 **Feature**: `002-reference-data-api` | **Spec**: [../spec.md](../spec.md) | **Data model**: [../data-model.md](../data-model.md)
 
 This is the externally observable HTTP contract. The springdoc-generated `/v3/api-docs` MUST describe exactly what is here (Principle XVIII), and contract tests assert the two match.
