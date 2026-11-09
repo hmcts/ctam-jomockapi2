@@ -1,0 +1,10 @@
+# TODO: replace with the owning GitHub team(s) before merging (see CNP-ONBOARDING-PLAN.md).
+* @hmcts/TODO-ctam-owners
+
+# Ignore files updated by Renovate
+gradle/wrapper/gradle-wrapper.properties
+gradle.lockfile
+Dockerfile
+build.gradle
+charts/**/Chart.yaml
+.github/workflows/*.yml

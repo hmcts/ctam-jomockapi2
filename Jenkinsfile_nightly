@@ -1,0 +1,24 @@
+#!groovy
+
+// The HMCTS nightly pipeline (specs/014-jenkins-preview-deployment, FR-002). It runs on `main` every weekday,
+// builds the service and runs the dependency check against the shared HMCTS database, and never deploys anything.
+// The afterSuccess('build') callback adds `check`, so the full quality gate also runs nightly. init.gradle is the
+// library's dependency-mirror script, which the Build stage has already written to the workspace. If the callback
+// cannot call `sh` directly, use `steps.sh` (014 research R-9).
+
+properties([
+  // H allow predefined but random minute see https://en.wikipedia.org/wiki/Cron#Non-standard_characters
+  pipelineTriggers([cron('H 07 * * 1-5')])
+])
+
+@Library("Infrastructure@2.13.5") _
+
+def type = "java"
+def product = "ctam"
+def component = "jomockapi"
+
+withNightlyPipeline(type, product, component) {
+  afterSuccess('build') {
+    sh './gradlew --no-daemon --init-script init.gradle check'
+  }
+}

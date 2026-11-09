@@ -1,0 +1,44 @@
+#!groovy
+
+// The HMCTS shared Java pipeline (specs/014-jenkins-preview-deployment).
+//
+// Only pull requests are built, checked and deployed, to the preview environment: the library treats only a branch
+// named `master` as a route to live (AAT, then production), and this repository's default branch is `main`, where
+// Jenkins does nothing and GitHub Actions is the gate (014 research R-2; AAT and beyond are deferred item DF-12).
+//
+// After deploying, the pipeline sets TEST_URL to the preview address and runs `./gradlew smoke` and then
+// `./gradlew functional`. The preview release is removed at the end of the run unless the pull request is labelled
+// `enable_keep_helm`.
+
+@Library("Infrastructure@2.13.5") _
+
+def type = "java"
+def product = "ctam"
+def component = "jomockapi"
+
+// Preview deployments read the AAT vaults.
+def vaultOverrides = [
+  'preview': 'aat'
+]
+
+// The bearer tokens the deployed copy accepts (comma-separated), for the smoke and functional tests. The key must
+// stay in single quotes so the pipeline, not Groovy, substitutes ${env}.
+def secrets = [
+  'ctam-${env}': [
+    secret('jo-security-bearer-tokens', 'TEST_BEARER_TOKEN')
+  ]
+]
+
+static LinkedHashMap<String, Object> secret(String secretName, String envVar) {
+  [ $class: 'AzureKeyVaultSecret',
+    secretType: 'Secret',
+    name: secretName,
+    version: '',
+    envVariable: envVar
+  ]
+}
+
+withPipeline(type, product, component) {
+  overrideVaultEnvironments(vaultOverrides)
+  loadVaultSecrets(secrets)
+}

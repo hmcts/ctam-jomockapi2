@@ -1,0 +1,21 @@
+java:
+  applicationPort: 8080
+  image: 'hmctspublic.azurecr.io/ctam/jomockapi:latest'
+  ingressHost: ctam-jomockapi-{{ .Values.global.environment }}.service.core-compute-{{ .Values.global.environment }}.internal
+  aadIdentityName: ctam
+  # The service has no Actuator: all three probes use its own unauthenticated health check (constitution
+  # Principle II). The chart's defaults (/health/readiness, /health/liveness) don't exist here.
+  readinessPath: /api/v1/healthcheck
+  livenessPath: /api/v1/healthcheck
+  startupPath: /api/v1/healthcheck
+  # The accepted bearer tokens (comma-separated), mounted as /mnt/secrets/ctam/jo.security.bearer-tokens.
+  keyVaults:
+    ctam:
+      secrets:
+        - name: jo-security-bearer-tokens
+          alias: jo.security.bearer-tokens
+  environment:
+    # Reads the mounted secret as the jo.security.bearer-tokens property, overriding the local-dev-token default.
+    # Deliberately not "optional:": a missing secret must stop start-up, never fall back (014 EC-003, FR-012).
+    # Nothing else is overridden, so a preview copy serves exactly the shipped synthetic data (014 FR-013).
+    SPRING_CONFIG_IMPORT: "configtree:/mnt/secrets/ctam/"
