@@ -12,6 +12,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import uk.gov.hmcts.ctam.jo.testsupport.JsonTrees;
+import uk.gov.hmcts.ctam.jo.testsupport.TestTarget;
 
 import java.net.URI;
 import java.time.Duration;
@@ -22,7 +23,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.PEOPLE;
-import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.TOKEN;
 
 /**
  * 013 SC-009: the People requests meet 002's latency targets unchanged, with every measured call returning 200. The
@@ -79,8 +79,8 @@ class PeopleSmokeTest {
 
     private ResponseEntity<String> get(String path) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(TOKEN);
-        return restTemplate.exchange(URI.create("http://localhost:" + port + path), HttpMethod.GET,
+        headers.setBearerAuth(TestTarget.token());
+        return restTemplate.exchange(URI.create(TestTarget.baseUrl(port) + path), HttpMethod.GET,
                                      new HttpEntity<>(headers), String.class);
     }
 }

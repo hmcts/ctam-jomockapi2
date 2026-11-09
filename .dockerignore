@@ -1,0 +1,5 @@
+# Only these two files may enter the image (014 FR-008): never sources, tests, build caches or the local-only
+# reference extracts in joh-elinks-api/. The HMCTS pipeline appends its own lines to this file at build time.
+*
+!build/libs/ctam-jomockapi.jar
+!lib/applicationinsights.json

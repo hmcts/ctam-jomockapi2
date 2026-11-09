@@ -26,6 +26,11 @@ application {
     mainClass = 'uk.gov.hmcts.ctam.jo.Application'
 }
 
+// The Dockerfile copies this exact file, so its name must never depend on the project name (014 FR-004).
+tasks.named('bootJar') {
+    archiveFileName = 'ctam-jomockapi.jar'
+}
+
 repositories {
     mavenCentral()
 }
@@ -112,6 +117,53 @@ tasks.named('check') {
     dependsOn testing.suites.integrationTest, testing.suites.functionalTest, testing.suites.smokeTest
 }
 
+// Deployed-copy tasks (014 FR-015 to FR-019, research R-1 and R-6). The HMCTS Jenkins pipeline runs `smoke` and
+// then `functional` against each preview deployment, with its address in TEST_URL; TEST_BEARER_TOKEN holds the
+// accepted tokens (comma-separated; the first is sent). They run the smokeTest and functionalTest suites' compiled
+// tests through TestTarget, so no scenario is written twice. They are not part of `check`, and their coverage is not
+// merged into the JaCoCo report. Run them by hand against any copy:
+//   TEST_URL=http://localhost:8080 TEST_BEARER_TOKEN=local-dev-token ./gradlew smoke functional
+def deployedCopyTask = { String taskName, String suiteName, String taskDescription, Closure<?> selectTests ->
+    tasks.register(taskName, Test) {
+        group = 'verification'
+        description = taskDescription
+        def suiteSources = testing.suites.named(suiteName).get().sources
+        testClassesDirs = suiteSources.output.classesDirs
+        classpath = suiteSources.runtimeClasspath
+        selectTests.delegate = delegate
+        selectTests()
+        // Every run must test the copy as it is now, never a cached result (014 EC-004).
+        outputs.upToDateWhen { false }
+        doFirst {
+            def testUrl = System.getenv('TEST_URL')?.trim()
+            // The first non-blank entry, so a stray comma can't leave the tests silently using the in-process token.
+            def token = System.getenv('TEST_BEARER_TOKEN')?.split(',')?.collect { it.trim() }?.find { it }
+            def missing = [TEST_URL: testUrl, TEST_BEARER_TOKEN: token].findAll { name, value -> !value }.keySet()
+            if (missing) {
+                throw new GradleException("${taskName} tests a running copy of the service and needs TEST_URL and "
+                        + "TEST_BEARER_TOKEN. Missing: ${missing.join(', ')}")
+            }
+            systemProperty 'jo.test.base-url', testUrl
+            systemProperty 'jo.test.token', token
+        }
+    }
+}
+
+deployedCopyTask('smoke', 'smokeTest', 'Checks that the running copy at TEST_URL is up and serving (not part of check).') {
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching 'uk.gov.hmcts.ctam.jo.DeploymentSmokeTest'
+    }
+}
+
+deployedCopyTask('functional', 'functionalTest',
+        'Runs every functional acceptance scenario against the running copy at TEST_URL (not part of check).') {
+    // Scenarios that cannot pass behind an ingress are tagged and listed in the README (014 EC-006).
+    useJUnitPlatform {
+        excludeTags 'in-process-only'
+    }
+}
+
 jacoco {
     toolVersion = '0.8.15'
 }
@@ -164,15 +216,22 @@ dependencyCheck {
 def nvdApiKeyMissing = { -> !System.getenv('NVD_API_KEY')?.trim() }
 def skipOwasp = providers.gradleProperty('skipOwasp').isPresent()
 
-if (!skipOwasp) {
+// Jenkins sets JENKINS_URL on every build; GitHub Actions never does. Under Jenkins the HMCTS pipeline's Security
+// stage runs dependencyCheckAggregate itself, against the shared HMCTS vulnerability database, so `check` must not
+// run it a second time (014 FR-005, research R-4). Everywhere else `check` runs the scan as before.
+def onJenkins = providers.environmentVariable('JENKINS_URL').map { it.trim() }.filter { !it.isEmpty() }.isPresent()
+
+if (!skipOwasp && !onJenkins) {
     tasks.named('check') {
         dependsOn tasks.named('dependencyCheckAggregate')
     }
 }
 
 // In CI the scan must never run keyless (slow, rate-limited) or be skipped silently: fail before any task runs.
+// Jenkins is exempt: its pipeline uses the shared database with autoUpdate off, so no NVD key is needed there.
 gradle.taskGraph.whenReady { graph ->
-    if (graph.hasTask(':dependencyCheckAggregate') && System.getenv('CI') == 'true' && nvdApiKeyMissing()) {
+    if (graph.hasTask(':dependencyCheckAggregate') && System.getenv('CI') == 'true' && !onJenkins
+            && nvdApiKeyMissing()) {
         throw new GradleException('NVD_API_KEY is not set; OWASP dependency-check cannot run in CI')
     }
 }

@@ -1,0 +1,3 @@
+// A fixed project name, so build output names don't depend on the folder the repository is checked out into
+// (Jenkins uses its own workspace names). 014 FR-004.
+rootProject.name = 'ctam-jomockapi'

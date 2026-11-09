@@ -11,6 +11,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
+import uk.gov.hmcts.ctam.jo.testsupport.TestTarget;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -30,7 +31,6 @@ import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.LOCATION_TYPES;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.TICKETS;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.TICKET_CATEGORIES;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractPaths.TICKET_CATEGORY_TYPES;
-import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.TOKEN;
 
 /**
  * A latency regression guard for each configured type's authenticated collection call (002 research R13, 003
@@ -75,8 +75,8 @@ class ReferenceDataSmokeTest {
 
     private ResponseEntity<String> get(String path) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(TOKEN);
-        return restTemplate.exchange("http://localhost:" + port + path, HttpMethod.GET, new HttpEntity<>(headers),
+        headers.setBearerAuth(TestTarget.token());
+        return restTemplate.exchange(TestTarget.baseUrl(port) + path, HttpMethod.GET, new HttpEntity<>(headers),
                                      String.class);
     }
 }
