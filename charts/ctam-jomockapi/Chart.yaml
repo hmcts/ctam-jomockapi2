@@ -4,10 +4,10 @@ description: A Helm chart for the E-Links mock API (ctam-jomockapi)
 name: ctam-jomockapi
 home: https://github.com/hmcts/ctam-jomockapi2
 # Raise this in every pull request that changes the chart: the HMCTS pipeline enforces it (014 research R-3).
-version: 0.0.1
+version: 0.0.2
 maintainers:
   - name: HMCTS ctam team
 dependencies:
   - name: java
     version: 6.1.1
-    repository: 'oci://hmctspublic.azurecr.io/helm'
+    repository: 'oci://hmctsprod.azurecr.io/helm'

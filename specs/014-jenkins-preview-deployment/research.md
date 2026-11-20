@@ -41,7 +41,7 @@ Sources were read on 2026-11-03 from these HMCTS repositories: `cnp-jenkins-libr
 
 ## R-5 Container image
 
-**Decision**: `Dockerfile` based on `hmctspublic.azurecr.io/base/java:25-distroless` (listed in `cnp-java-base`). It sets `ARG APP_INSIGHTS_AGENT_VERSION` (as the template and base image README do), copies `lib/applicationinsights.json` and `build/libs/ctam-jomockapi.jar` to `/opt/app/`, `EXPOSE 8080`, and `CMD ["ctam-jomockapi.jar"]`. A whitelist `.dockerignore` (`*`, then `!build/libs/ctam-jomockapi.jar`, `!lib/applicationinsights.json`) keeps sources, tests, `joh-elinks-api/` and caches out of the image (FR-008). The pipeline appends one line of its own to `.dockerignore`, which this layout tolerates.
+**Decision**: `Dockerfile` based on `hmctsprod.azurecr.io/base/java:25-distroless` (listed in `cnp-java-base`). It sets `ARG APP_INSIGHTS_AGENT_VERSION` (as the template and base image README do), copies `lib/applicationinsights.json` and `build/libs/ctam-jomockapi.jar` to `/opt/app/`, `EXPOSE 8080`, and `CMD ["ctam-jomockapi.jar"]`. A whitelist `.dockerignore` (`*`, then `!build/libs/ctam-jomockapi.jar`, `!lib/applicationinsights.json`) keeps sources, tests, `joh-elinks-api/` and caches out of the image (FR-008). The pipeline appends one line of its own to `.dockerignore`, which this layout tolerates.
 
 **Findings**: The base image's default `JAVA_AGENT_OPTIONS` points at the Application Insights agent jar, which is only added when `APP_INSIGHTS_AGENT_VERSION` is set. Following the template avoids the JVM failing to start on a missing agent. `lib/applicationinsights.json` names the role `ctam-jomockapi` and has **no** connection string, because App Insights is not provisioned (DF-12). The agent then sends no telemetry; structured logs still go to stdout (Principle XIV). PR builds pass `--build-arg DEV_MODE=true`, which this Dockerfile ignores.
 
@@ -64,11 +64,11 @@ Sources were read on 2026-11-03 from these HMCTS repositories: `cnp-jenkins-libr
 
 ## R-7 Helm chart
 
-**Decision**: `charts/ctam-jomockapi/` with `Chart.yaml` (apiVersion v2, `name: ctam-jomockapi`, `version: 0.0.1`, one dependency `java` `6.1.1` from `oci://hmctspublic.azurecr.io/helm`), `values.yaml` and `values.preview.template.yaml` (`image: ${IMAGE_NAME}`, `ingressHost: ${SERVICE_FQDN}`, as in the template).
+**Decision**: `charts/ctam-jomockapi/` with `Chart.yaml` (apiVersion v2, `name: ctam-jomockapi`, `version: 0.0.1`, one dependency `java` `6.1.1` from `oci://hmctsprod.azurecr.io/helm`), `values.yaml` and `values.preview.template.yaml` (`image: ${IMAGE_NAME}`, `ingressHost: ${SERVICE_FQDN}`, as in the template).
 
 `values.yaml` (under `java:`):
 - `applicationPort: 8080`
-- `image: hmctspublic.azurecr.io/ctam/jomockapi:latest`. The pipeline overrides it; the registry is whatever the team configuration names.
+- `image: hmctsprod.azurecr.io/ctam/jomockapi:latest`. The pipeline overrides it; the registry is whatever the team configuration names.
 - `ingressHost: ctam-jomockapi-{{ .Values.global.environment }}.service.core-compute-{{ .Values.global.environment }}.internal`
 - `aadIdentityName: ctam`
 - `readinessPath`, `livenessPath` and **`startupPath`**: `/api/v1/healthcheck`. The chart defaults all three to Actuator paths, and the startup probe is easy to miss (Principle II).

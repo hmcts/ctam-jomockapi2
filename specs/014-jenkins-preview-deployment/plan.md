@@ -20,7 +20,7 @@ The bearer tokens reach the deployed service from Key Vault `ctam-aat`, mounted 
 
 **Language/Version**: Java 25 (toolchain); Groovy (Jenkinsfiles, Gradle DSL); YAML (Helm)
 
-**Primary Dependencies**: Spring Boot 4.1.1 (unchanged). New external inputs, not Gradle dependencies: `cnp-jenkins-library` 2.13.5 (pinned), HMCTS `java` chart 6.1.1, base image `hmctspublic.azurecr.io/base/java:25-distroless`.
+**Primary Dependencies**: Spring Boot 4.1.1 (unchanged). New external inputs, not Gradle dependencies: `cnp-jenkins-library` 2.13.5 (pinned), HMCTS `java` chart 6.1.1, base image `hmctsprod.azurecr.io/base/java:25-distroless`.
 
 **Storage**: N/A. One Key Vault secret, provisioned outside the repository.
 

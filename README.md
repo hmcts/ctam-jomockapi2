@@ -350,7 +350,7 @@ the merge gate and is unchanged. Design: `specs/014-jenkins-preview-deployment/`
 | Test | `./gradlew check` | the four suites, Checkstyle and coverage, **without** the OWASP scan (see below) |
 | Security | `./gradlew dependencyCheckAggregate` | against the shared HMCTS vulnerability database; fails on **any** unsuppressed CVE, stricter than GitHub Actions' CVSS 7.0 |
 | Sonar | `./gradlew sonarqube` | only if active on the Jenkins instance |
-| Docker build | `Dockerfile` | `hmctspublic.azurecr.io/base/java:25-distroless`, port 8080 |
+| Docker build | `Dockerfile` | `hmctsprod.azurecr.io/base/java:25-distroless`, port 8080 |
 | Deploy | `charts/ctam-jomockapi` | one copy per pull request, named `ctam-jomockapi`; the address is in the Jenkins log |
 | Smoke, then functional | `./gradlew smoke`, `./gradlew functional` | against the preview copy (`TEST_URL`) |
 

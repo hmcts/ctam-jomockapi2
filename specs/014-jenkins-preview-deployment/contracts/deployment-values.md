@@ -6,7 +6,7 @@ What the image and the `ctam-jomockapi` chart guarantee to the platform and to c
 
 | Property | Value |
 |---|---|
-| Base | `hmctspublic.azurecr.io/base/java:25-distroless` |
+| Base | `hmctsprod.azurecr.io/base/java:25-distroless` |
 | Contents of `/opt/app/` | `ctam-jomockapi.jar`, `applicationinsights.json`, the Application Insights agent added by the base image |
 | Not in the image | sources, tests, `joh-elinks-api/`, `.gradle/`, any other build output (whitelist `.dockerignore`) |
 | Port | `8080` (`EXPOSE 8080`; `server.port` default unchanged) |
@@ -15,14 +15,14 @@ What the image and the `ctam-jomockapi` chart guarantee to the platform and to c
 
 ## Chart `charts/ctam-jomockapi`
 
-`Chart.yaml`: `apiVersion: v2`, `name: ctam-jomockapi`, `version` raised on every chart change, dependency `java` `6.1.1` from `oci://hmctspublic.azurecr.io/helm`.
+`Chart.yaml`: `apiVersion: v2`, `name: ctam-jomockapi`, `version` raised on every chart change, dependency `java` `6.1.1` from `oci://hmctsprod.azurecr.io/helm`.
 
 `values.yaml` (`java:`):
 
 | Key | Value | Why |
 |---|---|---|
 | `applicationPort` | `8080` | chart default is 4550 |
-| `image` | `hmctspublic.azurecr.io/ctam/jomockapi:latest` | overridden by the pipeline |
+| `image` | `hmctsprod.azurecr.io/ctam/jomockapi:latest` | overridden by the pipeline |
 | `ingressHost` | `ctam-jomockapi-{{ .Values.global.environment }}.service.core-compute-{{ .Values.global.environment }}.internal` | template convention |
 | `aadIdentityName` | `ctam` | Key Vault access |
 | `readinessPath`, `livenessPath`, `startupPath` | `/api/v1/healthcheck` | Principle II; chart defaults are Actuator paths |

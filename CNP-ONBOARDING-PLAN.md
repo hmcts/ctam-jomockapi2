@@ -42,7 +42,7 @@ Derived names follow the pattern `{product}-{component}` = `ctam-jomockapi`.
 | **Helm release name** | `ctam-jomockapi` |
 | **Helm chart** | `charts/ctam-jomockapi` (HMCTS `java` chart 6.1.1) |
 | **Docker image** | `{registry}/ctam/jomockapi:{tag}`, registry set by the team configuration |
-| **Docker base image** | `hmctspublic.azurecr.io/base/java:25-distroless` |
+| **Docker base image** | `hmctsprod.azurecr.io/base/java:25-distroless` |
 | **Azure Key Vault (preview, AAT)** | `ctam-aat` |
 | **Key Vault secret** | `jo-security-bearer-tokens` (comma-separated bearer tokens) |
 | **Mounted as** | `/mnt/secrets/ctam/jo.security.bearer-tokens`, read through `SPRING_CONFIG_IMPORT=configtree:/mnt/secrets/ctam/` |
