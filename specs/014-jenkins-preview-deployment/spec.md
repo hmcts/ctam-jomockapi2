@@ -54,6 +54,7 @@ Read from the HMCTS shared pipeline library on 2026-11-03. The plan must re-conf
 ### Session 2026-11-23 (amendment)
 
 - Q: The first Jenkins run found that Key Vault `ctam-aat` does not exist, so the preview deploy fails before the service starts. Should preview keep depending on a Key Vault? → A: No. Preview uses no Key Vault. A single preview-only bearer token is defined once, in `Jenkinsfile_CNP`, and reaches both the deployed copy (through `values.preview.template.yaml`) and the deployed-copy tests. It is committed to the repository; that is accepted because a preview copy serves only synthetic data, is reachable only on HMCTS's internal preview network, and is removed after each run. It is never `local-dev-token` or `test-token`, so SC-003 still holds. Key Vault–held tokens return with the shared environments (DF-12). This supersedes the Session 2026-11-03 Key Vault answer, FR-003's "never a token written into the repository", and FR-012's Key Vault source, for preview only.
+- Q: The pipeline then deployed the copy but failed its start-up check: the shared library polls `GET /health` after every deploy (hard-coded, not configurable) and expects a status of 300 or below, while the service answered `404` because its health check is `/api/v1/healthcheck`. How should the service satisfy it? → A: Add `GET /health`, a second hand-rolled health check returning the same `{"status": "ok"}` (Principle II), unauthenticated (it is outside `/api/`) and exempt from correlation IDs like the existing one (Principle XIV), documented in OpenAPI (Principle XVIII), with a Postman request (Principle XVII) and tests in every suite. It is not part of the E-Links contract. This is the one exception to FR-022; probes stay on `/api/v1/healthcheck` (FR-011).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -196,7 +197,8 @@ Nothing a caller of the mock can observe changes: every route, response, status 
 
 **Unchanged behaviour**
 
-- **FR-022**: This feature MUST NOT change any route, response, status code, header, error message or data the service serves, and MUST NOT change the OpenAPI document or the Postman artifacts' expectations.
+- **FR-022**: This feature MUST NOT change any route, response, status code, header, error message or data the service serves, and MUST NOT change the OpenAPI document or the Postman artifacts' expectations, except for FR-024.
+- **FR-024**: The service MUST answer `GET /health` with `200` and exactly `{"status":"ok"}`, without a token and without a correlation ID, because the shared pipeline's post-deploy check calls that path (amended 2026-11-23, research R-15). It MUST appear in the OpenAPI document and the Postman collection, and `DeploymentSmokeTest` MUST check it on every preview run.
 - **FR-023**: This feature MUST NOT change the GitHub Actions CI or CodeQL workflows.
 
 ### Key Entities
@@ -215,7 +217,7 @@ Nothing a caller of the mock can observe changes: every route, response, status 
 - **SC-002**: 100% of the existing functional acceptance scenarios either pass against a deployed copy or are listed with a reason for exclusion (expected: none excluded).
 - **SC-003**: A preview copy refuses `local-dev-token` and accepts the environment's token, in every deployment.
 - **SC-004**: The dependency vulnerability scan runs exactly once per Jenkins build, and exactly as today in every GitHub Actions build.
-- **SC-005**: Every existing test, the coverage gate and the Postman collection pass unchanged; no API behaviour changes.
+- **SC-005**: Every existing test, the coverage gate and the Postman collection pass unchanged; no API behaviour changes other than the added `GET /health` (FR-024).
 - **SC-006**: A team member can run the deployed-copy smoke tests against a local instance in under 5 minutes by following the README.
 
 ## Assumptions
@@ -227,5 +229,5 @@ Nothing a caller of the mock can observe changes: every route, response, status 
 - Preview needs no infrastructure outside the repository beyond HMCTS's standard preview arrangement: no Key Vault, managed identity or Terraform (Clarifications, 2026-11-23). The first Jenkins run showed the planned vault `ctam-aat` does not exist.
 - The deployed-copy tests share code with the existing in-process suites (for example by choosing the target address and token from settings), so a scenario is written once.
 - Adding the `smoke` and `functional` tasks is consistent with Constitution Principle XIII: the four required suites stay as they are and `check` still runs them all. If planning finds a conflict, it is raised before implementation, not worked around.
-- Postman artifacts (Principle XVII) and the OpenAPI document (Principle XVIII) need no change, because no endpoint changes. The Postman environment already takes the base address as a variable, so it can be pointed at a preview copy.
+- Postman artifacts (Principle XVII) and the OpenAPI document (Principle XVIII) change only to add `GET /health` (FR-024, amended 2026-11-23). The Postman environment already takes the base address as a variable, so it can be pointed at a preview copy.
 - Out of scope: AAT, demo, perftest, ITHC and production; environment configuration outside this repository (Flux); Jenkins team registration itself (documented as a prerequisite only); infrastructure provisioning; new or changed endpoints.

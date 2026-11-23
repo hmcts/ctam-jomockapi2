@@ -139,3 +139,11 @@ None of the changes conflicts with v1.13.0. In particular:
 
 **Alternatives rejected**: waiting for the vault (blocks every preview run on an outside request); skipping deployment until it exists (loses US2 and US3).
 
+## R-15 The pipeline's post-deploy health check calls `/health` (amendment 2026-11-23)
+
+**Finding**: Build 8 of PR #25 deployed the copy, then failed after 40 attempts: `Startup checker … GET https://ctam-jomockapi-pr-25.preview.platform.hmcts.net/health` → `404` with this service's own `ErrorResponse` body, so the copy was running. `vars/helmInstall.groovy` (2.13.5) builds the URL as `env.AKS_TEST_URL + '/health'` and `HealthChecker` passes only on a status of 300 or below. The path is not configurable. R-7 covered only the chart probes and missed this check.
+
+**Decision** (spec Clarifications 2026-11-23, FR-024): serve `GET /health` from `HealthcheckController`, returning the same `HealthResponse("ok")` as `/api/v1/healthcheck`, with its own OpenAPI operation ("Platform health check"). It is outside `/api/`, so `BearerTokenAuthenticationFilter` already leaves it open; `CorrelationIdFilter` exempts it alongside the healthcheck (Principle XIV allows health-style exemptions). The path is `ApiPaths.PLATFORM_HEALTH`. Probes stay on `/api/v1/healthcheck`.
+
+**Alternatives rejected**: Spring Boot Actuator (Principle II: hand-rolled health checks are the convention, and Actuator would add a framework the service doesn't otherwise need); an ingress rewrite of `/health` (the HMCTS `java` chart offers no supported way, and the check would then pass without the service being asked); moving the existing healthcheck (it is part of 001's contract).
+

@@ -19,4 +19,13 @@ public class HealthcheckController {
     public ResponseEntity<HealthResponse> healthcheck() {
         return ResponseEntity.status(HttpStatus.OK).body(new HealthResponse("ok"));
     }
+
+    @Operation(summary = "Platform health check",
+            description = "The same response as the healthcheck, at the path the HMCTS deployment pipeline checks "
+                          + "after deploying. Not part of the E-Links contract.")
+    @ApiResponse(responseCode = "200", description = "Service is healthy")
+    @GetMapping(value = ApiPaths.PLATFORM_HEALTH, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<HealthResponse> platformHealth() {
+        return healthcheck();
+    }
 }

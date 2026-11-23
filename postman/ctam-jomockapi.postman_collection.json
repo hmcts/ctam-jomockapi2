@@ -46,6 +46,47 @@
           "response": []
         },
         {
+          "name": "GET /health - platform health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Content-Type is application/json', function () {",
+                  "    pm.response.to.have.header('Content-Type');",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "",
+                  "pm.test('Body is exactly {\"status\":\"ok\"}', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(Object.keys(body)).to.eql(['status']);",
+                  "    pm.expect(body.status).to.eql('ok');",
+                  "});",
+                  "",
+                  "pm.test('No correlation ID (health checks are exempt)', function () {",
+                  "    pm.expect(pm.response.headers.has('X-Correlation-Id')).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
           "name": "POST /api/v1/healthcheck - method not allowed",
           "request": {
             "method": "POST",

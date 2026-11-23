@@ -210,6 +210,15 @@ class ReferenceDataFunctionalTest {
             assertThat(response.getBody()).isEqualTo("{\"status\":\"ok\"}");
         }
 
+        @Test
+        void platformHealthCheckNeedsNoTokenAndAnswersLikeTheHealthcheck() {
+            ResponseEntity<String> response = http.send(HttpMethod.GET, "/health", null);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).isEqualTo("{\"status\":\"ok\"}");
+            assertThat(response.getHeaders().containsHeader("X-Correlation-Id")).isFalse();
+        }
+
         @ParameterizedTest
         @ValueSource(strings = {
             "/%61pi/v1/reference_data/appointment_titles",

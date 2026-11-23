@@ -225,6 +225,19 @@ description: "Task list for 014 Jenkins Pipeline and Preview Deployment"
 
 ---
 
+## Phase 11: Amendment 2026-11-23 - Platform Health Check at `/health`
+
+**Purpose**: The pipeline's post-deploy check polls `GET /health` (PR #25, build 8; research R-15; FR-024).
+
+- [X] T040 Amend spec.md (Clarifications, FR-022, FR-024, SC-005, assumptions), research.md (R-15), contracts/deployment-values.md, plan.md, README.md and CLAUDE.md
+- [X] T041 Add `ApiPaths.PLATFORM_HEALTH` (`/health`) and `HealthcheckController.platformHealth()` returning the same body, with its own OpenAPI operation; exempt it in `CorrelationIdFilter`
+- [X] T042 [P] Tests: `HealthcheckControllerTest`, `CorrelationIdFilterTest`, `BearerTokenAuthenticationFilterTest` (unit); `ReferenceDataOpenApiContractTest` (contract); `ReferenceDataFunctionalTest` (functional); `DeploymentSmokeTest` (deployed copy)
+- [X] T043 [P] Postman: `GET /health - platform health check` with status, content-type, body and no-correlation-ID tests
+- [X] T044 Run `./gradlew check -PskipOwasp`; record the result in plan.md
+- [ ] T045 Re-run the PR-25 Jenkins build; the start-up check passes and the pipeline goes on to `smoke` and `functional` (T031)
+
+---
+
 ## Dependencies & Execution Order
 
 - **Phase 1 → Phase 2** → everything else.

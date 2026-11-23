@@ -36,7 +36,9 @@ breakdown.
 
 Implemented and covered by automated tests:
 
-- `GET /api/v1/healthcheck` (see `specs/001-healthcheck-api/`)
+- `GET /api/v1/healthcheck` (see `specs/001-healthcheck-api/`), and `GET /health`, the same response at the path
+  the HMCTS Jenkins pipeline checks after deploying (not part of the E-Links contract; see
+  `specs/014-jenkins-preview-deployment/`, FR-024)
 - the Reference Data API for all eleven E-Links types, from appointment titles to ticket category
   types (see [Reference data](#reference-data) and `specs/002-reference-data-api/` to
   `specs/012-ticket-category-types-reference-data/`)
@@ -369,7 +371,8 @@ that, and any shared environment, is deferred (DF-12).
 dependency check, and deploys nothing.
 
 **The chart**: raise `version` in `charts/ctam-jomockapi/Chart.yaml` in every pull request that changes the chart (the
-pipeline enforces it). Probes use `/api/v1/healthcheck` (there is no Actuator).
+pipeline enforces it). Probes use `/api/v1/healthcheck` (there is no Actuator). After deploying, the pipeline itself
+polls `GET /health` (its library hard-codes that path), which answers the same way.
 
 ### Bearer tokens on preview
 
@@ -394,7 +397,7 @@ TEST_URL=http://localhost:8080 TEST_BEARER_TOKEN=local-dev-token ./gradlew smoke
 
 - `TEST_URL`: the copy's address (a trailing `/` is fine). `TEST_BEARER_TOKEN`: an accepted token; if it holds
   several comma-separated tokens, the first is used. Both are required: without them the tasks fail at once.
-- `smoke` runs `DeploymentSmokeTest`: health check, one reference-data route, one People route, `401` without a
+- `smoke` runs `DeploymentSmokeTest`: both health checks, one reference-data route, one People route, `401` without a
   token, and `401` for `local-dev-token` (skipped when that is the token you supplied). It has no time limits.
 - `functional` runs every functional scenario. Scenarios that can only run in-process are tagged
   `in-process-only` and excluded: currently **none**.

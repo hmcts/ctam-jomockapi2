@@ -119,6 +119,21 @@ class CorrelationIdFilterTest {
     }
 
     @Test
+    void skipsThePlatformHealthCheck() throws Exception {
+        filter.doFilter(servletRequest("/health"), response, chain);
+
+        assertThat(response.getHeader(CorrelationIds.HEADER)).isNull();
+        assertThat(mdcDuringChain.get()).isNull();
+    }
+
+    @Test
+    void doesNotSkipPathsThatOnlyStartWithThePlatformHealthCheck() throws Exception {
+        filter.doFilter(servletRequest("/healthz"), response, chain);
+
+        assertThat(response.getHeader(CorrelationIds.HEADER)).isNotNull();
+    }
+
+    @Test
     void doesNotSkipPathsThatOnlyStartWithTheHealthcheck() throws Exception {
         filter.doFilter(servletRequest("/api/v1/healthcheck/extra"), response, chain);
 

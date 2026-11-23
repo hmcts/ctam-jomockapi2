@@ -40,4 +40,5 @@ No bearer tokens, Key Vault, managed identity or `SPRING_CONFIG_IMPORT` (amended
 
 Identical to a local copy (FR-022), except:
 - it accepts only the preview token from `Jenkinsfile_CNP` (`TEST_BEARER_TOKEN`), so `local-dev-token` gets `401`;
-- it is reached through the preview ingress at the address the pipeline reports.
+- it is reached through the preview ingress at the address the pipeline reports;
+- the pipeline's post-deploy check calls `GET /health`, which answers like `/api/v1/healthcheck` (FR-024, research R-15). Probes still use `/api/v1/healthcheck`.

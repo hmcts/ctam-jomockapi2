@@ -49,6 +49,15 @@ class DeploymentSmokeTest {
     }
 
     @Test
+    void platformHealthCheckIsUp() {
+        // The HMCTS Jenkins pipeline polls this path after every preview deploy (014 research R-15).
+        ResponseEntity<String> response = get("/health", null);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(JsonTrees.parse(response.getBody()).get("status").asString()).isEqualTo("ok");
+    }
+
+    @Test
     void referenceDataIsServed() {
         assertThat(get(APPOINTMENT_TITLES, TestTarget.token()).getStatusCode().value()).isEqualTo(200);
     }

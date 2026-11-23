@@ -238,3 +238,5 @@ Jenkinsfiles pin `Infrastructure@2.13.5`. `afterSuccess(String, Closure)` is con
   - `JO_SECURITY_BEARER_TOKENS=ctam-preview-token`: `local-dev-token` → 401, `ctam-preview-token` → 200; `TEST_URL=http://localhost:18089 TEST_BEARER_TOKEN=ctam-preview-token ./gradlew smoke` → 5 tests, 0 skipped, 0 failures.
   - `JO_SECURITY_BEARER_TOKENS=` (empty): start-up fails with "jo.security.bearer-tokens must contain at least one non-blank token".
   - Helm is still not installed here, so the full `helm template` (quickstart step 5) is covered by the next Jenkins run (T039).
+- Build 8 deployed the copy, then failed the library's post-deploy check: `GET /health` → `404` (this service's own error body) on all 40 attempts. Research R-15; Phase 11 adds `GET /health` (FR-024).
+- T044 (2026-11-23): `./gradlew check -PskipOwasp` BUILD SUCCESSFUL. Suites: `test` 845 (+4), `integrationTest` 48 (+1), `functionalTest` 719 (+1), `smokeTest` 22 (+1 `DeploymentSmokeTest.platformHealthCheckIsUp`), all passing; coverage gate passed.
