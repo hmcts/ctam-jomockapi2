@@ -64,6 +64,8 @@ Sources were read on 2026-11-03 from these HMCTS repositories: `cnp-jenkins-libr
 
 ## R-7 Helm chart
 
+> **Superseded for bearer tokens by R-14 (2026-11-23).** The Key Vault, managed identity and `configtree` parts below are no longer used; the rest stands.
+
 **Decision**: `charts/ctam-jomockapi/` with `Chart.yaml` (apiVersion v2, `name: ctam-jomockapi`, `version: 0.0.1`, one dependency `java` `6.1.1` from `oci://hmctsprod.azurecr.io/helm`), `values.yaml` and `values.preview.template.yaml` (`image: ${IMAGE_NAME}`, `ingressHost: ${SERVICE_FQDN}`, as in the template).
 
 `values.yaml` (under `java:`):
@@ -88,6 +90,8 @@ Sources were read on 2026-11-03 from these HMCTS repositories: `cnp-jenkins-libr
 Two runs of `java -jar` (Temurin 25.0.4, Apple Silicon): "Started Application in 1.04 s / 0.96 s", health check answering after 1.4 s, resident memory 317 to 327 MB. The chart's preview limits (`devmemoryLimits 1024Mi`) are enough. No resource overrides are needed.
 
 ## R-9 Jenkinsfiles
+
+> **Amended by R-14 (2026-11-23):** `Jenkinsfile_CNP` no longer overrides vault environments or loads vault secrets.
 
 **Decision**:
 - Pin the library: `@Library("Infrastructure@2.13.5") _`. The library README asks every Jenkinsfile to pin a release; Renovate raises bumps.
@@ -120,3 +124,18 @@ None of the changes conflicts with v1.13.0. In particular:
 - Principle X: deployment-specific values come from configuration (environment variable and mounted secret), not code.
 - Principle XV: the deployed copy needs a bearer token from Key Vault, `local-dev-token` is refused, and the health check stays the only unauthenticated route.
 - Principles XVII and XVIII: no endpoint changes, so the Postman and OpenAPI artifacts are unchanged.
+
+## R-14 Preview without a Key Vault (amendment 2026-11-23)
+
+**Finding**: The first Jenkins run (PR #25, build 5) failed at Deploy to AKS preview: `Failed to retrieve secret jo-security-bearer-tokens from vault https://ctam-aat.vault.azure.net/ … UnknownHostException`. The vault `ctam-aat` does not exist, so R-7's design cannot deploy until someone outside the repository creates it.
+
+**Decision** (spec Clarifications 2026-11-23): preview uses no Key Vault. `Jenkinsfile_CNP` sets `env.TEST_BEARER_TOKEN` to a single preview-only token. The library runs `envsubst` over `values.preview.template.yaml` (`vars/helmInstall.groovy`, 2.13.5), so `JO_SECURITY_BEARER_TOKENS: "${TEST_BEARER_TOKEN}"` gives the deployed copy the same value the smoke and functional tests send. `values.yaml` drops `aadIdentityName`, `keyVaults` and `SPRING_CONFIG_IMPORT`.
+
+**Why it is safe enough**: a preview copy serves only synthetic data, is reachable only on HMCTS's internal preview network, and is removed after each run unless labelled `enable_keep_helm`. The token is never `local-dev-token` or `test-token`, so `DeploymentSmokeTest` still proves `local-dev-token` is refused (SC-003).
+
+**EC-003 still holds**: `application.yml` reads `${JO_SECURITY_BEARER_TOKENS:local-dev-token}`, which falls back only when the variable is *unset*. The chart always sets it; if `TEST_BEARER_TOKEN` were missing, `envsubst` renders `""` (the quotes matter: unquoted it would be YAML `null`, Helm would drop the variable, and the service would fall back to `local-dev-token`), the token list is empty, and `SecurityProperties` refuses to start.
+
+**Library behaviour confirmed**: `vars/withTeamSecrets.groovy` (2.13.5) skips every vault step when no vault secrets are declared, so no Key Vault is contacted.
+
+**Alternatives rejected**: waiting for the vault (blocks every preview run on an outside request); skipping deployment until it exists (loses US2 and US3).
+

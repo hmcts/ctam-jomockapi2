@@ -358,7 +358,7 @@ the merge gate and is unchanged. Design: `specs/014-jenkins-preview-deployment/`
 GitHub Actions nothing changes.
 
 **Preview copies** are removed at the end of each run. Label the pull request `enable_keep_helm` to keep it and
-call it yourself (with a token from the vault, below). `only_deploy` skips the tests and deliberately fails the
+call it yourself (with the preview token, below). `only_deploy` skips the tests and deliberately fails the
 build. Pull requests from forks follow HMCTS's standard Jenkins policy.
 
 **`main`**: Jenkins does nothing on `main`, because the library only treats a branch named `master` as a route to
@@ -373,11 +373,15 @@ pipeline enforces it). Probes use `/api/v1/healthcheck` (there is no Actuator).
 
 ### Bearer tokens on preview
 
-A deployed copy accepts only the tokens in Key Vault **`ctam-aat`**, secret **`jo-security-bearer-tokens`**:
-comma-separated, non-blank, and never `local-dev-token` or `test-token`. The chart mounts it and Spring reads it
-through `SPRING_CONFIG_IMPORT=configtree:/mnt/secrets/ctam/`. If the secret is missing or empty, the copy doesn't
-start, so it can never fall back to `local-dev-token`. The pipeline gives the same secret to the tests as
-`TEST_BEARER_TOKEN`.
+A preview copy accepts only the preview token, **`ctam-preview-token`**, defined once in `Jenkinsfile_CNP` as
+`env.TEST_BEARER_TOKEN`. The pipeline substitutes it into `charts/ctam-jomockapi/values.preview.template.yaml` as
+`JO_SECURITY_BEARER_TOKENS`, and the smoke and functional tests send the same value, so the two can't drift apart.
+It is never `local-dev-token` or `test-token`, and a preview copy refuses `local-dev-token`. If the token were
+missing, the variable would be empty and the copy wouldn't start, so it can never fall back to `local-dev-token`.
+
+Preview uses no Key Vault (014 amendment, 2026-11-23). The token is committed on purpose: a preview copy serves only
+synthetic data, is reachable only on HMCTS's internal preview network, and is removed after each run. Shared
+environments (AAT and beyond, DF-12) will hold their tokens in Key Vault instead.
 
 ### Running the deployed-copy tests yourself
 
@@ -398,9 +402,11 @@ TEST_URL=http://localhost:8080 TEST_BEARER_TOKEN=local-dev-token ./gradlew smoke
 
 ### Before the first Jenkins build (outside this repository)
 
+Preview needs no Key Vault, managed identity or Terraform.
+
+
 | Prerequisite | Usually done by |
 |---|---|
 | Register the `ctam` product and team in the HMCTS Jenkins team configuration, including the container registry it publishes to | platform team, on request |
-| Create Key Vault `ctam-aat` (if it doesn't exist) and the secret `jo-security-bearer-tokens` | product team |
-| Managed identity `ctam` with read access to that secret (for the deployed pod), and Jenkins able to read it | platform team |
+| The `ctam` namespace in the preview cluster | platform team |
 | The repository discovered by the HMCTS Jenkins GitHub organisation, with the Jenkins check reporting on pull requests | platform team |

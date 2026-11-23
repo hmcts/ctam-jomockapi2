@@ -11,13 +11,11 @@ This feature adds no API data and changes no fixture. Its "data" is the configur
 | `JENKINS_URL` | environment variable | Jenkins (every build) | `build.gradle` | Present and not blank means "running under Jenkins" (research R-4). Never set by GitHub Actions. |
 | `CI` | environment variable | GitHub Actions (`true`) | `build.gradle` guard | Unchanged meaning: in CI outside Jenkins, `NVD_API_KEY` is required whenever the scan runs. |
 | `TEST_URL` | environment variable | Jenkins (preview address); a developer by hand | `smoke`, `functional` | Absolute `http(s)` URL of a running copy, with or without a trailing `/`. Required. |
-| `TEST_BEARER_TOKEN` | environment variable | Jenkins `loadVaultSecrets` from `ctam-aat` / `jo-security-bearer-tokens`; a developer by hand | `smoke`, `functional` | Non-blank. If it holds comma-separated tokens (the secret's format), the first non-blank one is used; none counts as missing. Required. |
+| `TEST_BEARER_TOKEN` | environment variable | `Jenkinsfile_CNP` (`env.TEST_BEARER_TOKEN`, the preview token; amended 2026-11-23); a developer by hand | `smoke`, `functional` | Non-blank. If it holds comma-separated tokens, the first non-blank one is used; none counts as missing. Required. |
 | `jo.test.base-url` | JVM system property | `smoke`, `functional` (from `TEST_URL`) | `TestTarget` | Absent for the in-process suites, which then use `http://localhost:<port>`. |
 | `jo.test.token` | JVM system property | `smoke`, `functional` (from `TEST_BEARER_TOKEN`) | `TestTarget.token()` | Absent for every other suite, which then uses `TestTokens.TOKEN` (`test-token`, a compile-time constant). |
-| `jo-security-bearer-tokens` | Key Vault secret in `ctam-aat` | Platform or product team (outside the repo) | chart (mount), Jenkins (tests) | Comma-separated, non-blank tokens. It must not be `local-dev-token` or `test-token`. |
-| `/mnt/secrets/ctam/jo.security.bearer-tokens` | mounted file | chart `keyVaults` (CSI driver) | Spring `configtree` import | Contents of the secret above. |
-| `SPRING_CONFIG_IMPORT` | container environment variable | chart `values.yaml` | Spring Boot | `configtree:/mnt/secrets/ctam/` (deliberately not `optional:`). |
-| `jo.security.bearer-tokens` | application property | the mounted file (deployed); `JO_SECURITY_BEARER_TOKENS` or the default (local) | `SecurityProperties` | Existing rule unchanged: at least one non-blank token or the service refuses to start. |
+| `JO_SECURITY_BEARER_TOKENS` | container environment variable | `values.preview.template.yaml` (`${TEST_BEARER_TOKEN}`, substituted by the pipeline) | Spring Boot | The preview token. It must not be `local-dev-token` or `test-token`. If `TEST_BEARER_TOKEN` is unset it renders empty, and the service refuses to start (EC-003). |
+| `jo.security.bearer-tokens` | application property | `JO_SECURITY_BEARER_TOKENS` (deployed and local) or the default (local) | `SecurityProperties` | Existing rule unchanged: at least one non-blank token or the service refuses to start. |
 | `IMAGE_NAME`, `SERVICE_FQDN` | template variables | Jenkins | `values.preview.template.yaml` | The PR image and preview host. |
 
 ## 2. Rules and checks

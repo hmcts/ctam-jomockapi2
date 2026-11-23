@@ -16,29 +16,13 @@ def type = "java"
 def product = "ctam"
 def component = "jomockapi"
 
-// Preview deployments read the AAT vaults.
-def vaultOverrides = [
-  'preview': 'aat'
-]
-
-// The bearer tokens the deployed copy accepts (comma-separated), for the smoke and functional tests. The key must
-// stay in single quotes so the pipeline, not Groovy, substitutes ${env}.
-def secrets = [
-  'ctam-${env}': [
-    secret('jo-security-bearer-tokens', 'TEST_BEARER_TOKEN')
-  ]
-]
-
-static LinkedHashMap<String, Object> secret(String secretName, String envVar) {
-  [ $class: 'AzureKeyVaultSecret',
-    secretType: 'Secret',
-    name: secretName,
-    version: '',
-    envVariable: envVar
-  ]
-}
+// The bearer token the preview copy accepts, defined once here (014 FR-003, FR-012; amended 2026-11-23). The library
+// substitutes it into charts/ctam-jomockapi/values.preview.template.yaml with envsubst, so the deployed copy and the
+// smoke and functional tests always share one value. Preview uses no Key Vault: a preview copy serves only synthetic
+// data, is reachable only on HMCTS's internal preview network, and is removed after each run. It must never be
+// local-dev-token or test-token (the smoke test checks that local-dev-token is refused). Shared environments will
+// hold their tokens in Key Vault instead (DF-12).
+env.TEST_BEARER_TOKEN = 'ctam-preview-token'
 
 withPipeline(type, product, component) {
-  overrideVaultEnvironments(vaultOverrides)
-  loadVaultSecrets(secrets)
 }

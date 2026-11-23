@@ -14,7 +14,7 @@ The work is mostly new files: `Jenkinsfile_CNP`, `Jenkinsfile_nightly`, `setting
 2. **Test support**: a `TestTarget` helper (address and token, each overridable by a system property) lets the same scenarios run in-process (unchanged default) or against a deployed copy. A new `DeploymentSmokeTest` checks availability and authentication, with no timing.
 3. **Documentation**: README and CLAUDE.md.
 
-The bearer tokens reach the deployed service from Key Vault `ctam-aat`, mounted by the chart and imported with Spring's `configtree`, so no application code or `application.yml` changes. Research found that the library only deploys `master` to AAT and production, and this repository uses `main`, so "preview only" needs no extra configuration (research R-2).
+The bearer tokens reach the deployed service as `JO_SECURITY_BEARER_TOKENS`, from a preview-only token defined once in `Jenkinsfile_CNP` and substituted into `values.preview.template.yaml` (amended 2026-11-23, research R-14; the original Key Vault design is in R-7), so no application code or `application.yml` changes. Research found that the library only deploys `master` to AAT and production, and this repository uses `main`, so "preview only" needs no extra configuration (research R-2).
 
 ## Technical Context
 
@@ -22,7 +22,7 @@ The bearer tokens reach the deployed service from Key Vault `ctam-aat`, mounted 
 
 **Primary Dependencies**: Spring Boot 4.1.1 (unchanged). New external inputs, not Gradle dependencies: `cnp-jenkins-library` 2.13.5 (pinned), HMCTS `java` chart 6.1.1, base image `hmctsprod.azurecr.io/base/java:25-distroless`.
 
-**Storage**: N/A. One Key Vault secret, provisioned outside the repository.
+**Storage**: N/A. No Key Vault for preview (amended 2026-11-23, research R-14).
 
 **Testing**: JUnit 5 suites as today. `smoke` and `functional` reuse the `smokeTest` and `functionalTest` compiled classes against a deployed address. Local validation in quickstart steps 1 to 5; Jenkins validation in steps 6 to 8.
 
@@ -58,7 +58,7 @@ Checked against constitution v1.13.0.
 | XII. Simplicity and Maintainability | **Pass.** Standard HMCTS template layout, no new Gradle dependency, no infrastructure code. The one trade-off (an idle in-process context during deployed-copy runs) is recorded in research R-6. |
 | XIII. Automated Quality Gates | **Pass.** GitHub Actions still runs the full `check` including OWASP on every PR and `main` push, and CodeQL is untouched. On Jenkins the scan runs once, in the Security stage, at a stricter threshold (any CVE, research R-4), so every build path still scans. Inherits 002's open Sonar deferral, which may now also affect Jenkins (research R-11). |
 | XIV. Observability & Traceability | **Pass.** Structured logging to stdout unchanged. The Application Insights agent ships without a connection string (no telemetry until DF-12). Correlation IDs are unaffected. |
-| XV. Security by Design | **Pass.** Deployed tokens come only from Key Vault. `local-dev-token` is refused (checked on every preview run). A missing or empty secret stops start-up instead of falling back. No new unauthenticated route; the preview uses HMCTS's standard ingress arrangement (FR-014). |
+| XV. Security by Design | **Pass.** Preview's token is a preview-only value defined once in `Jenkinsfile_CNP`, never `local-dev-token` or `test-token`, for a copy that serves only synthetic data on HMCTS's internal preview network (amended 2026-11-23, R-14); shared environments will use Key Vault (DF-12). `local-dev-token` is refused (checked on every preview run). A missing or empty secret stops start-up instead of falling back. No new unauthenticated route; the preview uses HMCTS's standard ingress arrangement (FR-014). |
 | XVI. Object-Oriented Design Discipline | **Pass.** `TestTarget` is a small single-purpose helper. |
 | XVII. Postman Artifacts | **Pass.** No endpoint change, so no Postman change. The environment's `baseUrl` and `bearerToken` variables already allow pointing it at a kept preview copy. |
 | XVIII. API Contract and Swagger/OpenAPI | **Pass.** No change. Swagger UI and `/v3/api-docs` are served by the preview copy as locally. |
@@ -92,7 +92,7 @@ specs/014-jenkins-preview-deployment/
 ### Source Code (repository root)
 
 ```text
-Jenkinsfile_CNP                         # NEW  withPipeline("java","ctam", "jomockapi"), vault override, TEST_BEARER_TOKEN
+Jenkinsfile_CNP                         # NEW  withPipeline("java","ctam", "jomockapi"), env.TEST_BEARER_TOKEN (preview token)
 Jenkinsfile_nightly                     # NEW  weekday cron, withNightlyPipeline, afterSuccess('build') → check
 settings.gradle                         # NEW  rootProject.name = 'ctam-jomockapi'
 build.gradle                            # EDIT bootJar name; onJenkins → no OWASP in check, guard stands down;
@@ -102,7 +102,7 @@ Dockerfile                              # NEW  base/java:25-distroless, port 808
 lib/applicationinsights.json            # NEW  role ctam-jomockapi, no connection string
 charts/ctam-jomockapi/
 ├── Chart.yaml                          # NEW  java 6.1.1
-├── values.yaml                         # NEW  port, probes, keyVaults ctam, SPRING_CONFIG_IMPORT
+├── values.yaml                         # NEW  port, probes (no tokens; amended 2026-11-23)
 └── values.preview.template.yaml        # NEW  ${IMAGE_NAME}, ${SERVICE_FQDN}
 src/testFixtures/java/uk/gov/hmcts/ctam/jo/testsupport/
 └── TestTarget.java                     # NEW  jo.test.base-url or http://localhost:<port>; jo.test.token or TestTokens.TOKEN
@@ -126,7 +126,7 @@ CLAUDE.md                               # EDIT 014 entry, commands
 4. **US1 pipeline**: `Jenkinsfile_CNP`, `Jenkinsfile_nightly`.
 5. **US4 documentation**: README and CLAUDE.md.
 6. **US5 regression**: full `./gradlew check` with OWASP and the Postman collection against `./start.sh`.
-7. **On Jenkins** (needs the prerequisites): quickstart steps 6 to 8. Close the verification items: vault name (R-7), Sonar stage (R-11), nightly callback form (R-9), ingress-only failures (R-6/EC-006), App Insights agent start-up (R-5, if not already settled by step 3).
+7. **On Jenkins** (needs the prerequisites): quickstart steps 6 to 8. Close the verification items: no vault step in the deploy (R-14), Sonar stage (R-11), nightly callback form (R-9), ingress-only failures (R-6/EC-006), App Insights agent start-up (R-5, if not already settled by step 3).
 
 ## Complexity Tracking
 
@@ -203,13 +203,13 @@ Jenkinsfiles pin `Infrastructure@2.13.5`. `afterSuccess(String, Closure)` is con
 |---|---|---|
 | FR-001 | Delivered | `Jenkinsfile_CNP`; PR-only behaviour per research R-2 |
 | FR-002 | Delivered, Jenkins run pending | `Jenkinsfile_nightly` (weekday cron, `afterSuccess('build')` → `check`); T033 |
-| FR-003 | Delivered, Jenkins run pending | `loadVaultSecrets` → `TEST_BEARER_TOKEN`; pipeline sets `TEST_URL`; T031 |
+| FR-003 | Delivered (amended), Jenkins run pending | `env.TEST_BEARER_TOKEN` in `Jenkinsfile_CNP`; pipeline sets `TEST_URL`; T031 |
 | FR-004 | Proved locally | `build/libs/ctam-jomockapi.jar` (T003) |
 | FR-005 | Proved locally | dry-run table above (T020) |
 | FR-006 | Unchanged task exists | `sonarqube` alias; stage behaviour T030 (research R-11) |
 | FR-007 to FR-009 | Delivered, image build pending | `Dockerfile`, whitelist `.dockerignore`; T014 (needs Docker) or T030 |
 | FR-010, FR-011, FR-013 | Delivered, render pending | chart keys checked by YAML parse; T018 (needs Helm) or T031 |
-| FR-012 | Proved locally (mechanism) | configtree runs above: override, missing mount and empty secret |
+| FR-012 | Delivered (amended), Jenkins run pending | `JO_SECURITY_BEARER_TOKENS: "${TEST_BEARER_TOKEN}"` in `values.preview.template.yaml`; empty value stops start-up (T037) |
 | FR-014 | Delivered | standard chart ingress, nothing added |
 | FR-015 to FR-019 | Proved locally | T010 results above |
 | FR-020, FR-021 | Delivered | README § Jenkins pipeline and preview deployment; CLAUDE.md 014 entry |
@@ -225,3 +225,16 @@ Jenkinsfiles pin `Infrastructure@2.13.5`. `afterSuccess(String, Closure)` is con
 - `./gradlew check` **with** the OWASP scan (no `NVD_API_KEY`; the cached NVD database was updated keyless), 2026-11-03: BUILD SUCCESSFUL in 1 h 24 min; "Found 0 vulnerabilities in project ctam-jomockapi". Suites: `test` 841 (835 + 6 `TestTargetTest`; T025 expected +3 before the token methods moved into `TestTarget`), `integrationTest` 47, `functionalTest` 718, `smokeTest` 21 (16 + 5 `DeploymentSmokeTest`). JaCoCo unchanged: lines 98.50%, branches 93.51%.
 - Self-review of the diff found one defect, fixed: `TEST_BEARER_TOKEN` with a blank first entry (`,abc`) would have sent a blank token, and `TestTarget` would silently have fallen back to `test-token`. The tasks now use the first non-blank entry and report the variable as missing if there is none (verified: `" , "` → `Missing: TEST_BEARER_TOKEN`; `",demo-token"` → smoke 5/5 against a copy accepting `demo-token`).
 - T026 (Postman via newman) not run: newman is not installed and fetching it with `npx` downloads external code, which this session's policy refused for Helm. `postman/` and `src/main` are unchanged against `013-people-api` (T027), so the collection's behaviour cannot have changed.
+
+### First Jenkins runs and the no-vault amendment (PR #25, 2026-11-18 to 2026-11-23)
+
+- Build 2 failed the library's old-registry check (enforced from 15/04/2026): `Dockerfile`, `Chart.yaml` and `values.yaml` named `hmctspublic`. All moved to `hmctsprod.azurecr.io`; chart `0.0.1` → `0.0.2`.
+- Build 3 failed the Sonar stage because SonarQube Cloud Automatic Analysis was on (research R-11). A SonarQube Cloud admin switched it off.
+- Build 4 failed the quality gate on one `java:S3752` finding (`JsonErrorController` maps every HTTP method). That is required for `/error` dispatch, so the rule is suppressed on that method with the reason.
+- Build 5 failed at Deploy to AKS preview: Key Vault `ctam-aat` does not exist (`UnknownHostException`). The team chose to drop the vault for preview (spec Clarifications 2026-11-23, research R-14): Phase 10 in tasks.md; chart `0.0.2` → `0.0.3`.
+
+- T037 (2026-11-23), with the boot jar on Java 25:
+  - `envsubst` over values.preview.template.yaml renders `JO_SECURITY_BEARER_TOKENS: 'ctam-preview-token'` with `TEST_BEARER_TOKEN` set, and `''` without it. An unquoted first draft rendered `null` without it, which Helm would drop, letting the service fall back to `local-dev-token`; the value is now quoted.
+  - `JO_SECURITY_BEARER_TOKENS=ctam-preview-token`: `local-dev-token` → 401, `ctam-preview-token` → 200; `TEST_URL=http://localhost:18089 TEST_BEARER_TOKEN=ctam-preview-token ./gradlew smoke` → 5 tests, 0 skipped, 0 failures.
+  - `JO_SECURITY_BEARER_TOKENS=` (empty): start-up fails with "jo.security.bearer-tokens must contain at least one non-blank token".
+  - Helm is still not installed here, so the full `helm template` (quickstart step 5) is covered by the next Jenkins run (T039).

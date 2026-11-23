@@ -55,18 +55,20 @@ Expected: the second command passes. The results are in `build/test-results/smok
 ```bash
 helm dependency update charts/ctam-jomockapi
 helm template ctam-jomockapi charts/ctam-jomockapi --set global.environment=aat \
-  | grep -E 'containerPort|/api/v1/healthcheck|SPRING_CONFIG_IMPORT|jo-security-bearer-tokens|jo.security.bearer-tokens'
+  -f charts/ctam-jomockapi/values.yaml \
+  -f <(TEST_BEARER_TOKEN=demo-token IMAGE_NAME=img SERVICE_FQDN=host envsubst < charts/ctam-jomockapi/values.preview.template.yaml) \
+  | grep -E 'containerPort|/api/v1/healthcheck|JO_SECURITY_BEARER_TOKENS|keyvault|secrets-store'
 ```
 
-Expected: port 8080; readiness, liveness and startup probes on `/api/v1/healthcheck`; `SPRING_CONFIG_IMPORT=configtree:/mnt/secrets/ctam/`; the secret mounted under the alias.
+Expected: port 8080; readiness, liveness and startup probes on `/api/v1/healthcheck`; `JO_SECURITY_BEARER_TOKENS` set to `demo-token`; no Key Vault or secrets-store volume (research R-14).
 
 ## 6. First pull request on Jenkins (US1, US2, US3)
 
 Open the PR with the label `enable_keep_helm` and check:
 - Build, Test (`check`), Security, Sonar (if active; research R-11) and Docker Build pass. The Security log shows one `dependencyCheckAggregate` run, and the Test log shows none.
-- The preview deploy becomes ready. **Record the Key Vault the pod mounted** (expected `ctam-aat`, research R-7).
+- The preview deploy becomes ready, with no Key Vault step in the log (research R-14).
 - `smoke` and `functional` pass against `TEST_URL`. Investigate any functional failure that happens only behind the ingress: either fix it or tag it `in-process-only` with the reason and list it in the README (EC-006).
-- With the release kept: `curl -H 'Authorization: Bearer local-dev-token' https://<preview-host>/api/v1/reference_data/genders` returns `401`, and the vault token returns `200`.
+- With the release kept: `curl -H 'Authorization: Bearer local-dev-token' https://<preview-host>/api/v1/reference_data/genders` returns `401`, and the preview token from `Jenkinsfile_CNP` returns `200`.
 
 ## 7. Nightly (FR-002)
 

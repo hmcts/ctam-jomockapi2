@@ -14,12 +14,12 @@ Build every pull request on the HMCTS Cloud Native Platform (CNP) Jenkins and de
 environment, where the pipeline runs `./gradlew smoke` and `./gradlew functional` against it:
 
 - **Service**: the Spring Boot mock in the `ctam` Kubernetes namespace, one Helm release per pull request.
-- **Azure Key Vault**: `ctam-aat` (preview reads the AAT vaults) holding `jo-security-bearer-tokens`, mounted into
-  the pod through the `ctam` managed identity.
+- **Bearer token**: a preview-only token defined in `Jenkinsfile_CNP` and passed to the pod as
+  `JO_SECURITY_BEARER_TOKENS`. No Key Vault for preview (014 amendment, 2026-11-23).
 - **Jenkins pipeline**: builds, tests, scans, pushes the image and deploys on every pull request; a nightly build
   on `main`.
 
-No database or other Azure infrastructure is needed, so there is no Terraform (`infrastructure/`). GitHub Actions
+No database, Key Vault or other Azure infrastructure is needed, so there is no Terraform (`infrastructure/`). GitHub Actions
 (`.github/workflows/`) stays the merge gate.
 
 ---
@@ -43,10 +43,7 @@ Derived names follow the pattern `{product}-{component}` = `ctam-jomockapi`.
 | **Helm chart** | `charts/ctam-jomockapi` (HMCTS `java` chart 6.1.1) |
 | **Docker image** | `{registry}/ctam/jomockapi:{tag}`, registry set by the team configuration |
 | **Docker base image** | `hmctsprod.azurecr.io/base/java:25-distroless` |
-| **Azure Key Vault (preview, AAT)** | `ctam-aat` |
-| **Key Vault secret** | `jo-security-bearer-tokens` (comma-separated bearer tokens) |
-| **Mounted as** | `/mnt/secrets/ctam/jo.security.bearer-tokens`, read through `SPRING_CONFIG_IMPORT=configtree:/mnt/secrets/ctam/` |
-| **Helm `aadIdentityName`** | `ctam` |
+| **Preview bearer token** | `ctam-preview-token`, `env.TEST_BEARER_TOKEN` in `Jenkinsfile_CNP`, set as `JO_SECURITY_BEARER_TOKENS` by `values.preview.template.yaml` |
 | **Internal ingress host** | `ctam-jomockapi-{env}.service.core-compute-{env}.internal` |
 | **Preview URL** | `ctam-jomockapi-pr-{N}.preview.platform.hmcts.net` (the exact address is in the Jenkins log) |
 | **Health check / probes** | `/api/v1/healthcheck` (no Actuator) |
@@ -77,7 +74,7 @@ Derived names follow the pattern `{product}-{component}` = `ctam-jomockapi`.
 
 | # | Step | Status | Notes |
 |---|------|--------|-------|
-| 2.1 | `Jenkinsfile_CNP` | ✅ Done | `withPipeline('java', 'ctam', 'jomockapi')`, preview vault override to `aat`, `TEST_BEARER_TOKEN` from `ctam-${env}` |
+| 2.1 | `Jenkinsfile_CNP` | ✅ Done | `withPipeline('java', 'ctam', 'jomockapi')`, `env.TEST_BEARER_TOKEN` (preview token, no vault) |
 | 2.2 | `Jenkinsfile_nightly` | ✅ Done | Weekdays ~07:00 on `main`: build, `check`, dependency check; never deploys |
 | 2.3 | `settings.gradle` and the fixed boot jar name | ✅ Done | `rootProject.name = 'ctam-jomockapi'` |
 | 2.4 | `Dockerfile` and whitelist `.dockerignore` | ✅ Done | Only the jar and `lib/applicationinsights.json` enter the image |
@@ -86,7 +83,7 @@ Derived names follow the pattern `{product}-{component}` = `ctam-jomockapi`.
 | 2.7 | Gradle tasks `smoke` and `functional` against `TEST_URL` | ✅ Done | |
 | 2.8 | Local Docker check | ✅ Done | Image built and run; 5 smoke and 718 functional tests passed against it |
 | 2.9 | `values.aat.template.yaml`, `enableAksStagingDeployment()` | ⏸ Deferred | DF-12 |
-| 2.10 | Terraform (`infrastructure/`, `.terraform-version`), `Jenkinsfile_parameterized` | ⏸ Deferred | Not needed for preview; DF-12 if a sandbox or AAT vault is managed here |
+| 2.10 | Terraform (`infrastructure/`, `.terraform-version`), `Jenkinsfile_parameterized` | ⏸ Deferred | Not needed for preview; DF-12 if an AAT vault is managed here |
 
 ---
 
@@ -105,7 +102,7 @@ Derived names follow the pattern `{product}-{component}` = `ctam-jomockapi`.
 | # | Step | Status | Notes |
 |---|------|--------|-------|
 | 4.1 | `apps/ctam/` namespace kustomizations, including preview | ⚠️ Check first | The preview namespace must exist before the first deploy |
-| 4.2 | Workload identity service account for `ctam` in preview | ⚠️ Check first | So the pod can read `ctam-aat` |
+| 4.2 | Workload identity service account for `ctam` in preview | ⏸ Not needed | Preview reads no Key Vault (014 amendment, 2026-11-23); DF-12 |
 | 4.3 | `apps/ctam/ctam-jomockapi/` HelmRelease, image policy, env patches | ⏸ Deferred | DF-12 (AAT and beyond) |
 
 ---
@@ -114,10 +111,7 @@ Derived names follow the pattern `{product}-{component}` = `ctam-jomockapi`.
 
 | # | Step | Status | Notes |
 |---|------|--------|-------|
-| 5.1 | Key Vault `ctam-aat` | ⚠️ Check first | Create if it doesn't exist |
-| 5.2 | Secret `jo-security-bearer-tokens` in `ctam-aat` | ○ To do | Comma-separated, non-blank, never `local-dev-token` or `test-token`. If missing or empty, the pod refuses to start |
-| 5.3 | Managed identity `ctam` (`ctam-aat-mi`) with read access to the secret | ⚠️ Check first | Platform team |
-| 5.4 | Jenkins can read `ctam-aat` | ⚠️ Check first | The pipeline passes the secret to the tests as `TEST_BEARER_TOKEN` |
+| 5.1–5.4 | Key Vault `ctam-aat`, secret, managed identity, Jenkins access | ⏸ Not needed for preview | `ctam-aat` doesn't exist (PR #25 build 5), so preview uses a token from `Jenkinsfile_CNP` instead (014 amendment, 2026-11-23). Needed again for AAT (DF-12) |
 
 ---
 
@@ -125,8 +119,8 @@ Derived names follow the pattern `{product}-{component}` = `ctam-jomockapi`.
 
 | # | Step | Status | Notes |
 |---|------|--------|-------|
-| 6.1 | Jenkins organisation scan finds the repo | ○ To do | Ask in `#platops-help` if it doesn't appear under `HMCTS_a_to_c` |
-| 6.2 | First PR build | ○ To do | Stages: Build → Test → Security → Docker build → Deploy (preview) → Smoke → Functional |
+| 6.1 | Jenkins organisation scan finds the repo | ✅ Done | Ask in `#platops-help` if it doesn't appear under `HMCTS_a_to_c` |
+| 6.2 | First PR build | 🔄 In progress | PR #25: registry, Sonar and quality gate fixed; vault removed. Stages: Build → Test → Security → Docker build → Deploy (preview) → Smoke → Functional |
 | 6.3 | Nightly run on `main` | ○ To do | |
 
 ---

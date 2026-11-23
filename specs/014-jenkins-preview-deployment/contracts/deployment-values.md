@@ -24,17 +24,20 @@ What the image and the `ctam-jomockapi` chart guarantee to the platform and to c
 | `applicationPort` | `8080` | chart default is 4550 |
 | `image` | `hmctsprod.azurecr.io/ctam/jomockapi:latest` | overridden by the pipeline |
 | `ingressHost` | `ctam-jomockapi-{{ .Values.global.environment }}.service.core-compute-{{ .Values.global.environment }}.internal` | template convention |
-| `aadIdentityName` | `ctam` | Key Vault access |
 | `readinessPath`, `livenessPath`, `startupPath` | `/api/v1/healthcheck` | Principle II; chart defaults are Actuator paths |
-| `keyVaults.ctam.secrets` | `- name: jo-security-bearer-tokens`<br>`  alias: jo.security.bearer-tokens` | mounted at `/mnt/secrets/ctam/jo.security.bearer-tokens` |
-| `environment.SPRING_CONFIG_IMPORT` | `configtree:/mnt/secrets/ctam/` | the mounted secret overrides the local default; not optional (EC-003) |
 
-Nothing else is set. The People fixture, reference date and reference-data types keep their defaults (FR-013); probe timings and resources keep the chart defaults (research R-7, R-8).
+No bearer tokens, Key Vault, managed identity or `SPRING_CONFIG_IMPORT` (amended 2026-11-23: preview uses no Key Vault). Nothing else is set. The People fixture, reference date and reference-data types keep their defaults (FR-013); probe timings and resources keep the chart defaults (research R-7, R-8).
 
-`values.preview.template.yaml` (`java:`): `image: ${IMAGE_NAME}`, `ingressHost: ${SERVICE_FQDN}`.
+`values.preview.template.yaml` (`java:`), substituted by the pipeline with `envsubst`:
+
+| Key | Value | Why |
+|---|---|---|
+| `environment.JO_SECURITY_BEARER_TOKENS` | `"${TEST_BEARER_TOKEN}"` (quoted, so a missing token renders `""`, not `null`) | the preview token defined in `Jenkinsfile_CNP` (FR-003, FR-012); empty if unset, which stops start-up (EC-003) |
+| `image` | `${IMAGE_NAME}` | set by the pipeline |
+| `ingressHost` | `${SERVICE_FQDN}` | set by the pipeline |
 
 ## Behaviour of a preview copy
 
 Identical to a local copy (FR-022), except:
-- it accepts only the tokens in `ctam-aat` / `jo-security-bearer-tokens`, so `local-dev-token` gets `401`;
+- it accepts only the preview token from `Jenkinsfile_CNP` (`TEST_BEARER_TOKEN`), so `local-dev-token` gets `401`;
 - it is reached through the preview ingress at the address the pipeline reports.

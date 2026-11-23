@@ -6,7 +6,7 @@ What the shared pipeline (`cnp-jenkins-library` 2.13.5, type `java`) expects of 
 
 | Path | Required by | Notes |
 |---|---|---|
-| `Jenkinsfile_CNP` | PR pipeline | `@Library("Infrastructure@2.13.5") _`, `withPipeline("java", "ctam", "jomockapi")`, preview→aat vault override, `TEST_BEARER_TOKEN` from `ctam-${env}` / `jo-security-bearer-tokens` |
+| `Jenkinsfile_CNP` | PR pipeline | `@Library("Infrastructure@2.13.5") _`, `withPipeline("java", "ctam", "jomockapi")`, `env.TEST_BEARER_TOKEN` set to the preview token (no Key Vault; amended 2026-11-23), substituted into `values.preview.template.yaml` |
 | `Jenkinsfile_nightly` | nightly pipeline | `cron('H 07 * * 1-5')`, `withNightlyPipeline("java", "ctam", "jomockapi")`, `afterSuccess('build')` runs `check` |
 | `gradlew` + `gradle/wrapper/*` | every Gradle stage | already present |
 | `Dockerfile`, `.dockerignore` | Docker Build | see `deployment-values.md` |
@@ -38,7 +38,9 @@ The `Missing:` list names only the variables that are unset or blank, in that or
 
 ## Out of the repository (prerequisites, FR-020)
 
+No Key Vault, managed identity or Terraform is needed for preview (amended 2026-11-23).
+
+
 1. The `ctam` product and its team registered in HMCTS Jenkins team configuration, with the container registry it publishes to.
-2. Key Vault `ctam-aat` holding `jo-security-bearer-tokens` (comma-separated, non-blank, not `local-dev-token`/`test-token`).
-3. Managed identity `ctam` (`aadIdentityName`) with read access to that secret for the deployed pod; Jenkins able to read it for `loadVaultSecrets`.
-4. The repository discovered by the HMCTS Jenkins GitHub organisation folder, with the Jenkins check reporting on pull requests.
+2. The `ctam` namespace in the preview cluster (HMCTS's standard preview arrangement).
+3. The repository discovered by the HMCTS Jenkins GitHub organisation folder, with the Jenkins check reporting on pull requests.

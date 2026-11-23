@@ -38,7 +38,7 @@ Read from the HMCTS shared pipeline library on 2026-11-03. The plan must re-conf
 
 ### Deferred Items
 
-- **DF-12 (open)**: deploy to the long-lived shared environments (AAT, and others as needed) through HMCTS's environment configuration, so other teams' services can call a stable copy of the mock. This needs its own feature, environment-specific secrets and the team's decision about which environments are needed.
+- **DF-12 (open)**: deploy to the long-lived shared environments (AAT, and others as needed) through HMCTS's environment configuration, so other teams' services can call a stable copy of the mock. This needs its own feature, environment-specific secrets held in Key Vault (preview's committed token must not be reused there) and the team's decision about which environments are needed.
 
 ## Clarifications
 
@@ -47,9 +47,13 @@ Read from the HMCTS shared pipeline library on 2026-11-03. The plan must re-conf
 - Q: Which Jenkins? → A: The shared HMCTS CNP Java pipeline, product `ctam`, component `jomockapi`.
 - Q: Which environments? → A: Preview only, for now.
 - Q: Keep GitHub Actions? → A: Yes, alongside Jenkins.
-- Q: Should this repository create the Key Vault holding the preview bearer tokens, or should it be set up outside the repository? → A: Outside the repository. This feature documents the vault and secret name the chart expects; the platform or product team creates them once. No Terraform (`infrastructure/`) in this feature.
+- Q: Should this repository create the Key Vault holding the preview bearer tokens, or should it be set up outside the repository? → A: Outside the repository. *(Superseded for preview by Session 2026-11-23.)* This feature documents the vault and secret name the chart expects; the platform or product team creates them once. No Terraform (`infrastructure/`) in this feature.
 - Q: When `smoke` tests a deployed preview copy, should it only check availability and correctness, or also enforce response-time limits? → A: Availability and correctness only, with no time limits. Latency targets stay in the in-process `smokeTest` suite.
 - Q: Should this feature also add a nightly Jenkins pipeline that rebuilds `main` and re-runs the vulnerability scan, without deploying? → A: Yes. A nightly pipeline on `main` that builds, runs `check` and the vulnerability scan, and never deploys.
+
+### Session 2026-11-23 (amendment)
+
+- Q: The first Jenkins run found that Key Vault `ctam-aat` does not exist, so the preview deploy fails before the service starts. Should preview keep depending on a Key Vault? → A: No. Preview uses no Key Vault. A single preview-only bearer token is defined once, in `Jenkinsfile_CNP`, and reaches both the deployed copy (through `values.preview.template.yaml`) and the deployed-copy tests. It is committed to the repository; that is accepted because a preview copy serves only synthetic data, is reachable only on HMCTS's internal preview network, and is removed after each run. It is never `local-dev-token` or `test-token`, so SC-003 still holds. Key Vault–held tokens return with the shared environments (DF-12). This supersedes the Session 2026-11-03 Key Vault answer, FR-003's "never a token written into the repository", and FR-012's Key Vault source, for preview only.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -84,7 +88,7 @@ After a pull request's checks pass, Jenkins packages the service and deploys it 
 
 1. **Given** a pull request whose checks pass, **When** the pipeline reaches deployment, **Then** the service is deployed to the preview environment under the name `ctam-jomockapi` for that pull request and becomes ready.
 2. **Given** the preview copy is deployed, **When** anyone calls `GET /api/v1/healthcheck` without credentials, **Then** it returns `200` with `{"status": "ok"}`, exactly as locally.
-3. **Given** the preview copy is deployed, **When** a caller sends a request with a token from the environment's Key Vault, **Then** it is accepted; **When** the caller sends the local development token `local-dev-token`, **Then** it is refused with `401`.
+3. **Given** the preview copy is deployed, **When** a caller sends a request with the preview token defined in the pipeline, **Then** it is accepted; **When** the caller sends the local development token `local-dev-token`, **Then** it is refused with `401`.
 4. **Given** the preview copy is deployed, **When** the platform checks whether it is alive and ready, **Then** it uses the existing health-check route, not a separate health framework (Constitution Principle II).
 5. **Given** the preview copy is deployed, **When** a caller opens the Swagger UI or the OpenAPI document, **Then** both are served, as locally (Principle XVIII).
 
@@ -140,7 +144,7 @@ Nothing a caller of the mock can observe changes: every route, response, status 
 
 - **EC-001**: The repository is checked out into a folder with a different name (as Jenkins does). The built application archive still has the same, fixed name, so packaging finds it.
 - **EC-002**: The deployed copy takes longer to start than the platform's default readiness wait (it loads and validates every fixture at start-up). The readiness and liveness settings allow for the measured start-up time, so the platform does not restart a copy that is still starting.
-- **EC-003**: The secret holding the bearer tokens is missing or empty in the preview environment. The deployment must not fall back to the local development token; the service either fails to start or refuses every authenticated request, and the pipeline fails.
+- **EC-003**: The preview bearer token is missing or empty when the deployment is rendered. The deployment must not fall back to the local development token; the service either fails to start or refuses every authenticated request, and the pipeline fails.
 - **EC-004**: The pipeline re-runs the smoke or functional task in the same build (for example against a different deployment). The tasks run again rather than being skipped as up to date.
 - **EC-005**: Network latency between the build agent and the preview environment is much higher than on a developer machine. The deployed-copy smoke tests check availability and correctness with no response-time limit, so they do not fail on network delay alone.
 - **EC-006**: Some existing functional scenarios may depend on in-process conditions that a deployed copy cannot reproduce (for example a test-only configuration). Any such scenario is identified in planning and either made to work against a deployed copy or explicitly excluded from the deployed-copy run with a recorded reason; none is silently skipped.
@@ -155,7 +159,7 @@ Nothing a caller of the mock can observe changes: every route, response, status 
 
 - **FR-001**: The repository MUST contain a Jenkins pipeline definition that uses the shared HMCTS Java pipeline with product `ctam` and component `jomockapi`. It builds, checks and deploys pull requests; on `main` the shared pipeline deliberately does nothing, because it only treats `master` as a route to live (research R-2). GitHub Actions remains the gate for `main`.
 - **FR-002**: The repository MUST contain a nightly pipeline definition using the shared HMCTS nightly pipeline for product `ctam` and component `jomockapi`. It MUST run on `main` once every weekday, build the service, run `check` and the dependency vulnerability scan, fail when either fails, and MUST NOT deploy anywhere (Clarifications 2026-11-03).
-- **FR-003**: The pipeline MUST supply the deployed-copy tests with the preview address and a valid bearer token read from the environment's Key Vault, never a token written into the repository.
+- **FR-003**: The pipeline MUST supply the deployed-copy tests with the preview address and the preview bearer token. The token is defined once in the PR pipeline definition, is the same value the deployed copy accepts (FR-012), and MUST NOT be `local-dev-token` or `test-token` (amended 2026-11-23).
 
 **Build**
 
@@ -173,7 +177,7 @@ Nothing a caller of the mock can observe changes: every route, response, status 
 
 - **FR-010**: The repository MUST contain a deployment chart for the service, built on the standard HMCTS Java chart, that deploys it to the preview environment under the name `ctam-jomockapi`.
 - **FR-011**: The chart MUST direct the platform's liveness, readiness and start-up checks to the existing `GET /api/v1/healthcheck` route and send traffic to port 8080. It MUST NOT require a health framework the service does not have (Principle II).
-- **FR-012**: The chart MUST supply the bearer tokens to the service from a secret in the product's existing Key Vault for the environment, so the deployed service never accepts `local-dev-token` (EC-003). The repository MUST NOT create the vault or the secret; it names them (FR-020).
+- **FR-012**: The preview values MUST supply the bearer tokens to the service from the pipeline's preview token (FR-003), as `JO_SECURITY_BEARER_TOKENS`, so the deployed service never accepts `local-dev-token` (EC-003). The chart MUST NOT depend on a Key Vault, a managed identity or any other resource outside the repository for preview (amended 2026-11-23).
 - **FR-013**: The chart MUST NOT change any other application setting from its default (People fixture, reference date, reference-data types), so a preview copy serves exactly the shipped synthetic data.
 - **FR-014**: The deployment MUST NOT expose the service more widely than HMCTS's standard preview arrangement does.
 
@@ -187,7 +191,7 @@ Nothing a caller of the mock can observe changes: every route, response, status 
 
 **Documentation**
 
-- **FR-020**: The README MUST describe the Jenkins pipeline and preview deployment, how to run `smoke` and `functional` against any running copy, and every prerequisite outside this repository, including at least: registering the `ctam` product and team with the HMCTS Jenkins configuration; the container registry the product publishes to; the Key Vault the preview deployment reads and the exact name of the bearer-token secret in it, with the expected value format (comma-separated tokens); and read access to that secret for both the deployed service and the pipeline (which passes a token to the deployed-copy tests).
+- **FR-020**: The README MUST describe the Jenkins pipeline and preview deployment, how to run `smoke` and `functional` against any running copy, and every prerequisite outside this repository, including at least: registering the `ctam` product and team with the HMCTS Jenkins configuration; the container registry the product publishes to; and where the preview bearer token is defined and how it reaches both the deployed copy and the deployed-copy tests (amended 2026-11-23: no Key Vault for preview).
 - **FR-021**: CLAUDE.md MUST be updated with this feature's summary and the new commands, in the same style as earlier features.
 
 **Unchanged behaviour**
@@ -199,8 +203,8 @@ Nothing a caller of the mock can observe changes: every route, response, status 
 
 - **Pipeline definition**: names the shared pipeline, the product and the component, and passes the deployed-copy tests their settings.
 - **Container image**: the packaged, runnable service.
-- **Deployment chart**: how the platform runs the image in the preview environment: name, port, health checks and the secret it reads.
-- **Bearer-token secret**: the per-environment tokens the deployed service accepts and the deployed-copy tests use. It lives only in the environment's Key Vault.
+- **Deployment chart**: how the platform runs the image in the preview environment: name, port, health checks and the bearer tokens it is given.
+- **Preview bearer token**: the token the preview copy accepts and the deployed-copy tests use. It is defined once in the PR pipeline definition (amended 2026-11-23); shared environments will hold theirs in Key Vault (DF-12).
 - **Deployed-copy test run**: a `smoke` or `functional` run against a given address with a given token.
 
 ## Success Criteria *(mandatory)*
@@ -220,7 +224,7 @@ Nothing a caller of the mock can observe changes: every route, response, status 
 - An HMCTS base image for Java 25 is available; if not, the plan raises it rather than changing the Java version (the constitution pins Java 25).
 - Preview deployments use HMCTS's standard arrangement: one copy per pull request at an address the pipeline provides, removed at the end of each pipeline run unless the pull request carries the `enable_keep_helm` label (research R-3).
 - The shared pipeline only treats a branch named `master` as a route to live (AAT, then production). This repository's default branch is `main`, so Jenkins builds and deploys pull requests only and does nothing on `main`; GitHub Actions remains the gate for `main` (research R-2). Renaming the default branch to `master` would start AAT and production deployments and is out of scope (DF-12).
-- The bearer-token secret for the preview environment is created outside this repository, in the product's existing per-environment Key Vault, managed by the HMCTS platform team or the product team (Clarifications, 2026-11-03). This feature documents the vault and secret name and does not provision infrastructure (no Terraform). The plan confirms which vault the standard HMCTS chart reads for preview deployments.
+- Preview needs no infrastructure outside the repository beyond HMCTS's standard preview arrangement: no Key Vault, managed identity or Terraform (Clarifications, 2026-11-23). The first Jenkins run showed the planned vault `ctam-aat` does not exist.
 - The deployed-copy tests share code with the existing in-process suites (for example by choosing the target address and token from settings), so a scenario is written once.
 - Adding the `smoke` and `functional` tasks is consistent with Constitution Principle XIII: the four required suites stay as they are and `check` still runs them all. If planning finds a conflict, it is raised before implementation, not worked around.
 - Postman artifacts (Principle XVII) and the OpenAPI document (Principle XVIII) need no change, because no endpoint changes. The Postman environment already takes the base address as a variable, so it can be pointed at a preview copy.

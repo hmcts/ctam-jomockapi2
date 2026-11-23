@@ -87,7 +87,7 @@ description: "Task list for 014 Jenkins Pipeline and Preview Deployment"
 
 ## Phase 4: User Story 2 - Each Pull Request Gets Its Own Running Copy (Priority: P1)
 
-**Goal**: An image and chart that run the service on preview with probes on the existing health check and bearer tokens from Key Vault only.
+**Goal**: An image and chart that run the service on preview with probes on the existing health check and bearer tokens from the pipeline's preview token (amended 2026-11-23; originally Key Vault).
 
 **Independent Test**: Quickstart steps 3 to 5 locally: the image starts and passes `smoke functional`, and `helm template` renders port 8080, the three probe paths, the non-optional `configtree` import and the aliased secret. On Jenkins: quickstart step 6 (Phase 9).
 
@@ -206,9 +206,22 @@ description: "Task list for 014 Jenkins Pipeline and Preview Deployment"
 **Purpose**: Close research R-5, R-7, R-9, R-11 and EC-006, which can only be checked on Jenkins (quickstart steps 6 to 8). These tasks run after the PR is opened. Each records its outcome in plan.md § Implementation notes; any change it forces goes into the same PR.
 
 - [ ] T030 [US1] On the first PR run (label `enable_keep_helm`), confirm that `JENKINS_URL` is set on the agent (echo it in the Test stage log, e.g. with a temporary `before('test')` callback in Jenkinsfile_CNP that is removed afterwards, and record it; research R-4), and that Build, Test, Security, Sonar (if active) and Docker Build stages pass, that the Test log has no `dependencyCheckAggregate` and the Security log has exactly one. If Security fails on CVEs below 7.0, upgrade the dependency or add a suppression with a reason to config/owasp/suppressions.xml. If the Sonar stage fails because of SonarCloud Automatic Analysis, stop and raise it with the team (research R-11); don't disable it
-- [ ] T031 [US3] On the same run, confirm the preview pod becomes ready and record which Key Vault it mounted (expected `ctam-aat`; if different, update Jenkinsfile_CNP's override and README). Confirm `smoke` and `functional` pass against `TEST_URL` with every functional test executed. For any test that fails only behind the ingress: fix it if it is a test bug; otherwise tag it `@Tag("in-process-only")` with a comment giving the reason, and list it in README.md (EC-006, SC-002). With the copy kept, confirm `local-dev-token` gets `401` and the vault token gets `200` from the preview address, and that Swagger UI and `/v3/api-docs` are served (US2 scenarios 3 and 5)
+- [ ] T031 [US3] On the same run, confirm the preview pod becomes ready with no Key Vault step in the deploy log (amended 2026-11-23, research R-14). Confirm `smoke` and `functional` pass against `TEST_URL` with every functional test executed. For any test that fails only behind the ingress: fix it if it is a test bug; otherwise tag it `@Tag("in-process-only")` with a comment giving the reason, and list it in README.md (EC-006, SC-002). With the copy kept, confirm `local-dev-token` gets `401` and the preview token from `Jenkinsfile_CNP` gets `200` from the preview address, and that Swagger UI and `/v3/api-docs` are served (US2 scenarios 3 and 5)
 - [ ] T032 [US1] Trigger the nightly job on `main` by hand. Confirm Build, the `check` callback and Dependency check run, and nothing deploys. If the callback needs `steps.sh`, or callbacks can't run Gradle, fix Jenkinsfile_nightly or apply the research R-9 fallback (and record the spec change it implies). Record the result
 - [ ] T033 [US5] Confirm on the same PR that the GitHub Actions `CI` workflow ran the full `check` including OWASP and that CodeQL ran, as before (quickstart step 8)
+
+---
+
+## Phase 10: Amendment 2026-11-23 - Preview Without a Key Vault
+
+**Purpose**: Key Vault `ctam-aat` does not exist (PR #25, build 5). Drop the vault for preview (spec Clarifications 2026-11-23; research R-14).
+
+- [X] T034 Amend spec.md (Clarifications, US2 scenario 3, EC-003, FR-003, FR-012, FR-020, key entities, assumptions, DF-12), research.md (R-14; R-7 and R-9 marked), contracts/deployment-values.md, contracts/pipeline-interface.md, data-model.md, quickstart.md and plan.md
+- [X] T035 [P] Jenkinsfile_CNP: remove `overrideVaultEnvironments`, `loadVaultSecrets` and the `secret` helper; set `env.TEST_BEARER_TOKEN = 'ctam-preview-token'` before `withPipeline`, with a comment giving the reasons
+- [X] T036 [P] charts/ctam-jomockapi: remove `aadIdentityName`, `keyVaults` and `environment.SPRING_CONFIG_IMPORT` from values.yaml; add `environment.JO_SECURITY_BEARER_TOKENS: "${TEST_BEARER_TOKEN}"` (quoted, so a missing token renders `""`, not `null`) to values.preview.template.yaml; raise `Chart.yaml` `version` to `0.0.3`
+- [X] T037 Prove locally: render values.preview.template.yaml with `envsubst` with and without `TEST_BEARER_TOKEN`, parse both values files as YAML, and run the jar with `JO_SECURITY_BEARER_TOKENS=ctam-preview-token` (`smoke` passes with that token, `local-dev-token` gets `401`) and with `JO_SECURITY_BEARER_TOKENS=` (start-up fails). Record in plan.md § Implementation notes
+- [X] T038 [P] README.md, CNP-ONBOARDING-PLAN.md and CLAUDE.md: replace the Key Vault prerequisites and token description with the preview token; keep Key Vault as a DF-12 note
+- [ ] T039 Re-run the PR-25 Jenkins build and continue with T030 to T031
 
 ---
 
