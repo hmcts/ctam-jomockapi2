@@ -1,0 +1,18 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ctam-jomockapi
+  description: "E-Links API mock: a stand-in for the judiciary E-Links API serving synthetic data, for integration testing and development"
+  annotations:
+    jenkins.io/job-full-name: "cft:HMCTS_a_to_c/ctam-jomockapi2"
+    github.com/project-slug: 'hmcts/ctam-jomockapi2'
+  tags:
+    - java
+    - spring-boot
+    - mock
+spec:
+  type: service
+  system: ctam
+  lifecycle: experimental
+  # TODO: replace with the owning team's Backstage group before merging (see CNP-ONBOARDING-PLAN.md).
+  owner: group:TODO-ctam-owners

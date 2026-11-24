@@ -36,12 +36,17 @@ breakdown.
 
 Implemented and covered by automated tests:
 
-- `GET /api/v1/healthcheck` (see `specs/001-healthcheck-api/`)
+- `GET /api/v1/healthcheck` (see `specs/001-healthcheck-api/`), and `GET /health`, the same response at the path
+  the HMCTS Jenkins pipeline checks after deploying (not part of the E-Links contract; see
+  `specs/014-jenkins-preview-deployment/`, FR-024)
 - the Reference Data API for all eleven E-Links types, from appointment titles to ticket category
   types (see [Reference data](#reference-data) and `specs/002-reference-data-api/` to
   `specs/012-ticket-category-types-reference-data/`)
 - the People API's search and single office holder routes (see [People](#people) and
   `specs/013-people-api/`)
+- the HMCTS Jenkins pipeline, with each pull request deployed to preview and tested there (see
+  [Jenkins pipeline and preview deployment](#jenkins-pipeline-and-preview-deployment) and
+  `specs/014-jenkins-preview-deployment/`)
 
 ### Quality gates
 
@@ -83,6 +88,11 @@ with assertions for each success and error case:
 npx newman run postman/ctam-jomockapi.postman_collection.json \
   -e postman/ctam-jomockapi.postman_environment.json
 ```
+
+To run the same collection against a preview copy (HMCTS VPN needed), use
+`postman/ctam-jomockapi.preview.postman_environment.json`. It points at pull request 25's copy with the preview
+token (see [Bearer tokens on preview](#bearer-tokens-on-preview)); for another pull request, override `baseUrl` with
+`--env-var baseUrl=https://ctam-jomockapi-pr-<N>.preview.platform.hmcts.net`.
 
 Swagger UI is available at `http://localhost:8080/swagger-ui/index.html`, and the
 raw OpenAPI document at `http://localhost:8080/v3/api-docs`.
@@ -332,3 +342,79 @@ holder <id>)`. An empty fixture (`[]`) is valid.
 (contract types), 005 DF-3 (genders), 006 DF-4 (judiciary roles), 007 DF-6 (locations) and 010
 DF-9 (tickets). Still open: DF-11, the leavers (`/api/v5/leavers`) and deleted (`/api/v5/deleted`)
 routes, which must reuse this feature's pagination component.
+
+## Jenkins pipeline and preview deployment
+
+The service is also built by the shared HMCTS Jenkins pipeline (product `ctam`, component `jomockapi`), which deploys
+each pull request to the AKS **preview** environment and tests it there. GitHub Actions (`.github/workflows/`) stays
+the merge gate and is unchanged. Design: `specs/014-jenkins-preview-deployment/`.
+
+**What runs on a pull request** (`Jenkinsfile_CNP`, library pinned to `Infrastructure@2.13.5`):
+
+| Stage | Runs | Notes |
+|---|---|---|
+| Build | `./gradlew assemble` | produces `build/libs/ctam-jomockapi.jar` |
+| Test | `./gradlew check` | the four suites, Checkstyle and coverage, **without** the OWASP scan (see below) |
+| Security | `./gradlew dependencyCheckAggregate` | against the shared HMCTS vulnerability database; fails on **any** unsuppressed CVE, stricter than GitHub Actions' CVSS 7.0 |
+| Sonar | `./gradlew sonarqube` | only if active on the Jenkins instance |
+| Docker build | `Dockerfile` | `hmctsprod.azurecr.io/base/java:25-distroless`, port 8080 |
+| Deploy | `charts/ctam-jomockapi` | one copy per pull request, named `ctam-jomockapi`; the address is in the Jenkins log |
+| Smoke, then functional | `./gradlew smoke`, `./gradlew functional` | against the preview copy (`TEST_URL`) |
+
+`check` skips the OWASP scan only when `JENKINS_URL` is set, because the Security stage runs it. Locally and in
+GitHub Actions nothing changes.
+
+**Preview copies** are removed at the end of each run. Label the pull request `enable_keep_helm` to keep it and
+call it yourself (with the preview token, below). `only_deploy` skips the tests and deliberately fails the
+build. Pull requests from forks follow HMCTS's standard Jenkins policy.
+
+**`main`**: Jenkins does nothing on `main`, because the library only treats a branch named `master` as a route to
+live (AAT, then production). Renaming the default branch to `master` would start AAT and production deployments;
+that, and any shared environment, is deferred (DF-12).
+
+**Nightly** (`Jenkinsfile_nightly`): every weekday at about 07:00 on `main`, it builds, runs `check` and the
+dependency check, and deploys nothing.
+
+**The chart**: raise `version` in `charts/ctam-jomockapi/Chart.yaml` in every pull request that changes the chart (the
+pipeline enforces it). Probes use `/api/v1/healthcheck` (there is no Actuator). After deploying, the pipeline itself
+polls `GET /health` (its library hard-codes that path), which answers the same way.
+
+### Bearer tokens on preview
+
+A preview copy accepts only the preview token, **`ctam-preview-token`**, defined once in `Jenkinsfile_CNP` as
+`env.TEST_BEARER_TOKEN`. The pipeline substitutes it into `charts/ctam-jomockapi/values.preview.template.yaml` as
+`JO_SECURITY_BEARER_TOKENS`, and the smoke and functional tests send the same value, so the two can't drift apart.
+It is never `local-dev-token` or `test-token`, and a preview copy refuses `local-dev-token`. If the token were
+missing, the variable would be empty and the copy wouldn't start, so it can never fall back to `local-dev-token`.
+
+Preview uses no Key Vault (014 amendment, 2026-11-23). The token is committed on purpose: a preview copy serves only
+synthetic data, is reachable only on HMCTS's internal preview network, and is removed after each run. Shared
+environments (AAT and beyond, DF-12) will hold their tokens in Key Vault instead.
+
+### Running the deployed-copy tests yourself
+
+`smoke` and `functional` test any running copy. They are not part of `check`.
+
+```bash
+./start.sh                                                                    # in another terminal
+TEST_URL=http://localhost:8080 TEST_BEARER_TOKEN=local-dev-token ./gradlew smoke functional
+```
+
+- `TEST_URL`: the copy's address (a trailing `/` is fine). `TEST_BEARER_TOKEN`: an accepted token; if it holds
+  several comma-separated tokens, the first is used. Both are required: without them the tasks fail at once.
+- `smoke` runs `DeploymentSmokeTest`: both health checks, one reference-data route, one People route, `401` without a
+  token, and `401` for `local-dev-token` (skipped when that is the token you supplied). It has no time limits.
+- `functional` runs every functional scenario. Scenarios that can only run in-process are tagged
+  `in-process-only` and excluded: currently **none**.
+- Results: `build/test-results/smoke/` and `build/test-results/functional/`.
+
+### Before the first Jenkins build (outside this repository)
+
+Preview needs no Key Vault, managed identity or Terraform.
+
+
+| Prerequisite | Usually done by |
+|---|---|
+| Register the `ctam` product and team in the HMCTS Jenkins team configuration, including the container registry it publishes to | platform team, on request |
+| The `ctam` namespace in the preview cluster | platform team |
+| The repository discovered by the HMCTS Jenkins GitHub organisation, with the Jenkins check reporting on pull requests | platform team |

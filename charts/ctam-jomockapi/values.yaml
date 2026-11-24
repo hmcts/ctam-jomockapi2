@@ -1,0 +1,12 @@
+java:
+  applicationPort: 8080
+  image: 'hmctsprod.azurecr.io/ctam/jomockapi:latest'
+  ingressHost: ctam-jomockapi-{{ .Values.global.environment }}.service.core-compute-{{ .Values.global.environment }}.internal
+  # The service has no Actuator: all three probes use its own unauthenticated health check (constitution
+  # Principle II). The chart's defaults (/health/readiness, /health/liveness) don't exist here.
+  readinessPath: /api/v1/healthcheck
+  livenessPath: /api/v1/healthcheck
+  startupPath: /api/v1/healthcheck
+  # Bearer tokens are supplied per environment, never here: preview sets JO_SECURITY_BEARER_TOKENS in
+  # values.preview.template.yaml (014 FR-012, amended 2026-11-23). Nothing else is overridden, so a deployed copy
+  # serves exactly the shipped synthetic data (014 FR-013).

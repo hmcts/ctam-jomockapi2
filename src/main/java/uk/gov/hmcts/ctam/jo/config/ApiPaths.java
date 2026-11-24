@@ -13,6 +13,13 @@ public final class ApiPaths {
     public static final String HEALTHCHECK = "/api/v1/healthcheck";
 
     /**
+     * The platform health check: the same response as {@link #HEALTHCHECK}, at the path the HMCTS Jenkins pipeline
+     * calls after every preview deploy (its library hard-codes {@code /health}; 014 research R-15). It is outside
+     * {@code /api/}, so it is unauthenticated, and the correlation-ID filter exempts it as it does the healthcheck.
+     */
+    public static final String PLATFORM_HEALTH = "/health";
+
+    /**
      * The reference-data route prefix, for both the collection and the single-record route.
      */
     public static final String REFERENCE_DATA = "/api/v1/reference_data";

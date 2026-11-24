@@ -77,6 +77,13 @@ class BearerTokenAuthenticationFilterTest {
     }
 
     @Test
+    void doesNotFilterThePlatformHealthCheck() throws Exception {
+        filter.doFilter(request("/health", null), response, chain);
+
+        assertThat(passedThrough).isTrue();
+    }
+
+    @Test
     void doesNotFilterApiDocs() throws Exception {
         filter.doFilter(request("/v3/api-docs", null), response, chain);
 

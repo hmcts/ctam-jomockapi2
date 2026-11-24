@@ -1,0 +1,9 @@
+# Patterns to ignore when building the chart package.
+.git/
+.gitignore
+*.swp
+*.bak
+*.tmp
+*~
+.idea/
+.vscode/

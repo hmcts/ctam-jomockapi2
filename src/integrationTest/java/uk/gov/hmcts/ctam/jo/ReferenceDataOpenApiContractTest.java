@@ -62,6 +62,21 @@ class ReferenceDataOpenApiContractTest {
     }
 
     @Test
+    void openApiDocumentsThePlatformHealthCheckWithTheSameResponse() {
+        JsonNode operation = root.path("paths").path("/health").path("get");
+
+        assertThat(operation.path("summary").asString()).isEqualTo("Platform health check");
+        assertThat(operation.path("parameters").isMissingNode() || operation.path("parameters").isEmpty()).isTrue();
+        assertThat(operation.path("security").isMissingNode()).isTrue();
+
+        JsonNode okResponse = operation.path("responses").path("200");
+        assertThat(okResponse.path("description").asString()).isEqualTo("Service is healthy");
+        assertThat(schemaRef(okResponse))
+                .isEqualTo(schemaRef(root.path("paths").path("/api/v1/healthcheck").path("get").path("responses")
+                                         .path("200")));
+    }
+
+    @Test
     void collectionOperationIsIdentifiedAndTagged() {
         JsonNode operation = collection();
 

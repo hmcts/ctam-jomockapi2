@@ -13,6 +13,7 @@ import org.springframework.test.context.ActiveProfiles;
 import tools.jackson.databind.JsonNode;
 import uk.gov.hmcts.ctam.jo.testsupport.JsonTrees;
 import uk.gov.hmcts.ctam.jo.testsupport.PeopleHttp;
+import uk.gov.hmcts.ctam.jo.testsupport.TestTarget;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -574,7 +575,7 @@ class PeopleFunctionalTest {
     @ParameterizedTest
     @ValueSource(strings = {"", UNKNOWN_ID})
     void otherMethodsAre405AndUnacceptableMediaTypes406(String suffix) {
-        ResponseEntity<String> post = http.send(HttpMethod.POST, suffix, "Bearer test-token");
+        ResponseEntity<String> post = http.send(HttpMethod.POST, suffix, TestTarget.bearerToken());
         assertError(post, 405, METHOD_NOT_ALLOWED);
         assertThat(post.getHeaders().getFirst(HttpHeaders.ALLOW)).isEqualTo("GET");
 

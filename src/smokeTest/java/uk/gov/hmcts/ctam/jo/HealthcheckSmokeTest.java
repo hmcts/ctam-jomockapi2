@@ -5,6 +5,7 @@ import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.ResponseEntity;
+import uk.gov.hmcts.ctam.jo.testsupport.TestTarget;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -25,7 +26,7 @@ class HealthcheckSmokeTest {
         Instant start = Instant.now();
 
         ResponseEntity<String> response = restTemplate.getForEntity(
-                "http://localhost:" + port + "/api/v1/healthcheck", String.class);
+                TestTarget.baseUrl(port) + "/api/v1/healthcheck", String.class);
 
         Duration elapsed = Duration.between(start, Instant.now());
 
@@ -35,7 +36,7 @@ class HealthcheckSmokeTest {
 
     @Test
     void healthcheckAverageResponseTimeIsUnder100MillisAfterWarmUp() {
-        String url = "http://localhost:" + port + "/api/v1/healthcheck";
+        String url = TestTarget.baseUrl(port) + "/api/v1/healthcheck";
         int warmUpCalls = 5;
         int measuredCalls = 20;
 

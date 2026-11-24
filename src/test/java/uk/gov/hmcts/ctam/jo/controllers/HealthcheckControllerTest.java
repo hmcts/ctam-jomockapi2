@@ -61,6 +61,19 @@ class HealthcheckControllerTest {
     }
 
     @Test
+    void platformHealthCheckGivesTheSameBodyWithoutTokenOrCorrelationId() throws Exception {
+        MockHttpServletResponse response = mockMvc.perform(get("/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.*", hasSize(1)))
+                .andExpect(jsonPath("$.status").value("ok"))
+                .andReturn()
+                .getResponse();
+
+        assertThat(response.getContentType()).startsWith(MediaType.APPLICATION_JSON_VALUE);
+        assertThat(response.getHeader("X-Correlation-Id")).isNull();
+    }
+
+    @Test
     void healthcheckIgnoresUnexpectedQueryParameterAndBody() throws Exception {
         mockMvc.perform(get("/api/v1/healthcheck")
                         .param("unexpected", "1")

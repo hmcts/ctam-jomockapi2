@@ -37,6 +37,10 @@ public class JsonErrorController implements ErrorController {
 
     private final ErrorResponseFactory errorResponseFactory;
 
+    // Every method is mapped on purpose (Sonar java:S3752): the container forwards a failed request here with its
+    // original method, so restricting it would stop non-GET errors being rendered in the shared shape. Spring Boot's
+    // own BasicErrorController is mapped the same way. The endpoint changes no state and the API uses no cookies.
+    @SuppressWarnings("java:S3752")
     @RequestMapping("${server.error.path:/error}")
     public ResponseEntity<ErrorResponse> error(HttpServletRequest request) {
         int requested = statusCode(request);

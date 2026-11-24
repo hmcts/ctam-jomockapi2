@@ -20,7 +20,6 @@ import java.util.function.IntSupplier;
 import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.hmcts.ctam.jo.testsupport.ContractMessages.UNAUTHORIZED;
 import static uk.gov.hmcts.ctam.jo.testsupport.ErrorResponseAssertions.assertErrorBody;
-import static uk.gov.hmcts.ctam.jo.testsupport.TestTokens.BEARER_TOKEN;
 
 /**
  * Real-HTTP calls, checks and record lookups shared by the functional test classes, so each type's class doesn't
@@ -54,13 +53,13 @@ public final class ReferenceDataHttp {
      */
     public ResponseEntity<String> getAccepting(String path, String accept) {
         HttpHeaders headers = new HttpHeaders();
-        headers.set(HttpHeaders.AUTHORIZATION, BEARER_TOKEN);
+        headers.set(HttpHeaders.AUTHORIZATION, TestTarget.bearerToken());
         headers.set(HttpHeaders.ACCEPT, accept);
         return exchange(HttpMethod.GET, path, headers);
     }
 
     public ResponseEntity<String> send(HttpMethod method, String path) {
-        return send(method, path, BEARER_TOKEN);
+        return send(method, path, TestTarget.bearerToken());
     }
 
     /**
@@ -84,7 +83,7 @@ public final class ReferenceDataHttp {
     }
 
     private ResponseEntity<String> exchange(HttpMethod method, String path, HttpHeaders headers) {
-        return restTemplate.exchange(URI.create("http://localhost:" + port.getAsInt() + path), method,
+        return restTemplate.exchange(URI.create(TestTarget.baseUrl(port.getAsInt()) + path), method,
                                      new HttpEntity<>(headers), String.class);
     }
 

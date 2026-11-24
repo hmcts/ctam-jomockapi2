@@ -17,7 +17,7 @@ public record ErrorResponse(
                 example = "2026-09-23T10:15:30Z")
         Instant timestamp,
 
-        @Schema(description = "The request's correlation ID. Null only on the exempt healthcheck path.",
+        @Schema(description = "The request's correlation ID. Null only on the exempt health-check paths.",
                 requiredMode = Schema.RequiredMode.REQUIRED, nullable = true,
                 example = "3f1c2a9e-8b7d-4e21-9a55-0c6d1e2f3a4b")
         String traceId) {
