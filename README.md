@@ -89,6 +89,11 @@ npx newman run postman/ctam-jomockapi.postman_collection.json \
   -e postman/ctam-jomockapi.postman_environment.json
 ```
 
+To run the same collection against a preview copy (HMCTS VPN needed), use
+`postman/ctam-jomockapi.preview.postman_environment.json`. It points at pull request 25's copy with the preview
+token (see [Bearer tokens on preview](#bearer-tokens-on-preview)); for another pull request, override `baseUrl` with
+`--env-var baseUrl=https://ctam-jomockapi-pr-<N>.preview.platform.hmcts.net`.
+
 Swagger UI is available at `http://localhost:8080/swagger-ui/index.html`, and the
 raw OpenAPI document at `http://localhost:8080/v3/api-docs`.
 
